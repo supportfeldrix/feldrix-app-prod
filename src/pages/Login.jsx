@@ -104,8 +104,6 @@ export default function Login() {
             }}
           >
             {greeting}
-            <br />
-            Welcome Back
           </h1>
 
           <p
@@ -283,7 +281,7 @@ export default function Login() {
               fontSize: 16,
             }}
           >
-            Welcome back to Feldrix.
+            Sign in to your Feldrix account.
           </p>
 
           {error && (
