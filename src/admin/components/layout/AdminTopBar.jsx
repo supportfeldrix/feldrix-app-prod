@@ -1,9 +1,10 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Top Bar
- * Sprint 46.2
+ * Feldrix Control Centre — Top Bar (Polished)
+ * Sprint 47.1
  *
- * Hamburger on mobile, breadcrumb placeholder, admin badge.
+ * Shows current page title (not logo — logo is in sidebar).
+ * Hamburger on mobile. Admin avatar + role badge.
  * ============================================================
  */
 
@@ -22,7 +23,7 @@ export default function AdminTopBar({ onMenuToggle, showMenuButton }) {
   const currentNav = ADMIN_NAV_ITEMS.find((item) =>
     item.path === "" ? currentPath === "" || currentPath === "/" : currentPath.startsWith(item.path)
   );
-  const pageTitle = currentNav?.label || "Control Centre";
+  const pageTitle = currentNav?.label || "Dashboard";
 
   return (
     <Box
@@ -42,7 +43,7 @@ export default function AdminTopBar({ onMenuToggle, showMenuButton }) {
         paddingTop: { xs: "max(12px, env(safe-area-inset-top))", md: "12px" },
       }}
     >
-      {/* Left */}
+      {/* Left — Page Title */}
       <Stack direction="row" spacing={1.5} alignItems="center">
         {showMenuButton && (
           <IconButton
@@ -55,29 +56,19 @@ export default function AdminTopBar({ onMenuToggle, showMenuButton }) {
           </IconButton>
         )}
 
-        <Box>
-          <Box
-            component="img"
-            src="/branding/feldrix-logo-green.png"
-            alt="Feldrix"
-            sx={{ height: { xs: 22, md: 26 }, width: "auto", display: "block" }}
-          />
-          {!showMenuButton && (
-            <Typography
-              sx={{
-                fontSize: "0.6rem",
-                color: ADMIN_THEME.textSecondary,
-                letterSpacing: 0.5,
-                mt: 0.25,
-              }}
-            >
-              Control Centre
-            </Typography>
-          )}
-        </Box>
+        <Typography
+          sx={{
+            fontSize: { xs: "1.05rem", md: "1.2rem" },
+            fontWeight: 700,
+            color: ADMIN_THEME.text,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {pageTitle}
+        </Typography>
       </Stack>
 
-      {/* Right */}
+      {/* Right — Role + Avatar */}
       <Stack direction="row" spacing={1.5} alignItems="center">
         {admin && (
           <>

@@ -51,19 +51,19 @@ export default function AdminSidebar({ onNavigate }) {
       }}
     >
       {/* Branding */}
-      <Box sx={{ px: 1.5, mb: 3 }}>
+      <Box sx={{ px: 1.5, mb: 2.5 }}>
         <Box
           component="img"
           src="/branding/feldrix-logo-white.png"
           alt="Feldrix"
-          sx={{ height: 28, width: "auto", display: "block", mb: 0.75 }}
+          sx={{ height: 34, width: "auto", display: "block", mb: 0.75 }}
         />
         <Typography
           sx={{
-            fontSize: "0.6rem",
-            fontWeight: 600,
+            fontSize: "0.58rem",
+            fontWeight: 700,
             color: ADMIN_THEME.accent,
-            letterSpacing: 1.5,
+            letterSpacing: 2,
             textTransform: "uppercase",
           }}
         >
@@ -93,15 +93,15 @@ export default function AdminSidebar({ onNavigate }) {
                     px: 1.75,
                     py: 1.25,
                     borderRadius: "10px",
-                    color: active ? "#fff" : "rgba(255,255,255,0.65)",
+                    color: active ? "#fff" : "rgba(255,255,255,0.6)",
                     fontWeight: active ? 700 : 500,
                     fontSize: "0.85rem",
-                    bgcolor: active ? ADMIN_THEME.sidebarActive : "transparent",
+                    bgcolor: active ? "rgba(59,130,246,0.18)" : "transparent",
                     borderLeft: active ? `3px solid ${ADMIN_THEME.primary}` : "3px solid transparent",
                     transition: "all 0.15s ease",
                     minHeight: 42,
                     "&:hover": {
-                      bgcolor: ADMIN_THEME.sidebarHover,
+                      bgcolor: active ? "rgba(59,130,246,0.18)" : ADMIN_THEME.sidebarHover,
                       color: "#fff",
                     },
                   }}

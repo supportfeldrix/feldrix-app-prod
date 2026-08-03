@@ -58,11 +58,14 @@ export default function AdminDashboard() {
     <Stack spacing={4}>
       {/* Header */}
       <Box>
-        <Typography sx={{ fontSize: { xs: "1.3rem", md: "1.75rem" }, fontWeight: 800, color: ADMIN_THEME.text, letterSpacing: "-0.02em" }}>
+        <Typography sx={{ fontSize: { xs: "1.3rem", md: "1.6rem" }, fontWeight: 800, color: ADMIN_THEME.text, letterSpacing: "-0.02em" }}>
           {greeting}, {admin?.name?.split(" ")[0] || "Admin"}
         </Typography>
-        <Typography sx={{ fontSize: "0.9rem", color: ADMIN_THEME.textSecondary, mt: 0.5 }}>
-          Here's how Feldrix is performing today.
+        <Typography sx={{ fontSize: "0.88rem", color: ADMIN_THEME.textSecondary, mt: 0.25 }}>
+          Welcome back to the Feldrix Control Centre.
+        </Typography>
+        <Typography sx={{ fontSize: "0.82rem", color: ADMIN_THEME.textSecondary, mt: 0.25 }}>
+          Here's what's happening across the platform today.
         </Typography>
       </Box>
 
@@ -71,39 +74,38 @@ export default function AdminDashboard() {
         sx={{
           p: { xs: 2.5, md: 3 },
           borderRadius: 3,
-          bgcolor: `${ADMIN_THEME.primary}06`,
-          border: `1px solid ${ADMIN_THEME.primary}15`,
+          bgcolor: "#fff",
+          border: `1px solid ${ADMIN_THEME.cardBorder}`,
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
+        {/* Accent bar */}
+        <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${ADMIN_THEME.primary}, ${ADMIN_THEME.accent})` }} />
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
           <Typography sx={{ fontSize: "1rem" }}>🧠</Typography>
-          <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: ADMIN_THEME.text }}>
+          <Typography sx={{ fontSize: "0.9rem", fontWeight: 700, color: ADMIN_THEME.text }}>
             Platform Summary
           </Typography>
           <Chip label="AI" size="small" sx={{ height: 20, fontSize: "0.6rem", fontWeight: 700, bgcolor: `${ADMIN_THEME.primary}12`, color: ADMIN_THEME.primary }} />
         </Stack>
-        <Stack spacing={0.75}>
-          <Typography sx={{ fontSize: "0.82rem", color: ADMIN_THEME.textSecondary }}>
-            • <strong>{formatNumber(metrics?.todaySignups)}</strong> new farmer{metrics?.todaySignups !== 1 ? "s" : ""} today
-          </Typography>
-          <Typography sx={{ fontSize: "0.82rem", color: ADMIN_THEME.textSecondary }}>
-            • <strong>{formatNumber(metrics?.totalUsers)}</strong> total registered users ({formatNumber(metrics?.activeUsers)} active)
-          </Typography>
-          <Typography sx={{ fontSize: "0.82rem", color: ADMIN_THEME.textSecondary }}>
-            • <strong>{formatNumber(metrics?.totalLivestock)}</strong> livestock records · <strong>{formatNumber(metrics?.totalCrops)}</strong> crop records
-          </Typography>
-          <Typography sx={{ fontSize: "0.82rem", color: ADMIN_THEME.textSecondary }}>
-            • Onboarding completion: <strong>{metrics?.avgOnboardingCompletion || 0}%</strong> of users
-          </Typography>
-          <Typography sx={{ fontSize: "0.82rem", color: ADMIN_THEME.textSecondary }}>
-            • System health: <strong style={{ color: health?.overall === "healthy" ? "#16A34A" : "#F59E0B" }}>{health?.overall || "—"}</strong>
-          </Typography>
-          {metrics?.proSubscribers > 0 && (
-            <Typography sx={{ fontSize: "0.82rem", color: ADMIN_THEME.textSecondary }}>
-              • <strong>{formatNumber(metrics?.proSubscribers)}</strong> PRO subscribers · MRR {formatCurrency(metrics?.mrr)}
-            </Typography>
-          )}
-        </Stack>
+        <Grid container spacing={2}>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <SummaryMetric label="New Today" value={formatNumber(metrics?.todaySignups)} />
+          </Grid>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <SummaryMetric label="Total Users" value={formatNumber(metrics?.totalUsers)} />
+          </Grid>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <SummaryMetric label="Active" value={formatNumber(metrics?.activeUsers)} />
+          </Grid>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <SummaryMetric label="Livestock" value={formatNumber(metrics?.totalLivestock)} />
+          </Grid>
+          <Grid item xs={6} sm={4} md={2.4}>
+            <SummaryMetric label="System" value={health?.overall || "—"} color={health?.overall === "healthy" ? "#16A34A" : "#F59E0B"} />
+          </Grid>
+        </Grid>
       </Box>
 
       {/* Primary KPIs */}
@@ -247,5 +249,20 @@ export default function AdminDashboard() {
         </Grid>
       </Box>
     </Stack>
+  );
+}
+
+// ─── Helper Component ────────────────────────────────────────
+
+function SummaryMetric({ label, value, color }) {
+  return (
+    <Box sx={{ textAlign: "center" }}>
+      <Typography sx={{ fontSize: "1.3rem", fontWeight: 800, color: color || ADMIN_THEME.text, lineHeight: 1.2, textTransform: "capitalize" }}>
+        {value}
+      </Typography>
+      <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, color: ADMIN_THEME.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, mt: 0.25 }}>
+        {label}
+      </Typography>
+    </Box>
   );
 }
