@@ -92,18 +92,21 @@ export async function getUsers({
  * Get a single user's full profile with related counts.
  */
 export async function getUserDetail(userId) {
-  const [profileRes, livestockRes, cropsRes, tasksRes, financeRes] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", userId).single(),
-    supabase.from("livestock").select("*", { count: "exact", head: true }).eq("user_id", userId),
-    supabase.from("crops").select("*", { count: "exact", head: true }).eq("user_id", userId),
-    supabase.from("planner_tasks").select("*", { count: "exact", head: true }).eq("user_id", userId),
-    supabase.from("finance_records").select("*", { count: "exact", head: true }).eq("user_id", userId),
-  ]);
+  if (!userId) return { profile: null, counts: {} };
 
+  const profileRes = await supabase.from("profiles").select("*").eq("id", userId).single();
   if (profileRes.error) throw profileRes.error;
 
+  // Count queries — each wrapped individually so one table missing doesn't crash all
+  const [livestockRes, cropsRes, tasksRes, financeRes] = await Promise.all([
+    supabase.from("livestock").select("*", { count: "exact", head: true }).eq("user_id", userId).then(r => r).catch(() => ({ count: 0 })),
+    supabase.from("crops").select("*", { count: "exact", head: true }).eq("user_id", userId).then(r => r).catch(() => ({ count: 0 })),
+    supabase.from("planner_tasks").select("*", { count: "exact", head: true }).eq("user_id", userId).then(r => r).catch(() => ({ count: 0 })),
+    supabase.from("finance_records").select("*", { count: "exact", head: true }).eq("user_id", userId).then(r => r).catch(() => ({ count: 0 })),
+  ]);
+
   return {
-    profile: profileRes.data,
+    profile: profileRes.data || {},
     counts: {
       livestock: livestockRes.count || 0,
       crops: cropsRes.count || 0,
@@ -239,15 +242,20 @@ export async function restartOnboarding(userId, adminId) {
  * Get user timeline events.
  */
 export async function getUserTimeline(userId, { limit = 30 } = {}) {
-  const { data, error } = await supabase
-    .from("user_timeline")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from("user_timeline")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
-  if (error) throw error;
-  return data || [];
+    if (error) return [];
+    return data || [];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -273,28 +281,38 @@ export async function addTimelineEvent(userId, eventType, title, description = n
  * Get admin notes for a user.
  */
 export async function getUserNotes(userId) {
-  const { data, error } = await supabase
-    .from("admin_notes")
-    .select("*, profiles!admin_id(full_name)")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from("admin_notes")
+      .select("*, profiles!admin_id(full_name)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-  if (error) throw error;
-  return data || [];
+    if (error) return [];
+    return data || [];
+  } catch {
+    return [];
+  }
 }
 
 /**
  * Add an admin note.
  */
 export async function addUserNote(userId, adminId, content) {
-  const { data, error } = await supabase
-    .from("admin_notes")
-    .insert({ user_id: userId, admin_id: adminId, content })
-    .select("*, profiles!admin_id(full_name)")
-    .single();
+  if (!userId || !adminId || !content) return null;
+  try {
+    const { data, error } = await supabase
+      .from("admin_notes")
+      .insert({ user_id: userId, admin_id: adminId, content })
+      .select("*, profiles!admin_id(full_name)")
+      .single();
 
-  if (error) throw error;
-  return data;
+    if (error) return null;
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 /**

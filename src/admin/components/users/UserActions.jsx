@@ -80,9 +80,9 @@ export default function UserActions({ user, onUpdated }) {
   }
 
   const CONFIRM_MESSAGES = {
-    suspend: { title: "Suspend User", message: `Are you sure you want to suspend ${user.full_name || user.email}? They will be unable to access Feldrix.`, severity: "warning" },
-    reactivate: { title: "Reactivate User", message: `Reactivate ${user.full_name || user.email}? They will regain full access.`, severity: "success" },
-    restart_onboarding: { title: "Restart Onboarding", message: `Reset the onboarding journey for ${user.full_name || user.email}? Their progress will be cleared.`, severity: "info" },
+    suspend: { title: "Suspend User", message: `Are you sure you want to suspend ${user?.full_name || user?.email || "this user"}? They will be unable to access Feldrix.`, severity: "warning" },
+    reactivate: { title: "Reactivate User", message: `Reactivate ${user?.full_name || user?.email || "this user"}? They will regain full access.`, severity: "success" },
+    restart_onboarding: { title: "Restart Onboarding", message: `Reset the onboarding journey for ${user?.full_name || user?.email || "this user"}? Their progress will be cleared.`, severity: "info" },
   };
 
   const dialogInfo = confirmDialog ? CONFIRM_MESSAGES[confirmDialog] : null;
@@ -176,7 +176,7 @@ export default function UserActions({ user, onUpdated }) {
         <DialogTitle sx={{ fontWeight: 700, fontSize: "1.1rem" }}>Change Role</DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: "0.85rem", color: ADMIN_THEME.textSecondary, mb: 2.5 }}>
-            Select a new role for {user.full_name || user.email}.
+            Select a new role for {user?.full_name || user?.email || "this user"}.
           </Typography>
           <FormControl fullWidth size="small">
             <InputLabel>Role</InputLabel>
@@ -196,7 +196,7 @@ export default function UserActions({ user, onUpdated }) {
           <Button
             variant="contained"
             onClick={executeRoleChange}
-            disabled={processing || selectedRole === user.role}
+            disabled={processing || selectedRole === (user?.role || "farmer")}
             sx={{ textTransform: "none", fontSize: "0.85rem", fontWeight: 600, borderRadius: 2 }}
           >
             {processing ? "Saving..." : "Update Role"}

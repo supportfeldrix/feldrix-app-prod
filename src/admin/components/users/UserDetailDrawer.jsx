@@ -1,7 +1,7 @@
 /**
  * ============================================================
  * Feldrix Control Centre — User Detail Drawer (Enterprise)
- * Sprint 47.0
+ * Sprint 47.0 — Bug fix: null-safe throughout
  *
  * Full-screen on mobile, right-side panel on desktop.
  * Profile, farm, subscription, onboarding, timeline, notes.
@@ -36,43 +36,65 @@ export default function UserDetailDrawer({ open, user, onClose, onUserUpdated })
   const [addingNote, setAddingNote] = useState(false);
 
   useEffect(() => {
-    if (!open || !user) return;
+    if (!open || !user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     loadData();
   }, [open, user?.id]);
 
   async function loadData() {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     try {
       const [d, t, n] = await Promise.all([
-        getUserDetail(user.id),
+        getUserDetail(user.id).catch(() => null),
         getUserTimeline(user.id).catch(() => []),
         getUserNotes(user.id).catch(() => []),
       ]);
       setDetail(d);
-      setTimeline(t);
-      setNotes(n);
+      setTimeline(t || []);
+      setNotes(n || []);
     } catch {
-      // Graceful — show what we have
+      // Graceful — show what we have from the user prop
+      setDetail(null);
+      setTimeline([]);
+      setNotes([]);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleAddNote() {
-    if (!newNote.trim() || !admin) return;
+    if (!newNote.trim() || !admin?.id || !user?.id) return;
     setAddingNote(true);
     try {
       const note = await addUserNote(user.id, admin.id, newNote.trim());
-      setNotes((prev) => [note, ...prev]);
+      if (note) setNotes((prev) => [note, ...prev]);
       setNewNote("");
     } catch { /* silent */ }
     setAddingNote(false);
   }
 
-  const profile = detail?.profile || user;
+  // Null-safe profile resolution
+  const profile = detail?.profile || user || {};
   const counts = detail?.counts || {};
-  const onboarding = profile?.onboarding_state || {};
+  const onboarding = profile.onboarding_state || {};
   const onboardingProgress = onboarding.completed ? 100 : 0;
+
+  // Don't render drawer content if no user
+  if (!user) {
+    return (
+      <Drawer anchor="right" open={open} onClose={onClose}>
+        <Box sx={{ p: 4, textAlign: "center" }}>
+          <Typography color="text.secondary">No user selected.</Typography>
+        </Box>
+      </Drawer>
+    );
+  }
 
   return (
     <Drawer
@@ -93,14 +115,14 @@ export default function UserDetailDrawer({ open, user, onClose, onUserUpdated })
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
           <Stack direction="row" spacing={2} alignItems="center">
             <Avatar sx={{ width: 48, height: 48, bgcolor: ADMIN_THEME.primary, fontWeight: 700, fontSize: "1.1rem" }}>
-              {(profile.full_name || "?").charAt(0).toUpperCase()}
+              {(profile.full_name || profile.email || "?").charAt(0).toUpperCase()}
             </Avatar>
             <Box>
               <Typography sx={{ fontSize: "1.1rem", fontWeight: 700, color: ADMIN_THEME.text }}>
-                {profile.full_name || "—"}
+                {profile.full_name || "Unknown User"}
               </Typography>
               <Typography sx={{ fontSize: "0.8rem", color: ADMIN_THEME.textSecondary }}>
-                {profile.email}
+                {profile.email || "—"}
               </Typography>
             </Box>
           </Stack>
@@ -133,7 +155,7 @@ export default function UserDetailDrawer({ open, user, onClose, onUserUpdated })
 
             {/* Farm Summary */}
             <Card title="🚜 Farm Summary">
-              <InfoRow label="Farm Name" value={profile.farm_name || "—"} />
+              <InfoRow label="Farm Name" value={profile.farm_name || "No Farm"} />
               <InfoRow label="Farm Type" value={profile.farm_type || "—"} />
               <InfoRow label="Location" value={[profile.province, profile.country].filter(Boolean).join(", ") || "—"} />
               <Divider sx={{ my: 1 }} />
@@ -166,7 +188,7 @@ export default function UserDetailDrawer({ open, user, onClose, onUserUpdated })
                     <Box key={event.id} sx={{ display: "flex", gap: 1.5 }}>
                       <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: ADMIN_THEME.primary, mt: 0.7, flexShrink: 0 }} />
                       <Box>
-                        <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, color: ADMIN_THEME.text }}>{event.title}</Typography>
+                        <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, color: ADMIN_THEME.text }}>{event.title || "Event"}</Typography>
                         {event.description && <Typography sx={{ fontSize: "0.72rem", color: ADMIN_THEME.textSecondary }}>{event.description}</Typography>}
                         <Typography sx={{ fontSize: "0.65rem", color: "#94A3B8", mt: 0.25 }}>{formatRelativeTime(event.created_at)}</Typography>
                       </Box>
@@ -177,7 +199,7 @@ export default function UserDetailDrawer({ open, user, onClose, onUserUpdated })
             </Card>
 
             {/* Admin Notes */}
-            {(permissions.canManageUsers || permissions.canViewSupport) && (
+            {(permissions?.canManageUsers || permissions?.canViewSupport) && (
               <Card title="📝 Admin Notes">
                 {/* Add note */}
                 <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
@@ -206,7 +228,7 @@ export default function UserDetailDrawer({ open, user, onClose, onUserUpdated })
                   <Stack spacing={1.5}>
                     {notes.map((note) => (
                       <Box key={note.id} sx={{ p: 1.5, borderRadius: 2, bgcolor: "#F1F5F9", border: "1px solid #E2E8F0" }}>
-                        <Typography sx={{ fontSize: "0.78rem", color: ADMIN_THEME.text, whiteSpace: "pre-wrap" }}>{note.content}</Typography>
+                        <Typography sx={{ fontSize: "0.78rem", color: ADMIN_THEME.text, whiteSpace: "pre-wrap" }}>{note.content || ""}</Typography>
                         <Typography sx={{ fontSize: "0.65rem", color: "#94A3B8", mt: 0.75 }}>
                           {note.profiles?.full_name || "Admin"} · {formatRelativeTime(note.created_at)}
                         </Typography>
@@ -238,7 +260,7 @@ function InfoRow({ label, value }) {
   return (
     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.5 }}>
       <Typography sx={{ fontSize: "0.75rem", color: ADMIN_THEME.textSecondary }}>{label}</Typography>
-      <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: ADMIN_THEME.text }}>{value}</Typography>
+      <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: ADMIN_THEME.text }}>{value ?? "—"}</Typography>
     </Stack>
   );
 }
