@@ -56,25 +56,22 @@ export default function AdminTopBar({ onMenuToggle, showMenuButton }) {
         )}
 
         <Box>
-          <Typography
-            sx={{
-              fontSize: { xs: "1rem", md: "1.15rem" },
-              fontWeight: 700,
-              color: ADMIN_THEME.text,
-              lineHeight: 1.2,
-            }}
-          >
-            {pageTitle}
-          </Typography>
+          <Box
+            component="img"
+            src="/branding/feldrix-logo-green.png"
+            alt="Feldrix"
+            sx={{ height: { xs: 22, md: 26 }, width: "auto", display: "block" }}
+          />
           {!showMenuButton && (
             <Typography
               sx={{
-                fontSize: "0.7rem",
+                fontSize: "0.6rem",
                 color: ADMIN_THEME.textSecondary,
                 letterSpacing: 0.5,
+                mt: 0.25,
               }}
             >
-              Feldrix Control Centre
+              Control Centre
             </Typography>
           )}
         </Box>

@@ -52,17 +52,12 @@ export default function AdminSidebar({ onNavigate }) {
     >
       {/* Branding */}
       <Box sx={{ px: 1.5, mb: 3 }}>
-        <Typography
-          sx={{
-            fontSize: "1.1rem",
-            fontWeight: 800,
-            color: "#fff",
-            letterSpacing: "-0.02em",
-            mb: 0.25,
-          }}
-        >
-          FELDRIX
-        </Typography>
+        <Box
+          component="img"
+          src="/branding/feldrix-logo-white.png"
+          alt="Feldrix"
+          sx={{ height: 28, width: "auto", display: "block", mb: 0.75 }}
+        />
         <Typography
           sx={{
             fontSize: "0.6rem",

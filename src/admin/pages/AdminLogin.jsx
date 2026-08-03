@@ -129,30 +129,11 @@ export default function AdminLogin() {
         {/* Branding */}
         <Box sx={{ textAlign: "center", mb: 4 }}>
           <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: "14px",
-              bgcolor: ADMIN_THEME.primary,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              mx: "auto",
-              mb: 2,
-            }}
-          >
-            <Typography sx={{ color: "#fff", fontWeight: 800, fontSize: "1.2rem" }}>F</Typography>
-          </Box>
-          <Typography
-            sx={{
-              fontSize: "1.1rem",
-              fontWeight: 800,
-              color: ADMIN_THEME.text,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            FELDRIX
-          </Typography>
+            component="img"
+            src="/branding/feldrix-logo-green.png"
+            alt="Feldrix"
+            sx={{ height: 36, width: "auto", display: "block", mx: "auto", mb: 1.5 }}
+          />
           <Typography
             sx={{
               fontSize: "0.65rem",
