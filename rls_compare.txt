@@ -1,0 +1,11 @@
+=== DEV (4 policies) ===
+  [INSERT] "Users can create their own profile" roles={authenticated} USING=(none) WITH_CHECK=(auth.uid() = id)
+  [INSERT] "Users insert own profile" roles={public} USING=(none) WITH_CHECK=(auth.uid() = id)
+  [SELECT] "Users view own profile" roles={public} USING=(auth.uid() = id) WITH_CHECK=(none)
+  [UPDATE] "Users update own profile" roles={public} USING=(auth.uid() = id) WITH_CHECK=(none)
+
+=== PROD (4 policies) ===
+  [INSERT] "Users can create their own profile" roles={authenticated} USING=(none) WITH_CHECK=(auth.uid() = id)
+  [INSERT] "Users insert own profile" roles={public} USING=(none) WITH_CHECK=(auth.uid() = id)
+  [SELECT] "Users view own profile" roles={public} USING=(auth.uid() = id) WITH_CHECK=(none)
+  [UPDATE] "Users update own profile" roles={public} USING=(auth.uid() = id) WITH_CHECK=(none)

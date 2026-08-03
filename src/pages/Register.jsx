@@ -66,7 +66,7 @@ export default function Register() {
       const { error: profileError } =
         await supabase
           .from("profiles")
-          .insert({
+          .upsert({
             id: user.id,
             full_name: form.fullName,
             email: form.email,
@@ -81,7 +81,7 @@ export default function Register() {
             weekly_summary: true,
             email_notifications: true,
             sms_notifications: false,
-          });
+          }, { onConflict: "id" });
 
       if (profileError) {
         console.error("=================================");

@@ -1,0 +1,4 @@
+﻿@{policyname=Users can create their own profile; permissive=PERMISSIVE; roles={authenticated}; cmd=INSERT; qual=; with_check=(auth.uid() = id)}
+@{policyname=Users insert own profile; permissive=PERMISSIVE; roles={public}; cmd=INSERT; qual=; with_check=(auth.uid() = id)}
+@{policyname=Users view own profile; permissive=PERMISSIVE; roles={public}; cmd=SELECT; qual=(auth.uid() = id); with_check=}
+@{policyname=Users update own profile; permissive=PERMISSIVE; roles={public}; cmd=UPDATE; qual=(auth.uid() = id); with_check=}
