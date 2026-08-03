@@ -5,56 +5,93 @@ import {
   Typography,
   Box,
 } from "@mui/material";
-import { Notifications } from "@mui/icons-material";
+import { Menu, Notifications } from "@mui/icons-material";
 import { useNotificationBadge } from "../../context/NotificationContext";
 
-export default function TopBar({ onNotificationClick }) {
+/**
+ * Top bar header.
+ * On mobile: shows hamburger menu button to toggle the sidebar drawer.
+ * On desktop: shows branding only (sidebar is always visible).
+ */
+export default function TopBar({ onNotificationClick, onMenuToggle, showMenuButton }) {
   const { unreadCount } = useNotificationBadge();
 
   return (
-    <header
-      style={{
-        background: "#ffffff",
-        padding: "12px 24px",
+    <Box
+      component="header"
+      sx={{
+        bgcolor: "#ffffff",
+        px: { xs: 2, sm: 3 },
+        py: 1.5,
         borderBottom: "1px solid #e5e7eb",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        height: 68,
+        minHeight: { xs: 56, md: 68 },
         boxSizing: "border-box",
+        position: "sticky",
+        top: 0,
+        zIndex: 1100,
+        // Safe area support
+        paddingTop: { xs: "max(12px, env(safe-area-inset-top))", md: "12px" },
       }}
     >
       {/* Left Side */}
-      <Box>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 700,
-            color: "#0D2F1F",
-            lineHeight: 1,
-          }}
-        >
-          FELDRIX
-        </Typography>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        {showMenuButton && (
+          <IconButton
+            onClick={onMenuToggle}
+            aria-label="Open navigation menu"
+            edge="start"
+            sx={{
+              color: "#0D2F1F",
+              mr: 0.5,
+              // Ensure 44px touch target
+              width: 44,
+              height: 44,
+            }}
+          >
+            <Menu />
+          </IconButton>
+        )}
 
-        <Typography
-          variant="caption"
-          sx={{
-            color: "text.secondary",
-            letterSpacing: 1,
-            textTransform: "uppercase",
-          }}
-        >
-          The Smart Farm Operating System
-        </Typography>
-      </Box>
+        <Box>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: "#0D2F1F",
+              lineHeight: 1,
+              fontSize: { xs: "1rem", md: "1.25rem" },
+            }}
+          >
+            FELDRIX
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              fontSize: { xs: "0.6rem", md: "0.75rem" },
+              display: { xs: "none", sm: "block" },
+            }}
+          >
+            The Smart Farm Operating System
+          </Typography>
+        </Box>
+      </Stack>
 
       {/* Right Side */}
       <Stack direction="row" spacing={1} alignItems="center">
         <IconButton
-          size="small"
           onClick={onNotificationClick}
           aria-label="Notifications"
+          sx={{
+            // Ensure 44px touch target
+            width: 44,
+            height: 44,
+          }}
         >
           <Badge
             badgeContent={unreadCount}
@@ -71,6 +108,6 @@ export default function TopBar({ onNotificationClick }) {
           </Badge>
         </IconButton>
       </Stack>
-    </header>
+    </Box>
   );
 }

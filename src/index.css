@@ -1,20 +1,112 @@
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
+/* ============================================================
+   Feldrix — Global Styles
+   Mobile-first, safe-area aware
+   ============================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-html,body,#root{
-height:100%;
-font-family:'Inter',sans-serif;
-background:#f5f7fa;
+html, body, #root {
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  background: #f5f7fa;
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
 }
 
-a{
-text-decoration:none;
-color:inherit;
+/* iOS standalone PWA viewport fix */
+html {
+  /* Allow content to extend into safe areas where we handle it */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-button{
-cursor:pointer;
+body {
+  /* Prevent pull-to-refresh on PWA standalone mode */
+  overscroll-behavior-y: contain;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Smooth scrolling */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch targets — ensure minimum size for interactive elements */
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Except inline text links */
+  p a, li a, span a {
+    min-height: unset;
+    min-width: unset;
+  }
+}
+
+/* iOS input zoom prevention */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Scrollbar styling — subtle on desktop, hidden on mobile */
+@media (hover: hover) {
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid #2E7D32;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(46, 125, 50, 0.15);
+  color: #0D2F1F;
 }
