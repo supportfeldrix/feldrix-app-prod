@@ -5,9 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:admin": "VITE_APP_MODE=admin vite",
     "build": "vite build",
+    "build:farmer": "vite build",
+    "build:admin": "VITE_APP_MODE=admin vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:admin": "VITE_APP_MODE=admin vite preview"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
