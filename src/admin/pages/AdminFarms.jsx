@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Box, Grid, Stack } from "@mui/material";
+import { Box, Grid, Stack, Skeleton } from "@mui/material";
 import { FxPageLayout, FxStatCard, semantic, typography as typo } from "../../shared/design";
 import FarmTable from "../components/farms/FarmTable";
 import FarmDetailDrawer from "../components/farms/FarmDetailDrawer";
@@ -84,12 +84,23 @@ export default function AdminFarms() {
   return (
     <FxPageLayout title="Farms" subtitle="Operational view of every farm using Feldrix.">
       {/* KPI Dashboard */}
+      {!metrics && (
+        <Box sx={{ mb: 1 }}>
+          <Grid container spacing={2}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Grid item xs={6} sm={4} md={2} key={i}>
+                <Skeleton variant="rounded" height={110} sx={{ borderRadius: 3 }} />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
       {metrics && (
         <Box sx={{ mb: 1 }}>
           <Grid container spacing={2}>
-            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🚜" label="Total Farms" value={formatNumber(metrics.totalFarms)} /></Grid>
+            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🚜" label="Total Farms" value={formatNumber(metrics.totalFarms)} subtitle="All registered" /></Grid>
             <Grid item xs={6} sm={4} md={2}><FxStatCard icon="✅" label="Active Farms" value={formatNumber(metrics.activeFarms)} color="#16A34A" /></Grid>
-            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⭐" label="PRO Farms" value={formatNumber(metrics.proFarms)} color="#8B5CF6" /></Grid>
+            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⭐" label="PRO Farms" value={formatNumber(metrics.proFarms)} color="#8B5CF6" subtitle="Subscribed" /></Grid>
             <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🆓" label="Starter" value={formatNumber(metrics.starterFarms)} color="#3B82F6" /></Grid>
             <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🆕" label="New This Month" value={formatNumber(metrics.newThisMonth)} color="#F59E0B" /></Grid>
             <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📡" label="Active Today" value={formatNumber(metrics.activeToday)} color="#0EA5E9" /></Grid>
@@ -114,6 +125,7 @@ export default function AdminFarms() {
         onPageChange={setPage}
         pageSize={PAGE_SIZE}
         onFarmClick={handleFarmClick}
+        onRefresh={fetchFarms}
       />
 
       {/* Farm Detail Drawer */}
