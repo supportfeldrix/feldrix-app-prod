@@ -1,16 +1,17 @@
 /**
  * ============================================================
  * Feldrix Control Centre — Standalone App Router
- * Sprint 46.4
+ * Sprint 52.5
  *
- * Used when deployed independently at admin.feldrix.com.
- * Routes are at root level (/ not /admin).
+ * AdminProvider wraps the ENTIRE app — stays mounted across
+ * all navigations. No re-authentication on page changes.
  * ============================================================
  */
 
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
+import { AdminProvider } from "./admin/context/AdminContext";
 
 import AdminLogin from "./admin/pages/AdminLogin";
 
@@ -38,39 +39,41 @@ function LoadingFallback() {
 
 export default function AdminApp() {
   return (
-    <Routes>
-      {/* Auth */}
-      <Route path="/login" element={<AdminLogin />} />
-      <Route path="/" element={<Navigate to="/login" replace />} />
+    <AdminProvider>
+      <Routes>
+        {/* Auth — outside guard */}
+        <Route path="/login" element={<AdminLogin />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-      {/* Control Centre — routes at root level */}
-      <Route
-        element={
-          <Suspense fallback={<LoadingFallback />}>
-            <AdminRouteGuard />
-          </Suspense>
-        }
-      >
+        {/* Protected — guard checks context (no remount) */}
         <Route
           element={
             <Suspense fallback={<LoadingFallback />}>
-              <AdminLayout />
+              <AdminRouteGuard />
             </Suspense>
           }
         >
-          <Route path="/dashboard" element={<Suspense fallback={null}><AdminDashboard /></Suspense>} />
-          <Route path="/users" element={<Suspense fallback={null}><AdminUsers /></Suspense>} />
-          <Route path="/farms" element={<Suspense fallback={null}><AdminFarms /></Suspense>} />
-          <Route path="/subscriptions" element={<Suspense fallback={null}><AdminSubscriptions /></Suspense>} />
-          <Route path="/payments" element={<Suspense fallback={null}><AdminPayments /></Suspense>} />
-          <Route path="/analytics" element={<Suspense fallback={null}><AdminAnalytics /></Suspense>} />
-          <Route path="/support" element={<Suspense fallback={null}><AdminSupport /></Suspense>} />
-          <Route path="/notifications" element={<Suspense fallback={null}><AdminNotifications /></Suspense>} />
-          <Route path="/system" element={<Suspense fallback={null}><AdminSystemHealth /></Suspense>} />
-          <Route path="/audit" element={<Suspense fallback={null}><AdminAuditLog /></Suspense>} />
-          <Route path="/settings" element={<Suspense fallback={null}><AdminSettings /></Suspense>} />
+          <Route
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminLayout />
+              </Suspense>
+            }
+          >
+            <Route path="/dashboard" element={<Suspense fallback={null}><AdminDashboard /></Suspense>} />
+            <Route path="/users" element={<Suspense fallback={null}><AdminUsers /></Suspense>} />
+            <Route path="/farms" element={<Suspense fallback={null}><AdminFarms /></Suspense>} />
+            <Route path="/subscriptions" element={<Suspense fallback={null}><AdminSubscriptions /></Suspense>} />
+            <Route path="/payments" element={<Suspense fallback={null}><AdminPayments /></Suspense>} />
+            <Route path="/analytics" element={<Suspense fallback={null}><AdminAnalytics /></Suspense>} />
+            <Route path="/support" element={<Suspense fallback={null}><AdminSupport /></Suspense>} />
+            <Route path="/notifications" element={<Suspense fallback={null}><AdminNotifications /></Suspense>} />
+            <Route path="/system" element={<Suspense fallback={null}><AdminSystemHealth /></Suspense>} />
+            <Route path="/audit" element={<Suspense fallback={null}><AdminAuditLog /></Suspense>} />
+            <Route path="/settings" element={<Suspense fallback={null}><AdminSettings /></Suspense>} />
+          </Route>
         </Route>
-      </Route>
-    </Routes>
+      </Routes>
+    </AdminProvider>
   );
 }

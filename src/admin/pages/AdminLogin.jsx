@@ -10,14 +10,23 @@
  * ============================================================
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { supabase } from "../../supabaseClient";
 import { ADMIN_ROLES, ADMIN_THEME } from "../utils/adminConstants";
+import { useAdminContext } from "../context/AdminContext";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const { isAdmin, isLoading, refresh } = useAdminContext();
+
+  // Already authenticated as admin → go to dashboard
+  useEffect(() => {
+    if (!isLoading && isAdmin) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAdmin, isLoading, navigate]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +68,8 @@ export default function AdminLogin() {
         return;
       }
 
-      // Authorised — enter Control Centre
+      // Authorised — refresh context and enter Control Centre
+      await refresh();
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err.message || "Authentication failed.");

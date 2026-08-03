@@ -1,101 +1,46 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Route Guard (Production)
- * Sprint 46.3
+ * Feldrix Control Centre — Route Guard (Fixed)
+ * Sprint 52.5
  *
- * Protects all /admin routes.
- * - No session → redirect to /login
- * - Session but no admin role → generic 404 (never exposes admin)
- * - Admin role → render Control Centre
+ * ONLY consumes AdminContext — does NOT provide it.
+ * AdminProvider is now in AdminApp.jsx (stays mounted).
+ * This prevents re-authentication on every navigation.
  * ============================================================
  */
 
 import { Outlet, Navigate } from "react-router-dom";
 import { Box, Typography, CircularProgress } from "@mui/material";
-import { AdminProvider, useAdminContext } from "../../context/AdminContext";
+import { useAdminContext } from "../../context/AdminContext";
 
-function GuardInner() {
+export default function AdminRouteGuard() {
   const { isAdmin, isLoading, isAuthenticated } = useAdminContext();
 
-  // Loading — minimal spinner, no admin branding
+  // Loading — minimal spinner
   if (isLoading) {
     return (
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          bgcolor: "#F8FAFC",
-        }}
-      >
+      <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "#F8FAFC" }}>
         <CircularProgress size={32} sx={{ color: "#64748B" }} />
       </Box>
     );
   }
 
-  // Not authenticated at all → login
+  // Not authenticated → login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Authenticated but NOT an admin role → generic 404
+  // Authenticated but NOT admin → generic 404
   if (!isAdmin) {
-    return <NotFoundPage />;
+    return (
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "#F8FAFC", px: 3, textAlign: "center" }}>
+        <Typography sx={{ fontSize: "4rem", fontWeight: 800, color: "#CBD5E1", mb: 1 }}>404</Typography>
+        <Typography sx={{ fontSize: "1.1rem", color: "#64748B", mb: 3 }}>Page not found</Typography>
+        <Typography component="a" href="/" sx={{ color: "#3B82F6", textDecoration: "none", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}>Go back</Typography>
+      </Box>
+    );
   }
 
-  // Authorised admin → render Control Centre
+  // Authorised → render children
   return <Outlet />;
-}
-
-/**
- * Generic 404 — does NOT reveal admin portal existence.
- */
-function NotFoundPage() {
-  return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        bgcolor: "#F8FAFC",
-        px: 3,
-        textAlign: "center",
-      }}
-    >
-      <Typography
-        sx={{ fontSize: "4rem", fontWeight: 800, color: "#CBD5E1", mb: 1 }}
-      >
-        404
-      </Typography>
-      <Typography sx={{ fontSize: "1.1rem", color: "#64748B", mb: 3 }}>
-        Page not found
-      </Typography>
-      <Typography
-        component="a"
-        href="/dashboard"
-        sx={{
-          color: "#3B82F6",
-          textDecoration: "none",
-          fontWeight: 600,
-          "&:hover": { textDecoration: "underline" },
-        }}
-      >
-        Go to Dashboard
-      </Typography>
-    </Box>
-  );
-}
-
-/**
- * Root wrapper — provides AdminContext and renders guard.
- */
-export default function AdminRouteGuard() {
-  return (
-    <AdminProvider>
-      <GuardInner />
-    </AdminProvider>
-  );
 }
