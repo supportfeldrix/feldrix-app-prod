@@ -1,16 +1,17 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Farms Operations Centre
- * Sprint 48.0
+ * Feldrix Control Centre — Farms Operations (Premium v2.0)
+ * Version 2.0 Phase 2
  *
- * Executive dashboard + enterprise table + detail drawer.
- * Uses shared Feldrix Design System throughout.
+ * Matches Dashboard + Users visual standard.
+ * Same page flow: Header → KPIs → Table → Drawer.
  * ============================================================
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Box, Grid, Stack, Skeleton } from "@mui/material";
-import { FxPageLayout, FxStatCard, semantic, typography as typo } from "../../shared/design";
+import { Box, Typography, Stack, Grid, Skeleton, IconButton, Tooltip } from "@mui/material";
+import { Refresh } from "@mui/icons-material";
+import { FxStatCard, semantic, typography as typo } from "../../shared/design";
 import FarmTable from "../components/farms/FarmTable";
 import FarmDetailDrawer from "../components/farms/FarmDetailDrawer";
 import { getFarms, getFarmMetrics } from "../services/adminFarmService";
@@ -19,10 +20,7 @@ import { formatNumber } from "../utils/adminFormatters";
 const PAGE_SIZE = 25;
 
 export default function AdminFarms() {
-  // KPI metrics
   const [metrics, setMetrics] = useState(null);
-
-  // Table state
   const [farms, setFarms] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,80 +30,57 @@ export default function AdminFarms() {
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
   const [page, setPage] = useState(1);
-
-  // Drawer
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+  useEffect(() => { const t = setTimeout(() => setDebouncedSearch(search), 300); return () => clearTimeout(t); }, [search]);
 
-  // Load metrics
-  useEffect(() => {
-    getFarmMetrics().then(setMetrics).catch(() => {});
-  }, []);
+  useEffect(() => { getFarmMetrics().then(setMetrics).catch(() => {}); }, []);
 
-  // Fetch farms
   const fetchFarms = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
-      const result = await getFarms({
-        search: debouncedSearch,
-        filter,
-        sortBy,
-        sortDir,
-        limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
-      });
-      setFarms(result.farms);
-      setTotal(result.total);
-    } catch (err) {
-      setError(err?.message || "Failed to load farms.");
-      setFarms([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
+      const r = await getFarms({ search: debouncedSearch, filter, sortBy, sortDir, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+      setFarms(r.farms); setTotal(r.total);
+    } catch (err) { setError(err?.message || "Failed to load."); setFarms([]); setTotal(0); }
+    finally { setLoading(false); }
   }, [debouncedSearch, filter, sortBy, sortDir, page]);
 
   useEffect(() => { fetchFarms(); }, [fetchFarms]);
   useEffect(() => { setPage(1); }, [debouncedSearch, filter]);
 
-  function handleSortChange(col, dir) { setSortBy(col); setSortDir(dir); }
-  function handleFarmClick(farm) { setSelectedFarm(farm); setDrawerOpen(true); }
-  function handleDrawerClose() { setDrawerOpen(false); setSelectedFarm(null); }
-  function handleUpdated() { fetchFarms(); getFarmMetrics().then(setMetrics).catch(() => {}); }
+  function handleRefresh() { fetchFarms(); getFarmMetrics().then(setMetrics).catch(() => {}); }
 
   return (
-    <FxPageLayout title="Farms" subtitle="Operational view of every farm using Feldrix.">
-      {/* KPI Dashboard */}
-      {!metrics && (
-        <Box sx={{ mb: 1 }}>
-          <Grid container spacing={2}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Grid item xs={6} sm={4} md={2} key={i}>
-                <Skeleton variant="rounded" height={110} sx={{ borderRadius: 3 }} />
-              </Grid>
-            ))}
-          </Grid>
+    <Stack spacing={4}>
+      {/* Page Header */}
+      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1.5}>
+        <Box>
+          <Typography sx={{ ...typo.pageTitle, color: semantic.text }}>Farms</Typography>
+          <Typography sx={{ ...typo.pageSubtitle, color: semantic.textSecondary, mt: 0.25 }}>
+            Operational view of every farm using Feldrix.
+          </Typography>
         </Box>
-      )}
-      {metrics && (
-        <Box sx={{ mb: 1 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🚜" label="Total Farms" value={formatNumber(metrics.totalFarms)} subtitle="All registered" /></Grid>
-            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="✅" label="Active Farms" value={formatNumber(metrics.activeFarms)} color="#16A34A" /></Grid>
-            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⭐" label="PRO Farms" value={formatNumber(metrics.proFarms)} color="#8B5CF6" subtitle="Subscribed" /></Grid>
-            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🆓" label="Starter" value={formatNumber(metrics.starterFarms)} color="#3B82F6" /></Grid>
-            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🆕" label="New This Month" value={formatNumber(metrics.newThisMonth)} color="#F59E0B" /></Grid>
-            <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📡" label="Active Today" value={formatNumber(metrics.activeToday)} color="#0EA5E9" /></Grid>
-          </Grid>
-        </Box>
+        <Tooltip title="Refresh">
+          <IconButton onClick={handleRefresh} sx={{ width: 40, height: 40, border: `1px solid ${semantic.border}`, borderRadius: 2.5 }}>
+            <Refresh sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {/* KPI Row */}
+      {!metrics ? (
+        <Grid container spacing={2}>{Array.from({ length: 6 }).map((_, i) => <Grid item xs={6} sm={4} md={2} key={i}><Skeleton variant="rounded" height={110} sx={{ borderRadius: 3 }} /></Grid>)}</Grid>
+      ) : (
+        <Grid container spacing={2}>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🚜" label="Total Farms" value={formatNumber(metrics.totalFarms)} color="#3B82F6" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="✅" label="Active" value={formatNumber(metrics.activeFarms)} color="#16A34A" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⭐" label="PRO" value={formatNumber(metrics.proFarms)} color="#8B5CF6" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📡" label="Today" value={formatNumber(metrics.activeToday)} color="#0EA5E9" subtitle="Active today" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🆕" label="New" value={formatNumber(metrics.newThisMonth)} color="#F59E0B" subtitle="This month" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📋" label="Showing" value={formatNumber(total)} color="#64748B" subtitle={filter !== "all" ? filter : "All farms"} /></Grid>
+        </Grid>
       )}
 
       {/* Farm Table */}
@@ -120,21 +95,21 @@ export default function AdminFarms() {
         onFilterChange={setFilter}
         sortBy={sortBy}
         sortDir={sortDir}
-        onSortChange={handleSortChange}
+        onSortChange={(col, dir) => { setSortBy(col); setSortDir(dir); }}
         page={page}
         onPageChange={setPage}
         pageSize={PAGE_SIZE}
-        onFarmClick={handleFarmClick}
-        onRefresh={fetchFarms}
+        onFarmClick={(f) => { setSelectedFarm(f); setDrawerOpen(true); }}
+        onRefresh={handleRefresh}
       />
 
-      {/* Farm Detail Drawer */}
+      {/* Drawer */}
       <FarmDetailDrawer
         open={drawerOpen}
         farm={selectedFarm}
-        onClose={handleDrawerClose}
-        onUpdated={handleUpdated}
+        onClose={() => { setDrawerOpen(false); setSelectedFarm(null); }}
+        onUpdated={handleRefresh}
       />
-    </FxPageLayout>
+    </Stack>
   );
 }
