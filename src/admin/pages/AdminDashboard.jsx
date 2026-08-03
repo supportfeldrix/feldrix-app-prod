@@ -1,10 +1,7 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Executive BI Dashboard
- * Version 2.2 Phase 1
- *
- * Answers within 10 seconds:
- * "How is Feldrix performing today, and what should I do next?"
+ * Feldrix Control Centre — Executive BI Dashboard (Layout Fix)
+ * Version 2.2 — Expanded charts, proper grid, full-width
  * ============================================================
  */
 
@@ -12,12 +9,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, Stack, Grid, Skeleton, Chip } from "@mui/material";
 import { ArrowForward } from "@mui/icons-material";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid } from "recharts";
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid, Legend } from "recharts";
 import { FxCard, FxStatusChip, semantic, typography as typo, shadows, radius, transitions } from "../../shared/design";
 import { useAdminContext } from "../context/AdminContext";
 import { getDashboardMetrics, getRecentActivity } from "../services/adminAnalyticsService";
 import { getSystemHealth } from "../services/adminSystemService";
-import { getCustomerGrowth, getRevenueGrowth, getSubscriptionBreakdown, getPlatformActivity, getFeatureUsage, getCustomerHealthDistribution, getExecutiveInsights } from "../services/adminBIService";
+import { getCustomerGrowth, getRevenueGrowth, getSubscriptionBreakdown, getPlatformActivity, getFeatureUsage, getCustomerHealthDistribution } from "../services/adminBIService";
 import { formatNumber, formatCurrency, formatRelativeTime } from "../utils/adminFormatters";
 
 export default function AdminDashboard() {
@@ -32,22 +29,19 @@ export default function AdminDashboard() {
   const [platformActivity, setPlatformActivity] = useState([]);
   const [featureUsage, setFeatureUsage] = useState([]);
   const [customerHealth, setCustomerHealth] = useState([]);
-  const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [m, h, a, g, r, sb, pa, fu, ch, ins] = await Promise.all([
+        const [m, h, a, g, r, sb, pa, fu, ch] = await Promise.all([
           getDashboardMetrics(), getSystemHealth(), getRecentActivity(),
           getCustomerGrowth(), getRevenueGrowth(), getSubscriptionBreakdown(),
           getPlatformActivity(), getFeatureUsage(), getCustomerHealthDistribution(),
-          getExecutiveInsights(),
         ]);
         setMetrics(m); setHealth(h); setActivity(a); setGrowth(g); setRevenue(r);
-        setSubBreakdown(sb); setPlatformActivity(pa); setFeatureUsage(fu);
-        setCustomerHealth(ch); setInsights(ins);
-      } catch { /* graceful */ }
+        setSubBreakdown(sb); setPlatformActivity(pa); setFeatureUsage(fu); setCustomerHealth(ch);
+      } catch {}
       finally { setLoading(false); }
     }
     load();
@@ -63,16 +57,15 @@ export default function AdminDashboard() {
       <Stack spacing={3.5}>
         <Skeleton variant="rounded" height={150} sx={{ borderRadius: 4 }} />
         <Skeleton variant="rounded" height={180} sx={{ borderRadius: 4 }} />
-        <Grid container spacing={2}>{Array.from({ length: 6 }).map((_, i) => <Grid item xs={6} sm={4} md={2} key={i}><Skeleton variant="rounded" height={120} sx={{ borderRadius: 3 }} /></Grid>)}</Grid>
-        <Grid container spacing={3}><Grid item xs={12} md={8}><Skeleton variant="rounded" height={280} sx={{ borderRadius: 3 }} /></Grid><Grid item xs={12} md={4}><Skeleton variant="rounded" height={280} sx={{ borderRadius: 3 }} /></Grid></Grid>
+        <Grid container spacing={2.5}>{Array.from({ length: 6 }).map((_, i) => <Grid item xs={6} sm={4} md={2} key={i}><Skeleton variant="rounded" height={120} sx={{ borderRadius: 3 }} /></Grid>)}</Grid>
+        <Grid container spacing={3}><Grid item xs={12} md={8}><Skeleton variant="rounded" height={320} sx={{ borderRadius: 3 }} /></Grid><Grid item xs={12} md={4}><Skeleton variant="rounded" height={320} sx={{ borderRadius: 3 }} /></Grid></Grid>
       </Stack>
     );
   }
 
   return (
     <Stack spacing={4}>
-
-      {/* ═══ HERO ═══════════════════════════════════════════ */}
+      {/* ═══ HERO ═══ */}
       <Box sx={{ p: { xs: 3, md: 4.5 }, borderRadius: 4, background: "linear-gradient(145deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)", position: "relative", overflow: "hidden" }}>
         <Box sx={{ position: "absolute", top: -80, right: -50, width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 65%)", pointerEvents: "none" }} />
         <Grid container spacing={3} alignItems="center" sx={{ position: "relative" }}>
@@ -91,7 +84,7 @@ export default function AdminDashboard() {
         </Grid>
       </Box>
 
-      {/* ═══ AI BRIEFING ═══════════════════════════════════ */}
+      {/* ═══ AI BRIEFING ═══ */}
       <FxCard sx={{ position: "relative", overflow: "hidden", p: { xs: 3, md: 4 } }}>
         <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #6366F1, #3B82F6, #06B6D4)" }} />
         <Grid container spacing={4}>
@@ -120,7 +113,7 @@ export default function AdminDashboard() {
         </Grid>
       </FxCard>
 
-      {/* ═══ KPIs ══════════════════════════════════════════ */}
+      {/* ═══ KPIs ═══ */}
       <Grid container spacing={2.5}>
         <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.totalUsers)} label="Customers" color="#3B82F6" icon="👥" /></Grid>
         <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.activeUsers)} label="Active" color="#0EA5E9" icon="📡" /></Grid>
@@ -130,37 +123,45 @@ export default function AdminDashboard() {
         <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.pendingPayments || 0)} label="Alerts" color={metrics?.pendingPayments > 0 ? "#EF4444" : "#16A34A"} icon="⚠️" /></Grid>
       </Grid>
 
-      {/* ═══ CHARTS ROW 1: Growth + Revenue ════════════════ */}
+      {/* ═══ CHARTS ROW 1: Customer Growth (8) + Subscriptions (4) ═══ */}
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <ChartCard title="Customer Growth" subtitle="Monthly new & cumulative customers">
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={growth} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+          <ChartCard title="Customer Growth" subtitle="Monthly new & cumulative customers" footer={growth.length > 1 ? `${growth[growth.length-1]?.totalCustomers || 0} total customers` : undefined}>
+            <ResponsiveContainer width="100%" height={320}>
+              <AreaChart data={growth} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                <defs>
+                  <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} />
-                <Line type="monotone" dataKey="totalCustomers" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3, fill: "#3B82F6" }} name="Total" />
-                <Line type="monotone" dataKey="newCustomers" stroke="#16A34A" strokeWidth={2} dot={{ r: 2.5, fill: "#16A34A" }} name="New" />
-              </LineChart>
+                <RTooltip contentStyle={{ borderRadius: 10, border: "none", boxShadow: shadows.md, fontSize: 13 }} />
+                <Area type="monotone" dataKey="totalCustomers" stroke="#3B82F6" strokeWidth={2.5} fill="url(#growthGrad)" name="Total" dot={{ r: 4, fill: "#3B82F6", strokeWidth: 2, stroke: "#fff" }} />
+                <Line type="monotone" dataKey="newCustomers" stroke="#16A34A" strokeWidth={2} dot={{ r: 3, fill: "#16A34A" }} name="New" />
+              </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
         <Grid item xs={12} md={4}>
-          <ChartCard title="Subscriptions" subtitle="Plan distribution">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={subBreakdown} dataKey="value" cx="50%" cy="50%" outerRadius={70} innerRadius={45} paddingAngle={2} strokeWidth={0}>
-                  {subBreakdown.map((s, i) => <Cell key={i} fill={s.color} />)}
-                </Pie>
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 1 }}>
+          <ChartCard title="Subscriptions" subtitle="Plan distribution" footer={`${subBreakdown.reduce((s, b) => s + b.value, 0)} total users`}>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie data={subBreakdown} dataKey="value" cx="50%" cy="50%" outerRadius={95} innerRadius={60} paddingAngle={3} strokeWidth={0}>
+                    {subBreakdown.map((s, i) => <Cell key={i} fill={s.color} />)}
+                  </Pie>
+                  <RTooltip contentStyle={{ borderRadius: 10, border: "none", boxShadow: shadows.md, fontSize: 13 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+            <Stack direction="row" spacing={2.5} justifyContent="center">
               {subBreakdown.map((s) => (
-                <Stack key={s.name} direction="row" spacing={0.5} alignItems="center">
-                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: s.color }} />
-                  <Typography sx={{ fontSize: "0.65rem", color: semantic.textSecondary }}>{s.name} ({s.value})</Typography>
+                <Stack key={s.name} direction="row" spacing={0.75} alignItems="center">
+                  <Box sx={{ width: 10, height: 10, borderRadius: "3px", bgcolor: s.color }} />
+                  <Typography sx={{ fontSize: "0.72rem", color: semantic.textSecondary, fontWeight: 500 }}>{s.name} ({s.value})</Typography>
                 </Stack>
               ))}
             </Stack>
@@ -168,70 +169,77 @@ export default function AdminDashboard() {
         </Grid>
       </Grid>
 
-      {/* ═══ CHARTS ROW 2: Activity + Feature Usage ═══════ */}
+      {/* ═══ CHARTS ROW 2: Revenue (6) + Platform Activity (6) ═══ */}
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
-          <ChartCard title="Platform Activity" subtitle="Daily logins (7 days)">
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={platformActivity} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+          <ChartCard title="Revenue Trend" subtitle="Monthly revenue (6 months)" footer={revenue.length > 0 ? `Latest: R${revenue[revenue.length-1]?.revenue || 0}` : undefined}>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={revenue} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                <defs>
+                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#16A34A" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#16A34A" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-                <XAxis dataKey="day" tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} />
-                <Bar dataKey="logins" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Logins" />
-              </BarChart>
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} tickFormatter={(v) => `R${v}`} />
+                <RTooltip contentStyle={{ borderRadius: 10, border: "none", boxShadow: shadows.md, fontSize: 13 }} formatter={(v) => [`R${v}`, "Revenue"]} />
+                <Area type="monotone" dataKey="revenue" stroke="#16A34A" strokeWidth={2.5} fill="url(#revenueGrad)" dot={{ r: 4, fill: "#16A34A", strokeWidth: 2, stroke: "#fff" }} />
+              </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
         <Grid item xs={12} md={6}>
-          <ChartCard title="Feature Usage" subtitle="Records per module">
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={featureUsage} layout="vertical" margin={{ top: 5, right: 10, bottom: 5, left: 60 }}>
+          <ChartCard title="Platform Activity" subtitle="Daily logins — last 7 days" footer={`${platformActivity.reduce((s, d) => s + d.logins, 0)} total logins this week`}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={platformActivity} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <XAxis dataKey="day" tick={{ fontSize: 12, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <RTooltip contentStyle={{ borderRadius: 10, border: "none", boxShadow: shadows.md, fontSize: 13 }} formatter={(v) => [v, "Logins"]} />
+                <Bar dataKey="logins" fill="#3B82F6" radius={[6, 6, 0, 0]} name="Logins" />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </Grid>
+      </Grid>
+
+      {/* ═══ CHARTS ROW 3: Feature Usage (6) + Customer Health (6) ═══ */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <ChartCard title="Feature Usage" subtitle="Records per module" footer={featureUsage.length > 0 ? `Most used: ${featureUsage[0]?.name}` : undefined}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={featureUsage} layout="vertical" margin={{ top: 10, right: 30, bottom: 10, left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: semantic.textSecondary }} axisLine={false} tickLine={false} />
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} />
-                <Bar dataKey="records" radius={[0, 4, 4, 0]} name="Records">
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 13, fill: semantic.text, fontWeight: 500 }} axisLine={false} tickLine={false} width={75} />
+                <RTooltip contentStyle={{ borderRadius: 10, border: "none", boxShadow: shadows.md, fontSize: 13 }} formatter={(v) => [v, "Records"]} />
+                <Bar dataKey="records" radius={[0, 6, 6, 0]} name="Records" barSize={22}>
                   {featureUsage.map((f, i) => <Cell key={i} fill={f.color} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-      </Grid>
-
-      {/* ═══ CUSTOMER HEALTH + REVENUE ════════════════════ */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <ChartCard title="Customer Health" subtitle="Engagement distribution">
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={customerHealth} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]} name="Customers">
+        <Grid item xs={12} md={6}>
+          <ChartCard title="Customer Health" subtitle="Engagement distribution" footer={`${customerHealth.reduce((s, c) => s + c.value, 0)} total customers`}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={customerHealth} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: semantic.textSecondary }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <RTooltip contentStyle={{ borderRadius: 10, border: "none", boxShadow: shadows.md, fontSize: 13 }} formatter={(v) => [v, "Customers"]} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Customers" barSize={40}>
                   {customerHealth.map((c, i) => <Cell key={i} fill={c.color} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={8}>
-          <ChartCard title="Revenue Trend" subtitle="Monthly revenue (6 months)">
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={revenue} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} formatter={(v) => [`R${v}`, "Revenue"]} />
-                <Line type="monotone" dataKey="revenue" stroke="#16A34A" strokeWidth={2.5} dot={{ r: 3, fill: "#16A34A" }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </Grid>
       </Grid>
 
-      {/* ═══ QUICK ACTIONS ════════════════════════════════ */}
+      {/* ═══ QUICK ACTIONS ═══ */}
       <Box>
         <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 2 }}>Quick Actions</Typography>
         <Grid container spacing={2}>
@@ -253,7 +261,7 @@ export default function AdminDashboard() {
         </Grid>
       </Box>
 
-      {/* ═══ BOTTOM: ACTIVITY + HEALTH ═══════════════════ */}
+      {/* ═══ BOTTOM: ACTIVITY + HEALTH ═══ */}
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
           <FxCard sx={{ p: { xs: 2.5, md: 3.5 }, height: "100%" }}>
@@ -264,9 +272,7 @@ export default function AdminDashboard() {
               <Stack spacing={0}>
                 {activity.slice(0, 6).map((item, i) => (
                   <Stack key={i} direction="row" spacing={2} alignItems="flex-start" sx={{ py: 1.5, borderBottom: i < 5 ? `1px solid ${semantic.border}` : "none" }}>
-                    <Box sx={{ width: 34, height: 34, borderRadius: "9px", bgcolor: item.type === "signup" ? "#DBEAFE" : "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem", flexShrink: 0 }}>
-                      {item.type === "signup" ? "👤" : "💰"}
-                    </Box>
+                    <Box sx={{ width: 34, height: 34, borderRadius: "9px", bgcolor: item.type === "signup" ? "#DBEAFE" : "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem", flexShrink: 0 }}>{item.type === "signup" ? "👤" : "💰"}</Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, color: semantic.text }}>{item.description}</Typography>
                       <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, mt: 0.25 }}>{formatRelativeTime(item.timestamp)}</Typography>
@@ -297,6 +303,7 @@ export default function AdminDashboard() {
           </FxCard>
         </Grid>
       </Grid>
+
     </Stack>
   );
 }
@@ -325,14 +332,19 @@ function KpiCard({ value, label, color, icon }) {
   );
 }
 
-function ChartCard({ title, subtitle, children }) {
+function ChartCard({ title, subtitle, footer, children }) {
   return (
-    <FxCard sx={{ p: { xs: 2.5, md: 3 }, height: "100%" }}>
+    <FxCard sx={{ p: { xs: 2.5, md: 3 }, height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ mb: 2 }}>
-        <Typography sx={{ fontSize: "0.88rem", fontWeight: 700, color: semantic.text }}>{title}</Typography>
-        {subtitle && <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, mt: 0.25 }}>{subtitle}</Typography>}
+        <Typography sx={{ fontSize: "0.92rem", fontWeight: 700, color: semantic.text }}>{title}</Typography>
+        {subtitle && <Typography sx={{ fontSize: "0.72rem", color: semantic.textTertiary, mt: 0.25 }}>{subtitle}</Typography>}
       </Box>
-      {children}
+      <Box sx={{ flex: 1 }}>{children}</Box>
+      {footer && (
+        <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
+          <Typography sx={{ fontSize: "0.7rem", color: semantic.textSecondary, fontWeight: 500 }}>{footer}</Typography>
+        </Box>
+      )}
     </FxCard>
   );
 }
