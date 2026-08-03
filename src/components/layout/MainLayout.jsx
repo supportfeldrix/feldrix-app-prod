@@ -4,6 +4,8 @@ import { Box, Drawer, useMediaQuery, useTheme } from "@mui/material";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import { NotificationProvider } from "../../context/NotificationContext";
+import { OnboardingProvider } from "../../context/OnboardingContext";
+import OnboardingOverlay from "../onboarding/OnboardingOverlay";
 
 const SIDEBAR_WIDTH = 280;
 
@@ -17,67 +19,71 @@ export default function MainLayout() {
 
   return (
     <NotificationProvider>
-      <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f5f7fa" }}>
-        {/* Desktop: permanent sidebar */}
-        {!isMobile && (
-          <Box
-            component="nav"
-            sx={{
-              width: SIDEBAR_WIDTH,
-              flexShrink: 0,
-            }}
-          >
-            <Sidebar />
-          </Box>
-        )}
-
-        {/* Mobile: temporary drawer */}
-        {isMobile && (
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={handleDrawerClose}
-            ModalProps={{ keepMounted: true }}
-            sx={{
-              "& .MuiDrawer-paper": {
+      <OnboardingProvider>
+        <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f5f7fa" }}>
+          {/* Desktop: permanent sidebar */}
+          {!isMobile && (
+            <Box
+              component="nav"
+              sx={{
                 width: SIDEBAR_WIDTH,
-                boxSizing: "border-box",
-                border: "none",
-              },
-            }}
-          >
-            <Sidebar onNavigate={handleDrawerClose} />
-          </Drawer>
-        )}
+                flexShrink: 0,
+              }}
+            >
+              <Sidebar />
+            </Box>
+          )}
 
-        {/* Main content area */}
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            minWidth: 0,
-            // Safe area support for iPhone notch/Dynamic Island
-            paddingTop: "env(safe-area-inset-top)",
-            paddingBottom: "env(safe-area-inset-bottom)",
-          }}
-        >
-          <TopBar onMenuToggle={handleDrawerToggle} showMenuButton={isMobile} />
+          {/* Mobile: temporary drawer */}
+          {isMobile && (
+            <Drawer
+              variant="temporary"
+              open={mobileOpen}
+              onClose={handleDrawerClose}
+              ModalProps={{ keepMounted: true }}
+              sx={{
+                "& .MuiDrawer-paper": {
+                  width: SIDEBAR_WIDTH,
+                  boxSizing: "border-box",
+                  border: "none",
+                },
+              }}
+            >
+              <Sidebar onNavigate={handleDrawerClose} />
+            </Drawer>
+          )}
 
+          {/* Main content area */}
           <Box
-            component="main"
             sx={{
               flex: 1,
-              p: { xs: 2, sm: 2.5, md: 3.5 },
-              pb: { xs: 4, md: 3.5 },
-              overflow: "auto",
-              WebkitOverflowScrolling: "touch",
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              paddingTop: "env(safe-area-inset-top)",
+              paddingBottom: "env(safe-area-inset-bottom)",
             }}
           >
-            <Outlet />
+            <TopBar onMenuToggle={handleDrawerToggle} showMenuButton={isMobile} />
+
+            <Box
+              component="main"
+              sx={{
+                flex: 1,
+                p: { xs: 2, sm: 2.5, md: 3.5 },
+                pb: { xs: 4, md: 3.5 },
+                overflow: "auto",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              <Outlet />
+            </Box>
           </Box>
         </Box>
-      </Box>
+
+        {/* Onboarding overlay — renders above everything when active */}
+        <OnboardingOverlay />
+      </OnboardingProvider>
     </NotificationProvider>
   );
 }

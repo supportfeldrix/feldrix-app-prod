@@ -8,6 +8,7 @@ import StatisticsCard from "../components/account/StatisticsCard";
 import SubscriptionCard from "../components/account/SubscriptionCard";
 import QuickActionsCard from "../components/account/QuickActionsCard";
 import EmailNotificationPreferences from "../components/account/EmailNotificationPreferences";
+import OnboardingTrigger from "../components/onboarding/OnboardingTrigger";
 
 export default function Account() {
   return (
@@ -60,6 +61,9 @@ export default function Account() {
 
         {/* Email Notification Preferences — full width */}
         <EmailNotificationPreferences />
+
+        {/* Getting Started — onboarding trigger */}
+        <OnboardingTrigger />
       </Stack>
     </Box>
   );

@@ -36,11 +36,13 @@ import { getNotifications as getEngineNotifications } from "../services/notifica
 import { getSmartDashboardCards } from "../services/dashboard/smartCards";
 import { getDailyFarmBriefing } from "../services/dashboard/dailyBriefing";
 import { useNotificationBadge } from "../context/NotificationContext";
+import { useOnboarding } from "../hooks/useOnboarding";
 import { getCurrentUser, getProfile } from "../services/profileService";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { setUnreadCount } = useNotificationBadge();
+  const { markDashboardVisited } = useOnboarding();
 
   const [dashboard, setDashboard] = useState(null);
   const [healthDue, setHealthDue] = useState(0);
@@ -54,6 +56,11 @@ export default function Dashboard() {
   const [farmName, setFarmName] = useState("");
   const [farmRegion, setFarmRegion] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Mark dashboard as visited for onboarding progress
+  useEffect(() => {
+    markDashboardVisited();
+  }, [markDashboardVisited]);
 
   async function loadDashboard() {
     try {
