@@ -12,7 +12,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 
-import Login from "./pages/Login";
+import AdminLogin from "./admin/pages/AdminLogin";
 
 const AdminRouteGuard = lazy(() => import("./admin/components/layout/AdminRouteGuard"));
 const AdminLayout = lazy(() => import("./admin/components/layout/AdminLayout"));
@@ -40,8 +40,8 @@ export default function AdminApp() {
   return (
     <Routes>
       {/* Auth */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<AdminLogin />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
       {/* Control Centre — routes at root level */}
       <Route
