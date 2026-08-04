@@ -126,7 +126,7 @@ export default function AdminDashboard() {
       </Grid>
 
       {/* ═══ EXECUTIVE CHARTS — 3-Column Equal Grid ═══ */}
-      <Grid container spacing={3} alignItems="stretch">
+      <Grid container spacing={3} alignItems="stretch" sx={{ "& .MuiGrid-item": { display: "flex", minWidth: 0 } }}>
         {/* Row 1, Col 1: Customer Growth */}
         <Grid item xs={12} md={6} lg={4}>
           <ChartCard title="Customer Growth" subtitle="Monthly new vs cumulative customers" footer={growth.length > 1 ? `↑ ${growth[growth.length-1]?.newCustomers || 0} new this month · ${growth[growth.length-1]?.totalCustomers || 0} total · Growth tracking active` : "↑ Tracking monthly growth"}>
@@ -153,9 +153,9 @@ export default function AdminDashboard() {
         {/* Row 1, Col 2: Subscriptions */}
         <Grid item xs={12} md={6} lg={4}>
           <ChartCard title="Subscriptions" subtitle="Current plan distribution" footer={subBreakdown.length > 0 ? `Starter dominates · ${subBreakdown.reduce((s, b) => s + b.value, 0)} total farms` : "No subscription data yet"}>
-            <Stack alignItems="center" justifyContent="center" sx={{ flex: 1, py: 2 }}>
-              <Box sx={{ position: "relative" }}>
-                <ResponsiveContainer width={180} height={180}>
+            <Stack alignItems="center" justifyContent="center" sx={{ flex: 1, py: 2, width: "100%", minWidth: 0 }}>
+              <Box sx={{ position: "relative", width: "100%", maxWidth: 200, mx: "auto" }}>
+                <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
                     <Pie data={subBreakdown} dataKey="value" cx="50%" cy="50%" outerRadius={85} innerRadius={55} paddingAngle={3} strokeWidth={0}>
                       {subBreakdown.map((s, i) => <Cell key={i} fill={s.color} />)}
@@ -357,12 +357,12 @@ function KpiCard({ value, label, color, icon, sub }) {
 
 function ChartCard({ title, subtitle, footer, children }) {
   return (
-    <FxCard sx={{ p: 3, height: "100%", width: "100%", flex: 1, display: "flex", flexDirection: "column", minHeight: 440, borderRadius: radius.lg }}>
+    <FxCard sx={{ p: 3, height: "100%", width: "100%", minWidth: 0, maxWidth: "none", flex: 1, display: "flex", flexDirection: "column", minHeight: 440, borderRadius: radius.lg }}>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: semantic.text }}>{title}</Typography>
         {subtitle && <Typography sx={{ fontSize: "0.72rem", color: semantic.textTertiary, mt: 0.25 }}>{subtitle}</Typography>}
       </Box>
-      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>{children}</Box>
+      <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>{children}</Box>
       {footer && (
         <Box sx={{ mt: "auto", pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
           <Typography sx={{ fontSize: "0.7rem", color: semantic.textSecondary, fontWeight: 500 }}>{footer}</Typography>
