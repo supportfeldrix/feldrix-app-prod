@@ -126,7 +126,7 @@ export default function AdminDashboard() {
       </Grid>
 
       {/* ═══ CHARTS ROW 1: Growth + Subscriptions + Revenue (3 cols) ═══ */}
-      <Grid container spacing={3} sx={{ width: "100%", m: 0, "& .MuiGrid-item": { display: "flex" } }}>
+      <Grid container spacing={3} sx={{ "& .MuiGrid-item": { display: "flex" } }}>
         <Grid item xs={12} md={6} lg={4} xl={4} sx={{ display: "flex" }}>
           <ChartCard title="Customer Growth" subtitle="Monthly new vs cumulative customers" footer={growth.length > 1 ? `↑ ${growth[growth.length-1]?.newCustomers || 0} new this month · ${growth[growth.length-1]?.totalCustomers || 0} total` : "↑ Tracking monthly growth"}>
             <ResponsiveContainer width="100%" height={260}>
@@ -191,7 +191,7 @@ export default function AdminDashboard() {
       </Grid>
 
       {/* ═══ CHARTS ROW 2: Activity + Feature Usage + Health (3 cols) ═══ */}
-      <Grid container spacing={3} sx={{ width: "100%", m: 0, "& .MuiGrid-item": { display: "flex" } }}>
+      <Grid container spacing={3} sx={{ "& .MuiGrid-item": { display: "flex" } }}>
         <Grid item xs={12} md={6} lg={4} xl={4} sx={{ display: "flex" }}>
           <ChartCard title="Platform Activity" subtitle="Daily logins (last 7 days)" footer={platformActivity.length > 0 ? `Peak: ${platformActivity.reduce((max, d) => d.logins > max.logins ? d : max, platformActivity[0])?.day} · ${platformActivity.reduce((s, d) => s + d.logins, 0)} total logins` : "Tracking weekly activity"}>
             <ResponsiveContainer width="100%" height={260}>
