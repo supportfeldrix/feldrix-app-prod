@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- White rounded-square background -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="#ffffff"/>
+
+  <!-- Subtle border for definition -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="none" stroke="#e8f5e9" stroke-width="3"/>
+
+  <!-- Sunrise glow -->
+  <circle cx="512" cy="340" r="160" fill="#FFF8E1" opacity="0.6"/>
+
+  <!-- Sunrise -->
+  <circle cx="512" cy="360" r="80" fill="#FFB300"/>
+  <!-- Sun rays -->
+  <path d="M512 260 L520 280 L504 280 Z" fill="#FFD54F"/>
+  <path d="M580 290 L575 310 L560 300 Z" fill="#FFD54F"/>
+  <path d="M444 290 L449 310 L464 300 Z" fill="#FFD54F"/>
+  <path d="M612 340 L595 348 L595 332 Z" fill="#FFD54F"/>
+  <path d="M412 340 L429 348 L429 332 Z" fill="#FFD54F"/>
+
+  <!-- Rolling hills / fields - back -->
+  <ellipse cx="512" cy="520" rx="420" ry="120" fill="#4CAF50" opacity="0.3"/>
+
+  <!-- Rolling hills / fields - front -->
+  <path d="M100 500 Q300 420 512 460 Q724 500 924 440 L924 580 Q724 620 512 580 Q300 540 100 580 Z" fill="#66BB6A"/>
+
+  <!-- Field rows (crop lines) -->
+  <path d="M200 530 Q360 510 512 520 Q664 530 824 510" fill="none" stroke="#388E3C" stroke-width="3" opacity="0.5"/>
+  <path d="M180 555 Q360 535 512 545 Q664 555 844 535" fill="none" stroke="#388E3C" stroke-width="3" opacity="0.4"/>
+  <path d="M160 580 Q360 560 512 570 Q664 580 864 560" fill="none" stroke="#388E3C" stroke-width="3" opacity="0.3"/>
+
+  <!-- Foreground grass -->
+  <path d="M80 580 Q300 560 512 570 Q724 580 944 560 L944 640 Q724 660 512 650 Q300 640 80 660 Z" fill="#43A047"/>
+
+  <!-- Wheat stalks - left -->
+  <g opacity="0.8">
+    <line x1="260" y1="460" x2="260" y2="380" stroke="#8D6E63" stroke-width="3"/>
+    <ellipse cx="260" cy="375" rx="6" ry="18" fill="#FFB74D"/>
+    <line x1="280" y1="470" x2="280" y2="395" stroke="#8D6E63" stroke-width="3"/>
+    <ellipse cx="280" cy="390" rx="6" ry="18" fill="#FFB74D"/>
+    <line x1="240" y1="465" x2="240" y2="390" stroke="#8D6E63" stroke-width="3"/>
+    <ellipse cx="240" cy="385" rx="6" ry="18" fill="#FFB74D"/>
+  </g>
+
+  <!-- Wheat stalks - right -->
+  <g opacity="0.8">
+    <line x1="740" y1="460" x2="740" y2="380" stroke="#8D6E63" stroke-width="3"/>
+    <ellipse cx="740" cy="375" rx="6" ry="18" fill="#FFB74D"/>
+    <line x1="760" y1="470" x2="760" y2="395" stroke="#8D6E63" stroke-width="3"/>
+    <ellipse cx="760" cy="390" rx="6" ry="18" fill="#FFB74D"/>
+    <line x1="780" y1="465" x2="780" y2="390" stroke="#8D6E63" stroke-width="3"/>
+    <ellipse cx="780" cy="385" rx="6" ry="18" fill="#FFB74D"/>
+  </g>
+
+  <!-- Cow - simplified silhouette -->
+  <g transform="translate(420, 440) scale(0.9)">
+    <!-- Body -->
+    <ellipse cx="100" cy="60" rx="65" ry="40" fill="#1B5E20"/>
+    <!-- Head -->
+    <ellipse cx="170" cy="40" rx="25" ry="22" fill="#1B5E20"/>
+    <!-- Legs -->
+    <rect x="55" y="90" width="8" height="35" rx="3" fill="#1B5E20"/>
+    <rect x="80" y="92" width="8" height="33" rx="3" fill="#1B5E20"/>
+    <rect x="115" y="92" width="8" height="33" rx="3" fill="#1B5E20"/>
+    <rect x="140" y="90" width="8" height="35" rx="3" fill="#1B5E20"/>
+    <!-- Horns -->
+    <path d="M160 22 Q155 10 150 18" fill="none" stroke="#1B5E20" stroke-width="4" stroke-linecap="round"/>
+    <path d="M180 22 Q185 10 190 18" fill="none" stroke="#1B5E20" stroke-width="4" stroke-linecap="round"/>
+    <!-- Tail -->
+    <path d="M35 55 Q15 45 20 65" fill="none" stroke="#1B5E20" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Green leaf accent - left -->
+  <g transform="translate(150, 420) rotate(-15)">
+    <path d="M0 30 Q15 0 30 30 Q15 20 0 30 Z" fill="#2E7D32"/>
+    <line x1="15" y1="30" x2="15" y2="10" stroke="#1B5E20" stroke-width="2"/>
+  </g>
+
+  <!-- Green leaf accent - right -->
+  <g transform="translate(830, 430) rotate(15)">
+    <path d="M0 30 Q15 0 30 30 Q15 20 0 30 Z" fill="#2E7D32"/>
+    <line x1="15" y1="30" x2="15" y2="10" stroke="#1B5E20" stroke-width="2"/>
+  </g>
+
+  <!-- FELDRIX text -->
+  <text x="512" y="760" text-anchor="middle" font-family="'Inter', 'SF Pro Display', -apple-system, sans-serif" font-size="130" font-weight="900" fill="#1B5E20" letter-spacing="-2">FELDRIX</text>
+
+  <!-- PRO badge -->
+  <rect x="412" y="790" width="200" height="60" rx="30" fill="#4CAF50"/>
+  <text x="512" y="830" text-anchor="middle" font-family="'Inter', 'SF Pro Display', -apple-system, sans-serif" font-size="42" font-weight="800" fill="#ffffff" letter-spacing="4">PRO</text>
+</svg>

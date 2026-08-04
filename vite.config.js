@@ -44,9 +44,9 @@ const pwaConfig = isAdmin ? [] : [
   VitePWA({
     registerType: 'autoUpdate',
     includeAssets: [
-      'branding/favicon.ico',
-      'icons/apple-touch-icon.png',
-      'favicon.svg',
+      'branding/feldrix-farmer-icon.svg',
+      'icons/farmer/apple-touch-icon.png',
+      'icons/farmer/favicon-32x32.png',
     ],
     manifest: {
       name: 'Feldrix',
@@ -60,9 +60,13 @@ const pwaConfig = isAdmin ? [] : [
       start_url: '/',
       categories: ['business', 'productivity'],
       icons: [
-        { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-        { src: '/icons/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        { src: '/icons/farmer/icon-72x72.png', sizes: '72x72', type: 'image/png' },
+        { src: '/icons/farmer/icon-96x96.png', sizes: '96x96', type: 'image/png' },
+        { src: '/icons/farmer/icon-144x144.png', sizes: '144x144', type: 'image/png' },
+        { src: '/icons/farmer/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/icons/farmer/icon-384x384.png', sizes: '384x384', type: 'image/png' },
+        { src: '/icons/farmer/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+        { src: '/icons/farmer/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
       ],
     },
     workbox: {
