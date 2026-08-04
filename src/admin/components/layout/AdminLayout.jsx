@@ -75,11 +75,12 @@ export default function AdminLayout() {
           component="main"
           sx={{
             flex: 1,
-            p: { xs: 1.5, sm: 2.5, md: 4 },
-            pb: { xs: 4, md: 4 },
+            p: { xs: 1.5, sm: 2, md: 2.5 },
+            pb: { xs: 4, md: 2.5 },
             overflow: "auto",
             overflowX: "hidden",
             WebkitOverflowScrolling: "touch",
+            width: "100%",
           }}
         >
           <Outlet />

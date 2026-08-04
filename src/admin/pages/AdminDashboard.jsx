@@ -64,7 +64,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <Stack spacing={4}>
+    <Stack spacing={4} sx={{ width: "100%" }}>
       {/* ═══ HERO ═══ */}
       <Box sx={{ px: { xs: 3, md: 4 }, py: { xs: 2.5, md: 3 }, borderRadius: 3, background: "linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #0F172A 100%)", position: "relative", overflow: "hidden" }}>
         <Box sx={{ position: "absolute", top: 0, right: 0, width: "60%", height: "100%", background: "radial-gradient(ellipse at 80% 50%, rgba(59,130,246,0.08) 0%, transparent 60%)", pointerEvents: "none" }} />
@@ -125,8 +125,8 @@ export default function AdminDashboard() {
       </Grid>
 
       {/* ═══ CHARTS ROW 1: Growth + Subscriptions + Revenue (3 cols) ═══ */}
-      <Grid container spacing={2.5}>
-        <Grid item xs={12} md={4}>
+      <Grid container spacing={2.5} sx={{ width: "100%", m: 0, "& .MuiGrid-item": { display: "flex" } }}>
+        <Grid item xs={12} md={4} sx={{ display: "flex" }}>
           <ChartCard title="Customer Growth" subtitle="Monthly new vs cumulative customers" footer={growth.length > 1 ? `${growth[growth.length-1]?.totalCustomers || 0} total customers` : undefined}>
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={growth} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
@@ -190,8 +190,8 @@ export default function AdminDashboard() {
       </Grid>
 
       {/* ═══ CHARTS ROW 2: Activity + Feature Usage + Health (3 cols) ═══ */}
-      <Grid container spacing={2.5}>
-        <Grid item xs={12} md={4}>
+      <Grid container spacing={2.5} sx={{ width: "100%", m: 0, "& .MuiGrid-item": { display: "flex" } }}>
+        <Grid item xs={12} md={4} sx={{ display: "flex" }}>
           <ChartCard title="Platform Activity" subtitle="Daily logins (last 7 days)" footer={`${platformActivity.reduce((s, d) => s + d.logins, 0)} total logins this week`}>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={platformActivity} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
@@ -334,12 +334,12 @@ function KpiCard({ value, label, color, icon, sub }) {
 
 function ChartCard({ title, subtitle, footer, children }) {
   return (
-    <FxCard sx={{ p: { xs: 2.5, md: 3 }, height: "100%", display: "flex", flexDirection: "column" }}>
+    <FxCard sx={{ p: { xs: 2.5, md: 3 }, height: "100%", width: "100%", flex: 1, display: "flex", flexDirection: "column" }}>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ fontSize: "0.92rem", fontWeight: 700, color: semantic.text }}>{title}</Typography>
         {subtitle && <Typography sx={{ fontSize: "0.72rem", color: semantic.textTertiary, mt: 0.25 }}>{subtitle}</Typography>}
       </Box>
-      <Box sx={{ flex: 1 }}>{children}</Box>
+      <Box sx={{ flex: 1, minHeight: 0 }}>{children}</Box>
       {footer && (
         <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
           <Typography sx={{ fontSize: "0.7rem", color: semantic.textSecondary, fontWeight: 500 }}>{footer}</Typography>
