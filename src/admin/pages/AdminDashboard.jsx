@@ -19,6 +19,7 @@ import { getCustomerGrowth, getRevenueGrowth, getSubscriptionBreakdown, getPlatf
 import { formatNumber, formatCurrency, formatRelativeTime } from "../utils/adminFormatters";
 import { runIntelligenceAnalysis } from "../services/adminExecutiveIntelligenceService";
 import { runPredictiveAnalysis } from "../services/adminPredictiveIntelligenceService";
+import { runOperationsAnalysis } from "../services/adminOperationsService";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -82,6 +83,10 @@ export default function AdminDashboard() {
 
   // Predictive Intelligence — forecasts, upgrade/churn predictions, priorities
   const predictions = !loading && metrics ? runPredictiveAnalysis(intelligenceData) : null;
+
+  // AI Operations — prioritised queue, impact, revenue opportunities
+  const operations = !loading && metrics && intelligence && predictions
+    ? runOperationsAnalysis(intelligenceData, intelligence, predictions) : null;
 
   if (loading) {
     return (
@@ -344,6 +349,137 @@ export default function AdminDashboard() {
         <Grid item xs={6} sm={4} md={2}><KpiCard value={`${healthPct}%`} label="Platform Health" color={healthPct >= 80 ? semantic.success : semantic.warning} icon="🟢" sub="Service availability" trend={predictions?.executiveForecast?.trends?.health} /></Grid>
         <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.pendingPayments || 0)} label="Pending Actions" color={metrics?.pendingPayments > 0 ? semantic.error : semantic.success} icon="⚠️" sub={metrics?.pendingPayments > 0 ? "Requires attention" : "All clear"} /></Grid>
       </Grid>
+
+      {/* ═══ AI OPERATIONS CENTRE ═══ */}
+      {operations && (
+        <Box>
+          <SectionHeader icon="🤖" title="AI OPERATIONS CENTRE" subtitle="Prioritised actions ranked by business impact. Your AI-powered work queue." />
+          <Grid container spacing={3} sx={{ mt: 0.5 }}>
+            {/* Operations Queue */}
+            <Grid item xs={12} md={8}>
+              <FxCard sx={{ p: { xs: 3, md: 4 }, height: "100%", display: "flex", flexDirection: "column" }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
+                  <Typography sx={{ fontSize: "0.92rem", fontWeight: 700, color: semantic.text }}>Operations Queue</Typography>
+                  <Box sx={{ px: 1.5, py: 0.25, borderRadius: radius.pill, bgcolor: semantic.infoBg }}>
+                    <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.infoText }}>{operations.queue.total} action(s)</Typography>
+                  </Box>
+                </Stack>
+                {/* Top Action Highlight */}
+                {operations.actions.topAction && (
+                  <Box sx={{ p: 2.5, mb: 2.5, borderRadius: radius.lg, bgcolor: `${semantic.success}06`, border: `1px solid ${semantic.success}20` }}>
+                    <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.success, textTransform: "uppercase", letterSpacing: 0.6, mb: 0.75 }}>Highest-Value Action</Typography>
+                    <Typography sx={{ fontSize: "0.85rem", color: semantic.text, fontWeight: 600, lineHeight: 1.5 }}>{operations.actions.narrative}</Typography>
+                  </Box>
+                )}
+                {/* Queue Items */}
+                <Stack spacing={1.5} sx={{ flex: 1 }}>
+                  {operations.queue.items.slice(0, 5).map((item) => (
+                    <Box key={item.priority} onClick={() => navigate(item.route)} sx={{ p: 2, borderRadius: radius.md, bgcolor: semantic.surface, border: `1px solid ${semantic.border}`, cursor: "pointer", transition: transitions.smooth, "&:hover": { borderColor: semantic.borderHover, boxShadow: shadows.sm, transform: "translateX(2px)" } }}>
+                      <Stack direction="row" spacing={2} alignItems="flex-start">
+                        <Box sx={{ width: 32, height: 32, borderRadius: radius.xs, bgcolor: item.impact === "high" ? semantic.errorBg : item.impact === "medium" ? semantic.warningBg : semantic.infoBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Typography sx={{ fontSize: "0.85rem" }}>{item.icon}</Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                            <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: semantic.text }}>{item.title}</Typography>
+                            <Box sx={{ px: 0.75, py: 0.1, borderRadius: radius.xs, bgcolor: semantic.neutralBg }}>
+                              <Typography sx={{ fontSize: "0.52rem", fontWeight: 600, color: semantic.neutralText }}>{item.area}</Typography>
+                            </Box>
+                            {item.estimatedRevenue > 0 && (
+                              <Box sx={{ px: 0.75, py: 0.1, borderRadius: radius.xs, bgcolor: semantic.successBg }}>
+                                <Typography sx={{ fontSize: "0.52rem", fontWeight: 700, color: semantic.successText }}>+R{item.estimatedRevenue}/mo</Typography>
+                              </Box>
+                            )}
+                          </Stack>
+                          <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, mt: 0.25 }}>{item.reason}</Typography>
+                          <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
+                            <Typography sx={{ fontSize: "0.58rem", color: semantic.textTertiary }}>Effort: {item.effort}</Typography>
+                            {item.confidence && <Typography sx={{ fontSize: "0.58rem", color: semantic.textTertiary }}>Confidence: {item.confidence}%</Typography>}
+                          </Stack>
+                        </Box>
+                        <ArrowForward sx={{ fontSize: 14, color: semantic.textTertiary, flexShrink: 0, mt: 0.5 }} />
+                      </Stack>
+                    </Box>
+                  ))}
+                </Stack>
+              </FxCard>
+            </Grid>
+
+            {/* Right Column: Impact + Revenue + Urgent */}
+            <Grid item xs={12} md={4}>
+              <Stack spacing={3} sx={{ height: "100%" }}>
+                {/* Business Impact */}
+                <FxCard sx={{ p: 3 }}>
+                  <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: semantic.text, mb: 2 }}>Business Impact</Typography>
+                  <Stack spacing={1.5}>
+                    <ImpactRow label="Revenue Gain" value={operations.impact.revenueGain.value > 0 ? `+R${operations.impact.revenueGain.value}/mo` : "—"} level={operations.impact.revenueGain.level} />
+                    <ImpactRow label="Revenue at Risk" value={operations.impact.revenueAtRisk.value > 0 ? `R${operations.impact.revenueAtRisk.value}/mo` : "—"} level={operations.impact.revenueAtRisk.level} negative />
+                    <ImpactRow label="Customers Impacted" value={operations.impact.customersAffected.value} level={operations.impact.customersAffected.level} />
+                    <ImpactRow label="Health Improvement" value={operations.impact.healthImprovement.value > 0 ? `+${operations.impact.healthImprovement.value} pts` : "—"} level={operations.impact.healthImprovement.level} />
+                    <Box sx={{ pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography sx={{ fontSize: "0.65rem", color: semantic.textTertiary }}>Time to complete all</Typography>
+                        <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{operations.impact.timeToComplete.formatted}</Typography>
+                      </Stack>
+                    </Box>
+                  </Stack>
+                </FxCard>
+
+                {/* Revenue Opportunities */}
+                <FxCard sx={{ p: 3 }}>
+                  <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: semantic.text, mb: 2 }}>Revenue Opportunity</Typography>
+                  <Stack spacing={1} sx={{ mb: 2 }}>
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Potential MRR</Typography>
+                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.success }}>{operations.revenueOps.potentialMRR > 0 ? `R${operations.revenueOps.potentialMRR}` : "—"}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Potential ARR</Typography>
+                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{operations.revenueOps.potentialARR > 0 ? `R${operations.revenueOps.potentialARR}` : "—"}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Expected conversions</Typography>
+                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{operations.revenueOps.upgradeCount}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Confidence</Typography>
+                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: operations.revenueOps.upgradeConfidence >= 60 ? semantic.success : semantic.warning }}>{operations.revenueOps.upgradeConfidence}%</Typography>
+                    </Stack>
+                  </Stack>
+                  <Typography sx={{ fontSize: "0.7rem", color: semantic.textSecondary, lineHeight: 1.5 }}>{operations.revenueOps.summary}</Typography>
+                </FxCard>
+
+                {/* Urgent Attention */}
+                {operations.urgent.total > 0 && (
+                  <FxCard sx={{ p: 3 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                      <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: semantic.text }}>Urgent Attention</Typography>
+                      {operations.urgent.critical > 0 && (
+                        <Box sx={{ px: 1, py: 0.2, borderRadius: radius.xs, bgcolor: semantic.errorBg }}>
+                          <Typography sx={{ fontSize: "0.55rem", fontWeight: 700, color: semantic.errorText }}>{operations.urgent.critical} critical</Typography>
+                        </Box>
+                      )}
+                    </Stack>
+                    <Stack spacing={1}>
+                      {operations.urgent.items.slice(0, 4).map((item, i) => (
+                        <Box key={i} onClick={() => navigate(item.route)} sx={{ p: 1.5, borderRadius: radius.sm, cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: semantic.surface } }}>
+                          <Stack direction="row" spacing={1.5} alignItems="center">
+                            <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: item.severity === "critical" ? semantic.error : item.severity === "high" ? semantic.warning : semantic.info, flexShrink: 0 }} />
+                            <Box sx={{ flex: 1 }}>
+                              <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, color: semantic.text }}>{item.title}</Typography>
+                              <Typography sx={{ fontSize: "0.6rem", color: semantic.textTertiary }}>{item.category}</Typography>
+                            </Box>
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </FxCard>
+                )}
+              </Stack>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
 
       {/* ═══ SECTION 1: BUSINESS GROWTH ═══ */}
       <Box>
@@ -821,5 +957,19 @@ function HorizonCard({ label, icon, text, active }) {
       </Stack>
       <Typography sx={{ fontSize: "0.75rem", color: semantic.textSecondary, lineHeight: 1.6 }}>{text}</Typography>
     </Box>
+  );
+}
+
+function ImpactRow({ label, value, level, negative }) {
+  const color = level === "high"
+    ? (negative ? semantic.error : semantic.success)
+    : level === "medium"
+      ? semantic.warning
+      : semantic.textTertiary;
+  return (
+    <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Typography sx={{ fontSize: "0.68rem", color: semantic.textSecondary }}>{label}</Typography>
+      <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color }}>{value}</Typography>
+    </Stack>
   );
 }
