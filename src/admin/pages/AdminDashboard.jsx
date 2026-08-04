@@ -1,8 +1,8 @@
 /**
  * ============================================================
  * Feldrix Control Centre — Executive BI Dashboard
- * Version 2.2.3 — Premium BI Layout (Stripe/Grafana density)
- * Asymmetric grid: 8/4, 8/4, 6/6 chart hierarchy
+ * Version 3.0.0 — Symmetric 3-Column Executive Layout
+ * Equal-width cards: xs=12, md=6, lg=4 (Stripe/Azure density)
  * ============================================================
  */
 
@@ -125,11 +125,12 @@ export default function AdminDashboard() {
         <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.pendingPayments || 0)} label="AI Alerts" color={metrics?.pendingPayments > 0 ? "#EF4444" : "#16A34A"} icon="⚠️" sub="0 critical issues" /></Grid>
       </Grid>
 
-      {/* ═══ BI ROW 1: Customer Growth (8) + Subscriptions (4) ═══ */}
-      <Grid container spacing={4} sx={{ mt: 1, "& .MuiGrid-item": { display: "flex" } }}>
-        <Grid item xs={12} md={8}>
+      {/* ═══ EXECUTIVE CHARTS — 3-Column Equal Grid ═══ */}
+      <Grid container spacing={3} alignItems="stretch">
+        {/* Row 1, Col 1: Customer Growth */}
+        <Grid item xs={12} md={6} lg={4}>
           <ChartCard title="Customer Growth" subtitle="Monthly new vs cumulative customers" footer={growth.length > 1 ? `↑ ${growth[growth.length-1]?.newCustomers || 0} new this month · ${growth[growth.length-1]?.totalCustomers || 0} total · Growth tracking active` : "↑ Tracking monthly growth"}>
-            <ResponsiveContainer width="100%" height={340}>
+            <ResponsiveContainer width="100%" height={320}>
               <AreaChart data={growth} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
                 <defs>
                   <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
@@ -148,7 +149,9 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={4}>
+
+        {/* Row 1, Col 2: Subscriptions */}
+        <Grid item xs={12} md={6} lg={4}>
           <ChartCard title="Subscriptions" subtitle="Current plan distribution" footer={subBreakdown.length > 0 ? `Starter dominates · ${subBreakdown.reduce((s, b) => s + b.value, 0)} total farms` : "No subscription data yet"}>
             <Stack alignItems="center" justifyContent="center" sx={{ flex: 1, py: 2 }}>
               <Box sx={{ position: "relative" }}>
@@ -183,13 +186,11 @@ export default function AdminDashboard() {
             </Stack>
           </ChartCard>
         </Grid>
-      </Grid>
 
-      {/* ═══ BI ROW 2: Revenue Trend (8) + Platform Activity (4) ═══ */}
-      <Grid container spacing={4} sx={{ mt: 0.5, "& .MuiGrid-item": { display: "flex" } }}>
-        <Grid item xs={12} md={8}>
+        {/* Row 1, Col 3: Revenue Trend */}
+        <Grid item xs={12} md={6} lg={4}>
           <ChartCard title="Revenue Trend" subtitle="Monthly recurring revenue (ZAR)" footer={revenue.length > 0 ? `Highest month: R${Math.max(...revenue.map(r => r.revenue || 0))} · Latest: R${revenue[revenue.length-1]?.revenue || 0}` : "Revenue tracking active"}>
-            <ResponsiveContainer width="100%" height={340}>
+            <ResponsiveContainer width="100%" height={320}>
               <AreaChart data={revenue} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
                 <defs>
                   <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -207,9 +208,11 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={4}>
+
+        {/* Row 2, Col 1: Platform Activity */}
+        <Grid item xs={12} md={6} lg={4}>
           <ChartCard title="Platform Activity" subtitle="Daily logins (last 7 days)" footer={platformActivity.length > 0 ? `Peak: ${platformActivity.reduce((max, d) => d.logins > max.logins ? d : max, platformActivity[0])?.day} · Avg: ${Math.round(platformActivity.reduce((s, d) => s + d.logins, 0) / (platformActivity.length || 1))} logins/day` : "Tracking weekly activity"}>
-            <ResponsiveContainer width="100%" height={340}>
+            <ResponsiveContainer width="100%" height={320}>
               <BarChart data={platformActivity} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="day" tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
@@ -220,13 +223,11 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-      </Grid>
 
-      {/* ═══ BI ROW 3: Feature Usage (6) + Customer Health (6) ═══ */}
-      <Grid container spacing={4} sx={{ mt: 0.5, "& .MuiGrid-item": { display: "flex" } }}>
-        <Grid item xs={12} md={6}>
+        {/* Row 2, Col 2: Feature Usage */}
+        <Grid item xs={12} md={6} lg={4}>
           <ChartCard title="Feature Usage" subtitle="Records per module (last 30 days)" footer={featureUsage.length > 0 ? `Most used: ${featureUsage[0]?.name} · Least used: ${featureUsage[featureUsage.length-1]?.name}` : "Tracking feature adoption"}>
-            <ResponsiveContainer width="100%" height={340}>
+            <ResponsiveContainer width="100%" height={320}>
               <BarChart data={featureUsage} layout="vertical" margin={{ top: 10, right: 40, bottom: 5, left: 100 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
@@ -239,9 +240,11 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={6}>
+
+        {/* Row 2, Col 3: Customer Health */}
+        <Grid item xs={12} md={6} lg={4}>
           <ChartCard title="Customer Health" subtitle="Distribution across health segments" footer={customerHealth.length > 0 ? `Healthy: ${customerHealth.filter(c => c.name === "Healthy").reduce((s, c) => s + c.value, 0)} · Needs attention: ${customerHealth.filter(c => c.name !== "Healthy").reduce((s, c) => s + c.value, 0)} · ${customerHealth.reduce((s, c) => s + c.value, 0)} total` : "Health tracking active"}>
-            <ResponsiveContainer width="100%" height={340}>
+            <ResponsiveContainer width="100%" height={320}>
               <BarChart data={customerHealth} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 12, fill: semantic.text, fontWeight: 500 }} axisLine={false} tickLine={false} />
