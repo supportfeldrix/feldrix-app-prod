@@ -17,6 +17,7 @@ import { getDashboardMetrics, getRecentActivity } from "../services/adminAnalyti
 import { getSystemHealth } from "../services/adminSystemService";
 import { getCustomerGrowth, getRevenueGrowth, getSubscriptionBreakdown, getPlatformActivity, getFeatureUsage, getCustomerHealthDistribution } from "../services/adminBIService";
 import { formatNumber, formatCurrency, formatRelativeTime } from "../utils/adminFormatters";
+import { runIntelligenceAnalysis } from "../services/adminExecutiveIntelligenceService";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -74,6 +75,11 @@ export default function AdminDashboard() {
     : 0;
   const activePct = metrics?.totalUsers > 0 ? Math.round((metrics.activeUsers / metrics.totalUsers) * 100) : 0;
 
+  // Executive Intelligence — computed from existing dashboard data (no extra API calls)
+  const intelligence = !loading && metrics ? runIntelligenceAnalysis({
+    metrics, health, growth, revenue, subBreakdown, platformActivity, featureUsage, customerHealth,
+  }) : null;
+
   if (loading) {
     return (
       <Stack spacing={4}>
@@ -108,6 +114,108 @@ export default function AdminDashboard() {
           </Stack>
         </Stack>
       </Box>
+
+      {/* ═══ EXECUTIVE INTELLIGENCE ═══ */}
+      {intelligence && (
+        <FxCard sx={{ p: { xs: 3, md: 4 }, position: "relative", overflow: "hidden" }}>
+          <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: intelligence.overview.status === "excellent" ? `linear-gradient(90deg, ${semantic.success}, #06B6D4)` : intelligence.overview.status === "healthy" ? `linear-gradient(90deg, ${semantic.info}, ${semantic.success})` : intelligence.overview.status === "attention" ? `linear-gradient(90deg, ${semantic.warning}, #F59E0B)` : `linear-gradient(90deg, ${semantic.error}, ${semantic.warning})` }} />
+          <Grid container spacing={3}>
+            {/* Health Score */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Stack alignItems="center" spacing={1.5}>
+                <Box sx={{ position: "relative", width: 88, height: 88 }}>
+                  <svg width={88} height={88} style={{ transform: "rotate(-90deg)" }}>
+                    <circle cx={44} cy={44} r={38} fill="none" stroke={semantic.surface} strokeWidth={7} />
+                    <circle cx={44} cy={44} r={38} fill="none" stroke={intelligence.overview.status === "excellent" ? semantic.success : intelligence.overview.status === "healthy" ? semantic.info : intelligence.overview.status === "attention" ? semantic.warning : semantic.error} strokeWidth={7} strokeLinecap="round" strokeDasharray={238.76} strokeDashoffset={238.76 - (intelligence.overview.healthScore / 100) * 238.76} style={{ transition: "stroke-dashoffset 1s ease" }} />
+                  </svg>
+                  <Box sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+                    <Typography sx={{ fontSize: "1.4rem", fontWeight: 800, color: semantic.text, lineHeight: 1 }}>{intelligence.overview.healthScore}</Typography>
+                    <Typography sx={{ fontSize: "0.55rem", color: semantic.textTertiary, mt: 0.25 }}>/ 100</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>Business Health</Typography>
+                  <Box sx={{ mt: 0.5, px: 1.5, py: 0.25, borderRadius: radius.pill, display: "inline-block", bgcolor: intelligence.overview.status === "excellent" ? semantic.successBg : intelligence.overview.status === "healthy" ? semantic.infoBg : intelligence.overview.status === "attention" ? semantic.warningBg : semantic.errorBg }}>
+                    <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "capitalize", color: intelligence.overview.status === "excellent" ? semantic.successText : intelligence.overview.status === "healthy" ? semantic.infoText : intelligence.overview.status === "attention" ? semantic.warningText : semantic.errorText }}>{intelligence.overview.status}</Typography>
+                  </Box>
+                </Box>
+              </Stack>
+            </Grid>
+
+            {/* Today's Focus */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  <Box sx={{ width: 24, height: 24, borderRadius: radius.xs, bgcolor: `${semantic.info}10`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Typography sx={{ fontSize: "0.7rem" }}>🎯</Typography>
+                  </Box>
+                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>Today's Focus</Typography>
+                </Stack>
+                <Typography sx={{ fontSize: "0.82rem", color: semantic.text, fontWeight: 500, lineHeight: 1.6, flex: 1 }}>{intelligence.summary.todaysFocus}</Typography>
+              </Box>
+            </Grid>
+
+            {/* Top Opportunity */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  <Box sx={{ width: 24, height: 24, borderRadius: radius.xs, bgcolor: `${semantic.success}10`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Typography sx={{ fontSize: "0.7rem" }}>🚀</Typography>
+                  </Box>
+                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>Top Opportunity</Typography>
+                </Stack>
+                {intelligence.summary.topOpportunity ? (
+                  <>
+                    <Typography sx={{ fontSize: "0.82rem", color: semantic.text, fontWeight: 600, lineHeight: 1.5, mb: 0.5 }}>{intelligence.summary.topOpportunity.title}</Typography>
+                    <Typography sx={{ fontSize: "0.72rem", color: semantic.textTertiary, lineHeight: 1.5 }}>{intelligence.summary.topOpportunity.action}</Typography>
+                  </>
+                ) : (
+                  <Typography sx={{ fontSize: "0.78rem", color: semantic.textTertiary, lineHeight: 1.5 }}>No immediate opportunities identified. Continue monitoring engagement.</Typography>
+                )}
+              </Box>
+            </Grid>
+
+            {/* Top Risk */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  <Box sx={{ width: 24, height: 24, borderRadius: radius.xs, bgcolor: intelligence.summary.topRisk ? `${semantic.warning}10` : `${semantic.success}10`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Typography sx={{ fontSize: "0.7rem" }}>{intelligence.summary.topRisk ? "⚠️" : "✓"}</Typography>
+                  </Box>
+                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>Top Risk</Typography>
+                </Stack>
+                {intelligence.summary.topRisk ? (
+                  <>
+                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.5 }}>
+                      <Box sx={{ px: 1, py: 0.15, borderRadius: radius.xs, bgcolor: intelligence.summary.topRisk.priority === "critical" ? semantic.errorBg : semantic.warningBg }}>
+                        <Typography sx={{ fontSize: "0.55rem", fontWeight: 700, textTransform: "uppercase", color: intelligence.summary.topRisk.priority === "critical" ? semantic.errorText : semantic.warningText }}>{intelligence.summary.topRisk.priority}</Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>{intelligence.summary.topRisk.category}</Typography>
+                    </Stack>
+                    <Typography sx={{ fontSize: "0.82rem", color: semantic.text, fontWeight: 600, lineHeight: 1.5, mb: 0.5 }}>{intelligence.summary.topRisk.title}</Typography>
+                    <Typography sx={{ fontSize: "0.72rem", color: semantic.textTertiary, lineHeight: 1.5 }}>{intelligence.summary.topRisk.action}</Typography>
+                  </>
+                ) : (
+                  <Typography sx={{ fontSize: "0.78rem", color: semantic.success, fontWeight: 500, lineHeight: 1.5 }}>No critical risks detected. All systems operating normally.</Typography>
+                )}
+              </Box>
+            </Grid>
+          </Grid>
+
+          {/* Executive Recommendation */}
+          <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${semantic.border}` }}>
+            <Stack direction="row" spacing={1.25} alignItems="flex-start">
+              <Box sx={{ width: 24, height: 24, borderRadius: radius.xs, bgcolor: "#6366F110", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, mt: "1px" }}>
+                <Typography sx={{ fontSize: "0.7rem" }}>💡</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "#6366F1", textTransform: "uppercase", letterSpacing: 0.6, mb: 0.25 }}>Executive Recommendation</Typography>
+                <Typography sx={{ fontSize: "0.82rem", color: semantic.textSecondary, lineHeight: 1.6 }}>{intelligence.summary.briefing}</Typography>
+              </Box>
+            </Stack>
+          </Box>
+        </FxCard>
+      )}
 
       {/* ═══ EXECUTIVE BRIEFING + TODAY'S PRIORITY ═══ */}
       <FxCard sx={{ position: "relative", overflow: "hidden", p: { xs: 3, md: 4 } }}>
