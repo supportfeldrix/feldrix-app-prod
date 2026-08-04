@@ -1,7 +1,8 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Executive BI Dashboard (Layout Fix)
- * Version 2.2 — Expanded charts, proper grid, full-width
+ * Feldrix Control Centre — Executive BI Dashboard
+ * Version 2.2.2 — Full-Width Layout Optimisation
+ * Enterprise BI workspace: Stripe/PowerBI/Grafana density
  * ============================================================
  */
 
@@ -64,7 +65,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <Stack spacing={4} sx={{ width: "100%" }}>
+    <Stack spacing={4} sx={{ width: "100%", maxWidth: "100%" }}>
       {/* ═══ HERO ═══ */}
       <Box sx={{ px: { xs: 3, md: 4 }, py: { xs: 2.5, md: 3 }, borderRadius: 3, background: "linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #0F172A 100%)", position: "relative", overflow: "hidden" }}>
         <Box sx={{ position: "absolute", top: 0, right: 0, width: "60%", height: "100%", background: "radial-gradient(ellipse at 80% 50%, rgba(59,130,246,0.08) 0%, transparent 60%)", pointerEvents: "none" }} />
@@ -125,10 +126,10 @@ export default function AdminDashboard() {
       </Grid>
 
       {/* ═══ CHARTS ROW 1: Growth + Subscriptions + Revenue (3 cols) ═══ */}
-      <Grid container spacing={2.5} sx={{ width: "100%", m: 0, "& .MuiGrid-item": { display: "flex" } }}>
-        <Grid item xs={12} md={4} sx={{ display: "flex" }}>
-          <ChartCard title="Customer Growth" subtitle="Monthly new vs cumulative customers" footer={growth.length > 1 ? `${growth[growth.length-1]?.totalCustomers || 0} total customers` : undefined}>
-            <ResponsiveContainer width="100%" height={240}>
+      <Grid container spacing={3} sx={{ width: "100%", m: 0, "& .MuiGrid-item": { display: "flex" } }}>
+        <Grid item xs={12} md={6} lg={4} xl={4} sx={{ display: "flex" }}>
+          <ChartCard title="Customer Growth" subtitle="Monthly new vs cumulative customers" footer={growth.length > 1 ? `↑ ${growth[growth.length-1]?.newCustomers || 0} new this month · ${growth[growth.length-1]?.totalCustomers || 0} total` : "↑ Tracking monthly growth"}>
+            <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={growth} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
                 <defs>
                   <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
@@ -146,12 +147,12 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <ChartCard title="Subscriptions" subtitle="Current subscription breakdown" footer={`${subBreakdown.reduce((s, b) => s + b.value, 0)} total users`}>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, py: 1 }}>
-              <ResponsiveContainer width={160} height={160}>
+        <Grid item xs={12} md={6} lg={4} xl={4} sx={{ display: "flex" }}>
+          <ChartCard title="Subscriptions" subtitle="Current subscription breakdown" footer={subBreakdown.length > 0 ? `Starter dominates · ${subBreakdown.reduce((s, b) => s + b.value, 0)} total users` : "No subscription data yet"}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, py: 2, minHeight: 260 }}>
+              <ResponsiveContainer width={170} height={170}>
                 <PieChart>
-                  <Pie data={subBreakdown} dataKey="value" cx="50%" cy="50%" outerRadius={75} innerRadius={50} paddingAngle={3} strokeWidth={0}>
+                  <Pie data={subBreakdown} dataKey="value" cx="50%" cy="50%" outerRadius={80} innerRadius={52} paddingAngle={3} strokeWidth={0}>
                     {subBreakdown.map((s, i) => <Cell key={i} fill={s.color} />)}
                   </Pie>
                   <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} />
@@ -168,9 +169,9 @@ export default function AdminDashboard() {
             </Box>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <ChartCard title="Revenue Trend" subtitle="Monthly revenue (ZAR)" footer={revenue.length > 0 ? `Latest: R${revenue[revenue.length-1]?.revenue || 0}` : undefined}>
-            <ResponsiveContainer width="100%" height={240}>
+        <Grid item xs={12} md={6} lg={4} xl={4} sx={{ display: "flex" }}>
+          <ChartCard title="Revenue Trend" subtitle="Monthly revenue (ZAR)" footer={revenue.length > 0 ? `Highest month: R${Math.max(...revenue.map(r => r.revenue || 0))} · Latest: R${revenue[revenue.length-1]?.revenue || 0}` : "Revenue tracking active"}>
+            <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={revenue} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
                 <defs>
                   <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -190,44 +191,44 @@ export default function AdminDashboard() {
       </Grid>
 
       {/* ═══ CHARTS ROW 2: Activity + Feature Usage + Health (3 cols) ═══ */}
-      <Grid container spacing={2.5} sx={{ width: "100%", m: 0, "& .MuiGrid-item": { display: "flex" } }}>
-        <Grid item xs={12} md={4} sx={{ display: "flex" }}>
-          <ChartCard title="Platform Activity" subtitle="Daily logins (last 7 days)" footer={`${platformActivity.reduce((s, d) => s + d.logins, 0)} total logins this week`}>
-            <ResponsiveContainer width="100%" height={240}>
+      <Grid container spacing={3} sx={{ width: "100%", m: 0, "& .MuiGrid-item": { display: "flex" } }}>
+        <Grid item xs={12} md={6} lg={4} xl={4} sx={{ display: "flex" }}>
+          <ChartCard title="Platform Activity" subtitle="Daily logins (last 7 days)" footer={platformActivity.length > 0 ? `Peak: ${platformActivity.reduce((max, d) => d.logins > max.logins ? d : max, platformActivity[0])?.day} · ${platformActivity.reduce((s, d) => s + d.logins, 0)} total logins` : "Tracking weekly activity"}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={platformActivity} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="day" tick={{ fontSize: 10, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: semantic.textTertiary }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} formatter={(v) => [v, "Logins"]} />
-                <Bar dataKey="logins" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} formatter={(v) => [v, "Logins"]} cursor={{ fill: "rgba(59,130,246,0.04)" }} />
+                <Bar dataKey="logins" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <ChartCard title="Feature Usage" subtitle="Records per module (last 30 days)" footer={featureUsage.length > 0 ? `Most used: ${featureUsage[0]?.name}` : undefined}>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={featureUsage} layout="vertical" margin={{ top: 10, right: 30, bottom: 5, left: 10 }}>
+        <Grid item xs={12} md={6} lg={4} xl={4} sx={{ display: "flex" }}>
+          <ChartCard title="Feature Usage" subtitle="Records per module (last 30 days)" footer={featureUsage.length > 0 ? `Most used: ${featureUsage[0]?.name} · ${featureUsage.reduce((s, f) => s + f.records, 0)} total records` : "Tracking feature adoption"}>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={featureUsage} layout="vertical" margin={{ top: 10, right: 20, bottom: 5, left: 100 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: semantic.textTertiary }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: semantic.text }} axisLine={false} tickLine={false} width={70} />
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} formatter={(v) => [v, "Records"]} />
-                <Bar dataKey="records" radius={[0, 4, 4, 0]} barSize={16}>
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: semantic.text, fontWeight: 500 }} axisLine={false} tickLine={false} width={95} />
+                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} formatter={(v) => [v, "Records"]} cursor={{ fill: "rgba(59,130,246,0.04)" }} />
+                <Bar dataKey="records" radius={[0, 6, 6, 0]} barSize={24}>
                   {featureUsage.map((f, i) => <Cell key={i} fill={f.color} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <ChartCard title="Customer Health" subtitle="Customer health distribution" footer={`${customerHealth.reduce((s, c) => s + c.value, 0)} total customers`}>
-            <ResponsiveContainer width="100%" height={240}>
+        <Grid item xs={12} md={6} lg={4} xl={4} sx={{ display: "flex" }}>
+          <ChartCard title="Customer Health" subtitle="Customer health distribution" footer={customerHealth.length > 0 ? `${customerHealth.filter(c => c.name === "Healthy").reduce((s, c) => s + c.value, 0) > 0 ? "100% Healthy" : "Monitoring health"} · ${customerHealth.reduce((s, c) => s + c.value, 0)} total` : "Health tracking active"}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={customerHealth} margin={{ top: 10, right: 10, bottom: 5, left: -10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: semantic.textSecondary }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: semantic.textTertiary }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} formatter={(v) => [v, "Customers"]} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32}>
+                <RTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: shadows.md, fontSize: 12 }} formatter={(v) => [v, "Customers"]} cursor={{ fill: "rgba(59,130,246,0.04)" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={36}>
                   {customerHealth.map((c, i) => <Cell key={i} fill={c.color} />)}
                 </Bar>
               </BarChart>
@@ -239,7 +240,7 @@ export default function AdminDashboard() {
       {/* ═══ QUICK ACTIONS ═══ */}
       <Box>
         <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 1, mb: 2 }}>Quick Actions</Typography>
-        <Grid container spacing={2}>
+        <Grid container spacing={2.5}>
           {[
             { icon: "👥", title: "Users", path: "/users" },
             { icon: "💳", title: "Payments", path: "/payments" },
@@ -259,7 +260,7 @@ export default function AdminDashboard() {
       </Box>
 
       {/* ═══ BOTTOM: ACTIVITY + HEALTH ═══ */}
-      <Grid container spacing={3}>
+      <Grid container spacing={3} sx={{ "& .MuiGrid-item": { display: "flex" } }}>
         <Grid item xs={12} md={8}>
           <FxCard sx={{ p: { xs: 2.5, md: 3.5 }, height: "100%" }}>
             <Typography sx={{ fontSize: "0.88rem", fontWeight: 700, color: semantic.text, mb: 2.5 }}>Recent Activity</Typography>
@@ -334,14 +335,14 @@ function KpiCard({ value, label, color, icon, sub }) {
 
 function ChartCard({ title, subtitle, footer, children }) {
   return (
-    <FxCard sx={{ p: { xs: 2.5, md: 3 }, height: "100%", width: "100%", flex: 1, display: "flex", flexDirection: "column" }}>
+    <FxCard sx={{ p: 3, height: "100%", width: "100%", flex: 1, display: "flex", flexDirection: "column", minHeight: 360 }}>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ fontSize: "0.92rem", fontWeight: 700, color: semantic.text }}>{title}</Typography>
         {subtitle && <Typography sx={{ fontSize: "0.72rem", color: semantic.textTertiary, mt: 0.25 }}>{subtitle}</Typography>}
       </Box>
       <Box sx={{ flex: 1, minHeight: 0 }}>{children}</Box>
       {footer && (
-        <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
+        <Box sx={{ mt: "auto", pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
           <Typography sx={{ fontSize: "0.7rem", color: semantic.textSecondary, fontWeight: 500 }}>{footer}</Typography>
         </Box>
       )}
