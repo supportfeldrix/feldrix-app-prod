@@ -18,6 +18,7 @@ import { getSystemHealth } from "../services/adminSystemService";
 import { getCustomerGrowth, getRevenueGrowth, getSubscriptionBreakdown, getPlatformActivity, getFeatureUsage, getCustomerHealthDistribution } from "../services/adminBIService";
 import { formatNumber, formatCurrency, formatRelativeTime } from "../utils/adminFormatters";
 import { runIntelligenceAnalysis } from "../services/adminExecutiveIntelligenceService";
+import { runPredictiveAnalysis } from "../services/adminPredictiveIntelligenceService";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -76,9 +77,11 @@ export default function AdminDashboard() {
   const activePct = metrics?.totalUsers > 0 ? Math.round((metrics.activeUsers / metrics.totalUsers) * 100) : 0;
 
   // Executive Intelligence — computed from existing dashboard data (no extra API calls)
-  const intelligence = !loading && metrics ? runIntelligenceAnalysis({
-    metrics, health, growth, revenue, subBreakdown, platformActivity, featureUsage, customerHealth,
-  }) : null;
+  const intelligenceData = { metrics, health, growth, revenue, subBreakdown, platformActivity, featureUsage, customerHealth, activity };
+  const intelligence = !loading && metrics ? runIntelligenceAnalysis(intelligenceData) : null;
+
+  // Predictive Intelligence — forecasts, upgrade/churn predictions, priorities
+  const predictions = !loading && metrics ? runPredictiveAnalysis(intelligenceData) : null;
 
   if (loading) {
     return (
@@ -250,12 +253,95 @@ export default function AdminDashboard() {
       </FxCard>
 
       {/* ═══ EXECUTIVE KPI CARDS ═══ */}
+      {/* Forecast Panel */}
+      {predictions && (
+        <FxCard sx={{ p: { xs: 3, md: 4 }, position: "relative", overflow: "hidden" }}>
+          <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #06B6D4, #3B82F6, #8B5CF6)" }} />
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: radius.md, bgcolor: "#06B6D410", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>🔮</Box>
+            <Box>
+              <Typography sx={{ fontSize: "0.92rem", fontWeight: 800, color: semantic.text }}>Forecast (Next 30 Days)</Typography>
+              <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Confidence: {predictions.executiveForecast.forecast.confidence}%</Typography>
+            </Box>
+          </Stack>
+          <Grid container spacing={2.5}>
+            <Grid item xs={6} sm={4} md={2.4}>
+              <ForecastMetric label="Expected Customers" value={formatNumber(predictions.executiveForecast.forecast.expectedCustomers)} trend={predictions.growthForecast.trend} />
+            </Grid>
+            <Grid item xs={6} sm={4} md={2.4}>
+              <ForecastMetric label="Expected PRO" value={formatNumber(predictions.executiveForecast.forecast.expectedPRO)} trend={predictions.upgradePredictions.estimatedConversions > 0 ? "up" : "stable"} />
+            </Grid>
+            <Grid item xs={6} sm={4} md={2.4}>
+              <ForecastMetric label="Expected MRR" value={predictions.executiveForecast.forecast.expectedMRR > 0 ? formatCurrency(predictions.executiveForecast.forecast.expectedMRR) : "—"} trend={predictions.revenueForecast.trend === "growing" ? "up" : predictions.revenueForecast.trend === "declining" ? "down" : "stable"} />
+            </Grid>
+            <Grid item xs={6} sm={4} md={2.4}>
+              <ForecastMetric label="Health Projection" value={`${predictions.executiveForecast.forecast.projectedHealth}/100`} trend={predictions.executiveForecast.forecast.projectedHealth >= 70 ? "up" : "down"} />
+            </Grid>
+            <Grid item xs={6} sm={4} md={2.4}>
+              <ForecastMetric label="Churn Risk" value={`${predictions.churnPredictions.riskScore}%`} trend={predictions.churnPredictions.riskScore >= 50 ? "down" : "up"} negative />
+            </Grid>
+          </Grid>
+          {/* Three-Horizon Summary */}
+          <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${semantic.border}` }}>
+            <Grid container spacing={2.5}>
+              <Grid item xs={12} md={4}>
+                <HorizonCard label="Yesterday" icon="◀" text={predictions.executiveForecast.summary.yesterday} />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <HorizonCard label="Today" icon="●" text={predictions.executiveForecast.summary.today} active />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <HorizonCard label="Tomorrow" icon="▶" text={predictions.executiveForecast.summary.tomorrow} />
+              </Grid>
+            </Grid>
+          </Box>
+        </FxCard>
+      )}
+
+      {/* Executive Priorities */}
+      {predictions?.executiveForecast?.priorities?.length > 0 && (
+        <FxCard sx={{ p: { xs: 3, md: 4 } }}>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2.5 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: radius.md, bgcolor: `${semantic.warning}10`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>🎯</Box>
+            <Box>
+              <Typography sx={{ fontSize: "0.92rem", fontWeight: 800, color: semantic.text }}>Executive Priorities</Typography>
+              <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Top actions ranked by business impact</Typography>
+            </Box>
+          </Stack>
+          <Stack spacing={1.5}>
+            {predictions.executiveForecast.priorities.map((p, i) => (
+              <Box key={i} sx={{ p: 2, borderRadius: radius.md, bgcolor: semantic.surface, border: `1px solid ${semantic.border}` }}>
+                <Stack direction="row" spacing={2} alignItems="flex-start">
+                  <Box sx={{ width: 28, height: 28, borderRadius: radius.xs, bgcolor: p.impact === "high" ? semantic.errorBg : p.impact === "medium" ? semantic.warningBg : semantic.infoBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Typography sx={{ fontSize: "0.72rem", fontWeight: 800, color: p.impact === "high" ? semantic.errorText : p.impact === "medium" ? semantic.warningText : semantic.infoText }}>{p.priority}</Typography>
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.25 }}>
+                      <Typography sx={{ fontSize: "0.82rem", fontWeight: 700, color: semantic.text }}>{p.title}</Typography>
+                      <Box sx={{ px: 0.75, py: 0.15, borderRadius: radius.xs, bgcolor: semantic.neutralBg }}>
+                        <Typography sx={{ fontSize: "0.55rem", fontWeight: 600, color: semantic.neutralText }}>{p.area}</Typography>
+                      </Box>
+                    </Stack>
+                    <Typography sx={{ fontSize: "0.72rem", color: semantic.textSecondary, lineHeight: 1.5 }}>{p.description}</Typography>
+                    <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
+                      <Typography sx={{ fontSize: "0.6rem", color: semantic.textTertiary }}>Impact: <Box component="span" sx={{ fontWeight: 700, color: p.impact === "high" ? semantic.error : p.impact === "medium" ? semantic.warning : semantic.info }}>{p.impact}</Box></Typography>
+                      <Typography sx={{ fontSize: "0.6rem", color: semantic.textTertiary }}>Effort: <Box component="span" sx={{ fontWeight: 700 }}>{p.effort}</Box></Typography>
+                    </Stack>
+                  </Box>
+                </Stack>
+              </Box>
+            ))}
+          </Stack>
+        </FxCard>
+      )}
+
+      {/* KPI Cards with Trend Indicators */}
       <Grid container spacing={2.5}>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.totalUsers)} label="Total Customers" color={semantic.info} icon="👥" sub="Lifetime registrations" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.activeUsers)} label="Active Customers" color="#0EA5E9" icon="📡" sub={`${activePct}% engagement`} /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.totalUsers)} label="Total Customers" color={semantic.info} icon="👥" sub="Lifetime registrations" trend={predictions?.executiveForecast?.trends?.customers} /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.activeUsers)} label="Active Customers" color="#0EA5E9" icon="📡" sub={`${activePct}% engagement`} trend={predictions?.executiveForecast?.trends?.activity} /></Grid>
         <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.proSubscribers)} label="PRO Subscribers" color="#8B5CF6" icon="⭐" sub="Paying customers" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={metrics?.revenueMonth > 0 ? formatCurrency(metrics.revenueMonth) : "—"} label="Monthly Revenue" color={semantic.success} icon="💰" sub="Current MRR" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={`${healthPct}%`} label="Platform Health" color={healthPct >= 80 ? semantic.success : semantic.warning} icon="🟢" sub="Service availability" /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={metrics?.revenueMonth > 0 ? formatCurrency(metrics.revenueMonth) : "—"} label="Monthly Revenue" color={semantic.success} icon="💰" sub="Current MRR" trend={predictions?.executiveForecast?.trends?.revenue} /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={`${healthPct}%`} label="Platform Health" color={healthPct >= 80 ? semantic.success : semantic.warning} icon="🟢" sub="Service availability" trend={predictions?.executiveForecast?.trends?.health} /></Grid>
         <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.pendingPayments || 0)} label="Pending Actions" color={metrics?.pendingPayments > 0 ? semantic.error : semantic.success} icon="⚠️" sub={metrics?.pendingPayments > 0 ? "Requires attention" : "All clear"} /></Grid>
       </Grid>
 
@@ -624,14 +710,21 @@ function PillBadge({ label, value, color }) {
   );
 }
 
-function KpiCard({ value, label, color, icon, sub }) {
+function KpiCard({ value, label, color, icon, sub, trend }) {
   return (
     <Box sx={{ p: { xs: 2, md: 2.5 }, borderRadius: radius.lg, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, boxShadow: shadows.xs, transition: transitions.smooth, "&:hover": { boxShadow: shadows.md, transform: "translateY(-2px)", borderColor: semantic.borderHover } }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
         <Box sx={{ width: 38, height: 38, borderRadius: radius.md, bgcolor: `${color}10`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>{icon}</Box>
         <Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: semantic.textSecondary, lineHeight: 1.3 }}>{label}</Typography>
       </Stack>
-      <Typography sx={{ ...typo.metricValue, color: semantic.text, mb: 0.75 }}>{value}</Typography>
+      <Stack direction="row" spacing={1} alignItems="baseline">
+        <Typography sx={{ ...typo.metricValue, color: semantic.text, mb: 0.75 }}>{value}</Typography>
+        {trend && trend.value !== 0 && (
+          <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: trend.direction === "up" ? semantic.success : trend.direction === "down" ? semantic.error : semantic.textTertiary }}>
+            {trend.direction === "up" ? "▲" : trend.direction === "down" ? "▼" : "▬"} {Math.abs(trend.value)}%
+          </Typography>
+        )}
+      </Stack>
       <Typography sx={{ fontSize: "0.65rem", color: semantic.textTertiary, fontWeight: 500 }}>{sub}</Typography>
     </Box>
   );
@@ -702,5 +795,31 @@ function BriefingLine({ icon, color, text }) {
       </Box>
       <Typography sx={{ fontSize: "0.85rem", color: semantic.textSecondary, lineHeight: 1.6 }}>{text}</Typography>
     </Stack>
+  );
+}
+
+function ForecastMetric({ label, value, trend, negative }) {
+  const trendColor = negative
+    ? (trend === "up" ? semantic.success : trend === "down" ? semantic.error : semantic.textTertiary)
+    : (trend === "up" ? semantic.success : trend === "down" ? semantic.error : semantic.textTertiary);
+  const trendIcon = trend === "up" ? "▲" : trend === "down" ? "▼" : "▬";
+  return (
+    <Box sx={{ textAlign: "center", p: 2, borderRadius: radius.md, bgcolor: semantic.surface, border: `1px solid ${semantic.border}` }}>
+      <Typography sx={{ fontSize: "0.58rem", fontWeight: 600, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.5, mb: 0.75 }}>{label}</Typography>
+      <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: semantic.text, letterSpacing: "-0.02em" }}>{value}</Typography>
+      <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: trendColor, mt: 0.5 }}>{trendIcon} {trend === "stable" ? "Stable" : trend === "up" ? "Growing" : trend === "down" ? "Declining" : trend}</Typography>
+    </Box>
+  );
+}
+
+function HorizonCard({ label, icon, text, active }) {
+  return (
+    <Box sx={{ p: 2, borderRadius: radius.md, bgcolor: active ? `${semantic.info}06` : "transparent", border: active ? `1px solid ${semantic.info}20` : `1px solid ${semantic.border}` }}>
+      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
+        <Typography sx={{ fontSize: "0.6rem", color: active ? semantic.info : semantic.textTertiary }}>{icon}</Typography>
+        <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, color: active ? semantic.info : semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Typography>
+      </Stack>
+      <Typography sx={{ fontSize: "0.75rem", color: semantic.textSecondary, lineHeight: 1.6 }}>{text}</Typography>
+    </Box>
   );
 }
