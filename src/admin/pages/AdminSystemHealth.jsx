@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — System Health (Premium v2.1)
+ * Feldrix Control Centre System Health (Premium v2.1)
  * Matches Dashboard/Users/Farms standard.
  * ============================================================
  */
@@ -11,7 +11,7 @@ import { Refresh } from "@mui/icons-material";
 import { FxCard, FxStatCard, FxStatusChip, semantic, typography as typo, shadows, radius, transitions } from "../../shared/design";
 import { getPlatformHealth } from "../services/adminCustomerSuccessService";
 
-const SERVICE_ICONS = { database: "🗄️", authentication: "🔐", storage: "📦", edgeFunctions: "⚡", payfast: "💳", weatherApi: "🌤️" };
+const SERVICE_ICONS = { database: "storage", authentication: "security", storage: "build", edgeFunctions: "platform", payfast: "payments", weatherApi: "weather" };
 
 export default function AdminSystemHealth() {
   const [health, setHealth] = useState(null);
@@ -85,10 +85,10 @@ export default function AdminSystemHealth() {
 
       {/* Metrics */}
       <Grid container spacing={2}>
-        <Grid item xs={6} sm={4} md={3}><FxStatCard icon="⏱️" label="Avg Response" value="—" color="#3B82F6" subtitle="Coming soon" /></Grid>
-        <Grid item xs={6} sm={4} md={3}><FxStatCard icon="📊" label="Uptime" value="99.9%" color="#16A34A" /></Grid>
-        <Grid item xs={6} sm={4} md={3}><FxStatCard icon="⚡" label="Error Rate" value="0%" color="#16A34A" /></Grid>
-        <Grid item xs={6} sm={4} md={3}><FxStatCard icon="🔄" label="Connections" value="—" color="#64748B" subtitle="Coming soon" /></Grid>
+        <Grid item xs={6} sm={4} md={3}><FxStatCard icon="platform" label="Avg Response" value="—" color="#3B82F6" subtitle="Coming soon" /></Grid>
+        <Grid item xs={6} sm={4} md={3}><FxStatCard icon="platform" label="Uptime" value="99.9%" color="#16A34A" /></Grid>
+        <Grid item xs={6} sm={4} md={3}><FxStatCard icon="cancel" label="Error Rate" value="0%" color="#16A34A" /></Grid>
+        <Grid item xs={6} sm={4} md={3}><FxStatCard icon="platform" label="Connections" value="—" color="#64748B" subtitle="Coming soon" /></Grid>
       </Grid>
     </Stack>
   );

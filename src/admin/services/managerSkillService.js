@@ -385,13 +385,16 @@ export const SKILL_REGISTRY = {
 // --- SKILL INTENT DETECTION ----------------------------------
 
 const SKILL_INTENTS = [
-  { keys: ["executive report", "generate report", "full report"], skill: "generateExecutiveReport" },
-  { keys: ["revenue report"], skill: "generateRevenueReport" },
-  { keys: ["customer report"], skill: "generateCustomerReport" },
-  { keys: ["platform report"], skill: "generatePlatformReport" },
-  { keys: ["operations report", "ops report"], skill: "generateOperationsReport" },
-  { keys: ["weekly summary", "this week summary", "week report"], skill: "generateWeeklySummary" },
-  { keys: ["monthly summary", "month report", "this month"], skill: "generateMonthlySummary" },
+  { keys: ["executive report", "generate report", "full report", "prepare report", "create report", "build report"], skill: "generateExecutiveReport" },
+  { keys: ["revenue report", "financial report", "income report"], skill: "generateRevenueReport" },
+  { keys: ["customer report", "user report", "farmer report"], skill: "generateCustomerReport" },
+  { keys: ["platform report", "system report", "infrastructure report"], skill: "generatePlatformReport" },
+  { keys: ["operations report", "ops report", "action report"], skill: "generateOperationsReport" },
+  { keys: ["weekly summary", "this week summary", "week report", "weekly report"], skill: "generateWeeklySummary" },
+  { keys: ["monthly summary", "month report", "this month", "monthly report"], skill: "generateMonthlySummary" },
+  { keys: ["export pdf", "download pdf", "pdf report"], skill: "generateExecutiveReport" },
+  { keys: ["export excel", "download excel", "spreadsheet"], skill: "generateExecutiveReport" },
+  { keys: ["export csv", "download csv"], skill: "generateExecutiveReport" },
   { keys: ["upgrade candidate", "who can upgrade", "potential upgrade"], skill: "findUpgradeCandidates" },
   { keys: ["inactive customer", "inactive user", "dormant", "not logged in"], skill: "findInactiveCustomers" },
   { keys: ["high value", "best customer", "top customer", "vip"], skill: "findHighValueCustomers" },

@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — AI Operations (Premium v2.1)
+ * Feldrix Control Centre AI Operations (Premium v2.1)
  * Matches Dashboard/Users/Farms standard.
  * ============================================================
  */
@@ -58,7 +58,7 @@ export default function AdminSupport() {
       <FxCard sx={{ position: "relative", overflow: "hidden" }}>
         <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #6366F1, #3B82F6, #06B6D4)" }} />
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2.5 }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: "10px", bgcolor: "#6366F112", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>🧠</Box>
+          <Box sx={{ width: 36, height: 36, borderRadius: "10px", bgcolor: "#6366F112", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}></Box>
           <Box>
             <Typography sx={{ fontSize: "1rem", fontWeight: 800, color: semantic.text }}>{briefing?.greeting || "Executive Briefing"}</Typography>
             <Typography sx={{ fontSize: "0.7rem", color: semantic.textTertiary }}>AI-generated platform intelligence</Typography>
@@ -96,7 +96,7 @@ export default function AdminSupport() {
                 <Chip label={`${rec.confidence}%`} size="small" sx={{ height: 18, fontSize: "0.55rem", fontWeight: 700, bgcolor: `${PRIORITY_COLORS[rec.priority]}15`, color: PRIORITY_COLORS[rec.priority] }} />
               </Stack>
               <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary, mb: 0.5 }}>{rec.reason}</Typography>
-              <Typography sx={{ ...typo.caption, color: semantic.info, fontWeight: 600 }}>→ {rec.action}</Typography>
+              <Typography sx={{ ...typo.caption, color: semantic.info, fontWeight: 600 }}>{rec.action}</Typography>
             </FxCard>
           ))}
         </Stack>
@@ -124,10 +124,10 @@ export default function AdminSupport() {
         <Grid item xs={12} md={6}>
           <Section title="Opportunities">
             <Grid container spacing={2}>
-              <Grid item xs={6}><FxStatCard icon="⬆️" label="Upgrade" value={opportunities?.upgradeTargets || 0} color="#8B5CF6" subtitle="Targets" /></Grid>
-              <Grid item xs={6}><FxStatCard icon="⚠️" label="At Risk" value={opportunities?.atRisk || 0} color="#EF4444" subtitle="30d+" /></Grid>
-              <Grid item xs={6}><FxStatCard icon="🔥" label="Engaged" value={opportunities?.highEngagement || 0} color="#16A34A" /></Grid>
-              <Grid item xs={6}><FxStatCard icon="🎯" label="Total" value={opportunities?.totalOpportunities || 0} color="#3B82F6" /></Grid>
+              <Grid item xs={6}><FxStatCard icon="trending" label="Upgrade" value={opportunities?.upgradeTargets || 0} color="#8B5CF6" subtitle="Targets" /></Grid>
+              <Grid item xs={6}><FxStatCard icon="warning" label="At Risk" value={opportunities?.atRisk || 0} color="#EF4444" subtitle="30d+" /></Grid>
+              <Grid item xs={6}><FxStatCard icon="assessment" label="Engaged" value={opportunities?.highEngagement || 0} color="#16A34A" /></Grid>
+              <Grid item xs={6}><FxStatCard icon="people" label="Total" value={opportunities?.totalOpportunities || 0} color="#3B82F6" /></Grid>
             </Grid>
           </Section>
         </Grid>
@@ -135,7 +135,7 @@ export default function AdminSupport() {
 
       {/* Timeline */}
       <Section title="Executive Timeline">
-        {timeline.length === 0 ? <FxEmptyState icon="📅" title="No events" description="Platform events will appear here." /> : (
+        {timeline.length === 0 ? <FxEmptyState icon="assessment" title="No events" description="Platform events will appear here." /> : (
           <FxCard>
             <Stack spacing={1.5}>
               {timeline.slice(0, 10).map((e, i) => (

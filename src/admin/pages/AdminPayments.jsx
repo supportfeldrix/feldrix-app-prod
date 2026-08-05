@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Payments (Premium v2.1)
+ * Feldrix Control Centre Payments (Premium v2.1)
  * Matches Dashboard/Users/Farms standard.
  * ============================================================
  */
@@ -66,12 +66,12 @@ export default function AdminPayments() {
         <Grid container spacing={2}>{Array.from({ length: 6 }).map((_, i) => <Grid item xs={6} sm={4} md={2} key={i}><Skeleton variant="rounded" height={110} sx={{ borderRadius: 3 }} /></Grid>)}</Grid>
       ) : (
         <Grid container spacing={2}>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="💰" label="Revenue" value={formatCurrency(metrics.revenueThisMonth)} color="#16A34A" subtitle="This month" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📅" label="Today" value={formatCurrency(metrics.revenueToday)} color="#0EA5E9" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="✅" label="Successful" value={formatNumber(metrics.successfulPayments)} color="#16A34A" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⏳" label="Pending" value={formatNumber(metrics.pendingPayments)} color="#F59E0B" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="❌" label="Failed" value={formatNumber(metrics.failedPayments)} color="#EF4444" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📋" label="Showing" value={formatNumber(total)} color="#64748B" subtitle={filter !== "all" ? filter : "All"} /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="money" label="Revenue" value={formatCurrency(metrics.revenueThisMonth)} color="#16A34A" subtitle="This month" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="calendar" label="Today" value={formatCurrency(metrics.revenueToday)} color="#0EA5E9" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="health" label="Successful" value={formatNumber(metrics.successfulPayments)} color="#16A34A" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="pending" label="Pending" value={formatNumber(metrics.pendingPayments)} color="#F59E0B" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="cancel" label="Failed" value={formatNumber(metrics.failedPayments)} color="#EF4444" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="assessment" label="Showing" value={formatNumber(total)} color="#64748B" subtitle={filter !== "all" ? filter : "All"} /></Grid>
         </Grid>
       )}
 

@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Users Management (Premium v2.0)
+ * Feldrix Control Centre Users Management (Premium v2.0)
  * Version 2.0 Phase 1
  *
  * Matches Executive Dashboard visual standard.
@@ -62,7 +62,7 @@ export default function AdminUsers() {
 
   return (
     <Stack spacing={4}>
-      {/* Page Header — matches Dashboard style */}
+      {/* Page Header matches Dashboard style */}
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1.5}>
         <Box>
           <Typography sx={{ ...typo.pageTitle, color: semantic.text }}>Users</Typography>
@@ -81,16 +81,16 @@ export default function AdminUsers() {
       {kpis && (
         <Grid container spacing={2}>
           <Grid item xs={6} sm={3}>
-            <FxStatCard icon="👥" label="Total Users" value={formatNumber(kpis.total)} color="#3B82F6" />
+            <FxStatCard icon="people" label="Total Users" value={formatNumber(kpis.total)} color="#3B82F6" />
           </Grid>
           <Grid item xs={6} sm={3}>
-            <FxStatCard icon="🆕" label="Today" value={formatNumber(kpis.today)} color="#16A34A" subtitle="New signups" />
+            <FxStatCard icon="calendar" label="Today" value={formatNumber(kpis.today)} color="#16A34A" subtitle="New signups" />
           </Grid>
           <Grid item xs={6} sm={3}>
-            <FxStatCard icon="📋" label="Showing" value={formatNumber(total)} color="#64748B" subtitle={filter !== "all" ? filter : "All users"} />
+            <FxStatCard icon="assessment" label="Showing" value={formatNumber(total)} color="#64748B" subtitle={filter !== "all" ? filter : "All users"} />
           </Grid>
           <Grid item xs={6} sm={3}>
-            <FxStatCard icon="📄" label="Page" value={`${page} / ${Math.ceil(total / PAGE_SIZE) || 1}`} color="#64748B" />
+            <FxStatCard icon="assessment" label="Page" value={`${page} / ${Math.ceil(total / PAGE_SIZE) || 1}`} color="#64748B" />
           </Grid>
         </Grid>
       )}

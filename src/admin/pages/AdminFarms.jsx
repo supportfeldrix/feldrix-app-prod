@@ -1,10 +1,10 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Farms Operations (Premium v2.0)
+ * Feldrix Control Centre Farms Operations (Premium v2.0)
  * Version 2.0 Phase 2
  *
  * Matches Dashboard + Users visual standard.
- * Same page flow: Header → KPIs → Table → Drawer.
+ * Same page flow: Header KPIs Table Drawer.
  * ============================================================
  */
 
@@ -74,12 +74,12 @@ export default function AdminFarms() {
         <Grid container spacing={2}>{Array.from({ length: 6 }).map((_, i) => <Grid item xs={6} sm={4} md={2} key={i}><Skeleton variant="rounded" height={110} sx={{ borderRadius: 3 }} /></Grid>)}</Grid>
       ) : (
         <Grid container spacing={2}>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🚜" label="Total Farms" value={formatNumber(metrics.totalFarms)} color="#3B82F6" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="✅" label="Active" value={formatNumber(metrics.activeFarms)} color="#16A34A" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⭐" label="PRO" value={formatNumber(metrics.proFarms)} color="#8B5CF6" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📡" label="Today" value={formatNumber(metrics.activeToday)} color="#0EA5E9" subtitle="Active today" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🆕" label="New" value={formatNumber(metrics.newThisMonth)} color="#F59E0B" subtitle="This month" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📋" label="Showing" value={formatNumber(total)} color="#64748B" subtitle={filter !== "all" ? filter : "All farms"} /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="people" label="Total Farms" value={formatNumber(metrics.totalFarms)} color="#3B82F6" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="signal" label="Active" value={formatNumber(metrics.activeFarms)} color="#16A34A" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="star" label="PRO" value={formatNumber(metrics.proFarms)} color="#8B5CF6" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="calendar" label="Today" value={formatNumber(metrics.activeToday)} color="#0EA5E9" subtitle="Active today" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="calendar" label="New" value={formatNumber(metrics.newThisMonth)} color="#F59E0B" subtitle="This month" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="assessment" label="Showing" value={formatNumber(total)} color="#64748B" subtitle={filter !== "all" ? filter : "All farms"} /></Grid>
         </Grid>
       )}
 

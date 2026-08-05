@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Subscriptions (Premium v2.1)
+ * Feldrix Control Centre Subscriptions (Premium v2.1)
  * Matches Dashboard/Users/Farms standard.
  * ============================================================
  */
@@ -37,14 +37,14 @@ export default function AdminSubscriptions() {
         <Grid container spacing={2}>{Array.from({ length: 8 }).map((_, i) => <Grid item xs={6} sm={4} md={3} key={i}><Skeleton variant="rounded" height={110} sx={{ borderRadius: 3 }} /></Grid>)}</Grid>
       ) : (
         <Grid container spacing={2}>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="📈" label="MRR" value={formatCurrency(metrics?.mrr)} color="#6366F1" subtitle={metrics?.mrr === 0 ? "No revenue yet" : undefined} /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="📊" label="ARR" value={formatCurrency(metrics?.arr)} color="#6366F1" subtitle="Projected" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="⭐" label="PRO Subscribers" value={formatNumber(metrics?.proSubscribers)} color="#8B5CF6" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="🆓" label="Starter Users" value={formatNumber(metrics?.starterUsers)} color="#3B82F6" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="🔄" label="Pending Renewals" value={formatNumber(metrics?.pendingRenewals)} color="#F59E0B" subtitle="Due this week" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="❌" label="Failed Payments" value={formatNumber(metrics?.failedPayments)} color="#EF4444" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="🚫" label="Cancelled" value={formatNumber(metrics?.cancelledPayments)} color="#64748B" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="💰" label="Revenue (Month)" value={formatCurrency(metrics?.revenueThisMonth)} color="#16A34A" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="money" label="MRR" value={formatCurrency(metrics?.mrr)} color="#6366F1" subtitle={metrics?.mrr === 0 ? "No revenue yet" : undefined} /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="money" label="ARR" value={formatCurrency(metrics?.arr)} color="#6366F1" subtitle="Projected" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="star" label="PRO Subscribers" value={formatNumber(metrics?.proSubscribers)} color="#8B5CF6" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="people" label="Starter Users" value={formatNumber(metrics?.starterUsers)} color="#3B82F6" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="calendar" label="Pending Renewals" value={formatNumber(metrics?.pendingRenewals)} color="#F59E0B" subtitle="Due this week" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="cancel" label="Failed Payments" value={formatNumber(metrics?.failedPayments)} color="#EF4444" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="cancel" label="Cancelled" value={formatNumber(metrics?.cancelledPayments)} color="#64748B" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="money" label="Revenue (Month)" value={formatCurrency(metrics?.revenueThisMonth)} color="#16A34A" /></Grid>
         </Grid>
       )}
 
@@ -53,15 +53,15 @@ export default function AdminSubscriptions() {
         <FxCard sx={{ position: "relative", overflow: "hidden" }}>
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #6366F1, #A78BFA)" }} />
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-            <Box sx={{ width: 34, height: 34, borderRadius: "10px", bgcolor: "#6366F112", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>🧠</Box>
+            <Box sx={{ width: 34, height: 34, borderRadius: "10px", bgcolor: "#6366F112", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}></Box>
             <Typography sx={{ fontSize: "0.92rem", fontWeight: 700, color: semantic.text }}>Billing Intelligence</Typography>
           </Stack>
           <Stack spacing={0.75}>
-            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.revenueThisMonth > 0 ? `✓ Revenue this month: ${formatCurrency(metrics.revenueThisMonth)}.` : "ℹ No revenue recorded this month."}</Typography>
-            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.pendingRenewals > 0 ? `⚠ ${metrics.pendingRenewals} renewal(s) due this week.` : "✓ No renewals due this week."}</Typography>
-            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.failedPayments > 0 ? `⚠ ${metrics.failedPayments} failed payment(s) require attention.` : "✓ No failed payments."}</Typography>
-            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.proSubscribers > 0 ? `✓ ${metrics.proSubscribers} active PRO subscriber(s).` : "ℹ No PRO subscribers yet."}</Typography>
-            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.starterUsers > 5 ? `💡 ${metrics.starterUsers} Starter users are upgrade candidates.` : "✓ Platform growing steadily."}</Typography>
+            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.revenueThisMonth > 0 ? `Revenue this month: ${formatCurrency(metrics.revenueThisMonth)}.` : "No revenue recorded this month."}</Typography>
+            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.pendingRenewals > 0 ? `${metrics.pendingRenewals} renewal(s) due this week.` : "No renewals due this week."}</Typography>
+            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.failedPayments > 0 ? `${metrics.failedPayments} failed payment(s) require attention.` : "No failed payments."}</Typography>
+            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.proSubscribers > 0 ? `${metrics.proSubscribers} active PRO subscriber(s).` : "No PRO subscribers yet."}</Typography>
+            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.starterUsers > 5 ? `${metrics.starterUsers} Starter users are upgrade candidates.` : "Platform growing steadily."}</Typography>
           </Stack>
         </FxCard>
       )}

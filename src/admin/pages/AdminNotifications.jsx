@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Customer Success (Premium v2.1)
+ * Feldrix Control Centre Customer Success (Premium v2.1)
  * Matches Dashboard/Users/Farms standard.
  * ============================================================
  */
@@ -53,12 +53,12 @@ export default function AdminNotifications() {
 
       {/* KPIs */}
       <Grid container spacing={2}>
-        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⚠️" label="Attention" value={formatNumber(metrics?.needsAttention)} color="#F59E0B" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="😴" label="Inactive" value={formatNumber(metrics?.inactive)} color="#EF4444" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📉" label="Churn Risk" value={formatNumber(metrics?.highChurnRisk)} color="#EF4444" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⬆️" label="Upgrades" value={formatNumber(metrics?.upgradeOpportunities)} color="#8B5CF6" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="💚" label="Avg Health" value={`${metrics?.avgCustomerHealth || 0}%`} color="#16A34A" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🎯" label="Onboarding" value={`${metrics?.onboardingCompletion || 0}%`} color="#3B82F6" /></Grid>
+        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="warning" label="Attention" value={formatNumber(metrics?.needsAttention)} color="#F59E0B" /></Grid>
+        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="signal" label="Inactive" value={formatNumber(metrics?.inactive)} color="#EF4444" /></Grid>
+        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="warning" label="Churn Risk" value={formatNumber(metrics?.highChurnRisk)} color="#EF4444" /></Grid>
+        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="trending" label="Upgrades" value={formatNumber(metrics?.upgradeOpportunities)} color="#8B5CF6" /></Grid>
+        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="health" label="Avg Health" value={`${metrics?.avgCustomerHealth || 0}%`} color="#16A34A" /></Grid>
+        <Grid item xs={6} sm={4} md={2}><FxStatCard icon="task" label="Onboarding" value={`${metrics?.onboardingCompletion || 0}%`} color="#3B82F6" /></Grid>
       </Grid>
 
       {/* AI Recommendations */}
@@ -71,7 +71,7 @@ export default function AdminNotifications() {
                 <Chip label={`${rec.confidence}%`} size="small" sx={{ height: 18, fontSize: "0.55rem", fontWeight: 700 }} />
               </Stack>
               <Typography sx={{ ...typo.caption, color: semantic.textSecondary }}>{rec.reason}</Typography>
-              <Typography sx={{ ...typo.caption, color: semantic.info, fontWeight: 600, mt: 0.5 }}>→ {rec.action}</Typography>
+              <Typography sx={{ ...typo.caption, color: semantic.info, fontWeight: 600, mt: 0.5 }}>{rec.action}</Typography>
             </FxCard>
           ))}
         </Stack>
@@ -81,7 +81,7 @@ export default function AdminNotifications() {
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
           <Section title={`Success Queue (${queueTotal})`}>
-            {queue.length === 0 ? <FxEmptyState icon="👥" title="No customers" description="Customer health data will appear here." /> : (
+            {queue.length === 0 ? <FxEmptyState icon="assessment" title="No customers" description="Customer health data will appear here." /> : (
               <Stack spacing={1}>
                 {queue.map((c) => (
                   <FxCard key={c.id} sx={{ py: 1.5, px: 2.5 }}>

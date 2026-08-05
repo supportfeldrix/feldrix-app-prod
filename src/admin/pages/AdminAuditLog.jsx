@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Audit Log (Premium v2.1)
+ * Feldrix Control Centre Audit Log (Premium v2.1)
  * Matches Dashboard/Users/Farms standard.
  * ============================================================
  */
@@ -75,12 +75,12 @@ export default function AdminAuditLog() {
         <Grid container spacing={2}>{Array.from({ length: 6 }).map((_, i) => <Grid item xs={6} sm={4} md={2} key={i}><Skeleton variant="rounded" height={110} sx={{ borderRadius: 3 }} /></Grid>)}</Grid>
       ) : (
         <Grid container spacing={2}>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📋" label="Total" value={metrics.total} color="#3B82F6" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📅" label="Today" value={metrics.today} color="#0EA5E9" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🔴" label="Critical" value={metrics.critical} color="#EF4444" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="⚠️" label="Warning" value={metrics.warning} color="#F59E0B" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="🔐" label="Security" value={metrics.security} color="#8B5CF6" /></Grid>
-          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="📋" label="Showing" value={total} color="#64748B" subtitle={filter !== "all" ? filter : "All"} /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="people" label="Total" value={metrics.total} color="#3B82F6" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="calendar" label="Today" value={metrics.today} color="#0EA5E9" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="warning" label="Critical" value={metrics.critical} color="#EF4444" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="warning" label="Warning" value={metrics.warning} color="#F59E0B" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="security" label="Security" value={metrics.security} color="#8B5CF6" /></Grid>
+          <Grid item xs={6} sm={4} md={2}><FxStatCard icon="assessment" label="Showing" value={total} color="#64748B" subtitle={filter !== "all" ? filter : "All"} /></Grid>
         </Grid>
       )}
 
@@ -89,13 +89,13 @@ export default function AdminAuditLog() {
         <FxCard sx={{ position: "relative", overflow: "hidden", py: 2.5 }}>
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #6366F1, #3B82F6)" }} />
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-            <Box sx={{ width: 32, height: 32, borderRadius: "9px", bgcolor: "#6366F112", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>🧠</Box>
+            <Box sx={{ width: 32, height: 32, borderRadius: "9px", bgcolor: "#6366F112", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}></Box>
             <Typography sx={{ ...typo.bodySmall, fontWeight: 700, color: semantic.text }}>Audit Intelligence</Typography>
           </Stack>
           <Stack spacing={0.5}>
-            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.critical === 0 ? "✓ No critical events detected." : `⚠ ${metrics.critical} critical event(s) require review.`}</Typography>
-            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.security === 0 ? "✓ No security concerns." : `🔐 ${metrics.security} security event(s) logged.`}</Typography>
-            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.today > 0 ? `✓ ${metrics.today} event(s) today — platform actively managed.` : "ℹ No events today."}</Typography>
+            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.critical === 0 ? "No critical events detected." : `${metrics.critical} critical event(s) require review.`}</Typography>
+            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.security === 0 ? "No security concerns." : `${metrics.security} security event(s) logged.`}</Typography>
+            <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{metrics.today > 0 ? `${metrics.today} event(s) today platform actively managed.` : "No events today."}</Typography>
           </Stack>
         </FxCard>
       )}
@@ -113,13 +113,13 @@ export default function AdminAuditLog() {
 
       {/* Table / Cards */}
       {loading ? <Stack spacing={1.5}>{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} variant="rounded" height={56} sx={{ borderRadius: 2.5 }} />)}</Stack>
-      : entries.length === 0 ? <FxEmptyState icon="📋" title="No audit events" description="Events will appear here as admin actions are performed." />
+      : entries.length === 0 ? <FxEmptyState icon="assessment" title="No audit events" description="Events will appear here as admin actions are performed." />
       : isMobile ? (
         <Stack spacing={1.5}>
           {entries.map((e) => (
             <FxCard key={e.id} sx={{ py: 1.5, px: 2.5, borderLeft: `3px solid ${e.details?.severity === "error" ? semantic.error : e.details?.severity === "security" ? "#8B5CF6" : e.details?.severity === "warn" ? semantic.warning : semantic.success}` }}>
               <Typography sx={{ ...typo.bodySmall, fontWeight: 600, color: semantic.text }}>{e.action}</Typography>
-              <Typography sx={{ ...typo.tiny, color: semantic.textSecondary }}>{e.profiles?.full_name || "System"} · {e.target_type || "—"}</Typography>
+              <Typography sx={{ ...typo.tiny, color: semantic.textSecondary }}>{e.profiles?.full_name || "System"} {e.target_type || "—"}</Typography>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
                 <FxStatusChip status={e.details?.severity === "error" ? "critical" : e.details?.severity === "security" ? "admin" : e.details?.severity === "warn" ? "warning" : "active"} label={e.details?.severity || "info"} />
                 <Typography sx={{ ...typo.tiny, color: semantic.textTertiary }}>{formatRelativeTime(e.created_at)}</Typography>

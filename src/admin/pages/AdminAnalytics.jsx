@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Analytics (Premium v2.1)
+ * Feldrix Control Centre Analytics (Premium v2.1)
  * Matches Dashboard/Users/Farms standard.
  * ============================================================
  */
@@ -53,14 +53,14 @@ export default function AdminAnalytics() {
       {/* KPIs */}
       <Section title="Executive Overview">
         <Grid container spacing={2}>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="👥" label="Total Farmers" value={formatNumber(metrics?.totalFarmers)} color="#3B82F6" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="📡" label="Active Today" value={formatNumber(metrics?.activeToday)} color="#0EA5E9" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="📆" label="Active Week" value={formatNumber(metrics?.activeWeek)} color="#06B6D4" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="🆕" label="New This Month" value={formatNumber(metrics?.newMonth)} color="#16A34A" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="⭐" label="PRO Conversion" value={`${metrics?.proConversion || 0}%`} color="#8B5CF6" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="💰" label="MRR" value={formatCurrency(metrics?.mrr)} color="#F59E0B" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="🔄" label="Retention" value={`${metrics?.retention || 0}%`} color="#16A34A" subtitle="30-day" /></Grid>
-          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="💎" label="ARPU" value={formatCurrency(metrics?.arpu)} color="#6366F1" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="people" label="Total Farmers" value={formatNumber(metrics?.totalFarmers)} color="#3B82F6" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="signal" label="Active Today" value={formatNumber(metrics?.activeToday)} color="#0EA5E9" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="signal" label="Active Week" value={formatNumber(metrics?.activeWeek)} color="#06B6D4" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="calendar" label="New This Month" value={formatNumber(metrics?.newMonth)} color="#16A34A" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="star" label="PRO Conversion" value={`${metrics?.proConversion || 0}%`} color="#8B5CF6" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="money" label="MRR" value={formatCurrency(metrics?.mrr)} color="#F59E0B" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="trending" label="Retention" value={`${metrics?.retention || 0}%`} color="#16A34A" subtitle="30-day" /></Grid>
+          <Grid item xs={6} sm={4} md={3}><FxStatCard icon="money" label="ARPU" value={formatCurrency(metrics?.arpu)} color="#6366F1" /></Grid>
         </Grid>
       </Section>
 
@@ -104,7 +104,7 @@ export default function AdminAnalytics() {
             <FxCard sx={{ height: "100%" }}>
               {ops?.topActive?.length > 0 ? (
                 <Stack spacing={0.75}>{ops.topActive.slice(0, 8).map((f) => <InfoRow key={f.id} label={f.farm_name || f.full_name || "—"} value={formatRelativeTime(f.last_login)} />)}</Stack>
-              ) : <FxEmptyState icon="🚜" title="No data" description="Farm activity will appear here." sx={{ p: 2, border: "none" }} />}
+              ) : <FxEmptyState icon="assessment" title="No data" description="Farm activity will appear here." sx={{ p: 2, border: "none" }} />}
             </FxCard>
           </Section>
         </Grid>
