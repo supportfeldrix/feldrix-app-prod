@@ -5,7 +5,7 @@ import ManagerMessage from "./ManagerMessage";
 import ManagerGreeting from "./ManagerGreeting";
 import TypingIndicator from "./TypingIndicator";
 
-export default function ManagerConversation({ messages, isTyping, intelligence, metrics, showGreeting }) {
+export default function ManagerConversation({ messages, isTyping, intelligence, metrics, showGreeting, onSend }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export default function ManagerConversation({ messages, isTyping, intelligence, 
       {/* Messages */}
       <Stack spacing={2.5} sx={{ px: { xs: 0.5, md: 1 } }}>
         {messages.map((msg) => (
-          <ManagerMessage key={msg.id} message={msg} />
+          <ManagerMessage key={msg.id} message={{ ...msg, onFollowup: onSend }} />
         ))}
 
         {/* Typing indicator */}

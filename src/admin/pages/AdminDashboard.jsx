@@ -214,6 +214,7 @@ export default function AdminDashboard() {
         liveData={liveData}
         timelineData={timelineData}
         ready={!loading}
+        onOpenWorkspace={(id) => setActiveWorkspace(id)}
       />
 
 

@@ -1,11 +1,11 @@
 /**
  * ============================================================
  * Feldrix Manager - Intelligence Service
- * Version 2.4.1
+ * Version 2.4.3 -- Skills Engine integration
  *
  * Aggregates platform intelligence into natural-language
- * responses. Designed to be replaced/enhanced with OpenAI
- * in a future version without changing the UI layer.
+ * responses. Skills Engine is checked before conversational
+ * intent -- if a skill matches, it takes priority.
  * ============================================================
  */
 
@@ -14,6 +14,7 @@ import { runPredictiveAnalysis } from "../../services/adminPredictiveIntelligenc
 import { runOperationsAnalysis } from "../../services/adminOperationsService";
 import { runLiveMonitoring } from "../../services/adminLiveMonitoringService";
 import { runExecutiveTimeline } from "../../services/adminExecutiveTimelineService";
+import { detectSkillIntent, executeSkill } from "../../services/managerSkillService";
 
 // --- Helpers -------------------------------------------------
 
@@ -200,26 +201,9 @@ function respondHistory(timelineData) {
   return { content, highlights: [`Today: ${s.eventsToday}`, `This Week: ${s.eventsWeek}`, `Module: ${s.mostActiveModule}`], type: "history" };
 }
 
-function respondNavigate(text) {
-  const t = text.toLowerCase();
-  let route = null, label = null;
-  if (t.match(/revenue|payment/)) { route = "/payments"; label = "Revenue Intelligence"; }
-  else if (t.match(/customer|user/)) { route = "/users"; label = "Users"; }
-  else if (t.match(/farm/)) { route = "/farms"; label = "Farms"; }
-  else if (t.match(/analytic/)) { route = null; label = "Executive Analytics Hub"; }
-  else if (t.match(/audit/)) { route = "/audit"; label = "Audit Log"; }
-  else if (t.match(/setting/)) { route = "/settings"; label = "Settings"; }
-
-  return {
-    content: route ? `Opening **${label}** now...` : `The **${label || "Analytics Hub"}** is available on this dashboard. Scroll down or click the relevant workspace card.`,
-    route,
-    type: "navigate",
-  };
-}
-
 function respondHelp() {
   return {
-    content: `**Feldrix Manager - Available Commands**\n\nYou can ask me:\n- Business health and status\n- Revenue and MRR analysis\n- Customer growth and engagement\n- Farm operations overview\n- Platform infrastructure status\n- Risk and opportunity analysis\n- 30-day forecasts and predictions\n- Today's priorities and action queue\n- Recent activity and timeline\n- Live platform monitoring\n\nI respond using your real platform data, updated continuously.`,
+    content: `**Feldrix Manager - Available Commands**\n\nYou can ask me:\n- Business health and status\n- Revenue and MRR analysis\n- Customer growth and engagement\n- Farm operations overview\n- Platform infrastructure status\n- Risk and opportunity analysis\n- 30-day forecasts and predictions\n- Today's priorities and action queue\n- Recent activity and timeline\n- Live platform monitoring\n\n**Navigation commands:**\nSay "Open Revenue Intelligence", "Go to Payments", "Open Customer Intelligence" and I will take you there directly.\n\nI respond using your real platform data, updated continuously.`,
     type: "help",
   };
 }
@@ -228,6 +212,28 @@ function respondHelp() {
 
 export function generateResponse(userText, context) {
   const { intelligence, predictions, operations, metrics, health, liveData, timelineData } = context;
+
+  // 1. Skills Engine takes priority -- check if this is a skill request
+  const skillName = detectSkillIntent(userText);
+  if (skillName) {
+    const result = executeSkill(skillName, context);
+    if (result) {
+      return {
+        id: `skill-${Date.now()}`,
+        role: "assistant",
+        timestamp: new Date().toISOString(),
+        type: "skill",
+        content: `**${result.title}**\n\n${result.summary}`,
+        highlights: result.details.slice(0, 5),
+        followups: result.actions || [],
+        navigation: result.navigation,
+        exportAvailable: result.exportAvailable,
+        skillResult: result,
+      };
+    }
+  }
+
+  // 2. Conversational intent fallback
   const intent = detectIntent(userText);
 
   let response;
@@ -235,7 +241,7 @@ export function generateResponse(userText, context) {
     case "health": response = respondHealth(intelligence, predictions, health); break;
     case "revenue": response = respondRevenue(metrics, predictions, intelligence); break;
     case "customers": response = respondCustomers(metrics, intelligence, predictions); break;
-    case "farms": response = { content: `**Farm Operations**\n\nFeature usage and farm activity data is available in the Farm Operations workspace. Use the Executive Analytics Hub on the dashboard to drill into livestock, crop, and planner analytics.`, highlights: ["Open Farm Operations workspace for detailed analytics"], type: "farms" }; break;
+    case "farms": response = { content: `**Farm Operations**\n\nFarm activity data is available in the Farm Operations workspace. Click "Open Farm Operations" below or use the Executive Analytics Hub on the dashboard.`, highlights: ["Open Farm Operations workspace for detailed analytics"], type: "farms" }; break;
     case "platform": response = respondLive(liveData); break;
     case "opportunities": response = respondOpportunities(intelligence, operations); break;
     case "risks": response = respondRisks(intelligence, predictions); break;
@@ -244,7 +250,6 @@ export function generateResponse(userText, context) {
     case "summary": response = respondSummary(intelligence, metrics, predictions); break;
     case "actions": response = respondActions(operations); break;
     case "live": response = respondLive(liveData); break;
-    case "navigate": response = respondNavigate(userText); break;
     case "help": response = respondHelp(); break;
     default: response = respondSummary(intelligence, metrics, predictions);
   }

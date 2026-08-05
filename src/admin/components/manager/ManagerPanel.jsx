@@ -1,26 +1,33 @@
 /**
  * ============================================================
  * Feldrix Manager - Main Panel
- * Version 2.4.1
+ * Version 2.4.2 -- Action Engine wired
  *
- * Top-level component that owns conversation state.
- * Receives pre-computed intelligence from AdminDashboard.
- * Future: replace generateResponse() with OpenAI call
- * without changing this component.
+ * handleSend now runs action intent detection first.
+ * Action results drive workspace opening + navigation.
+ * Conversation remains intact during and after navigation.
  * ============================================================
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Stack } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
+import { ChevronRight } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import { semantic, radius, shadows } from "../../../shared/design";
+import { semantic, radius, shadows, transitions } from "../../../shared/design";
 import ManagerHeader from "./ManagerHeader";
 import ManagerConversation from "./ManagerConversation";
 import ManagerInput from "./ManagerInput";
 import SuggestedPrompts from "./SuggestedPrompts";
 import { buildGreeting, generateResponse } from "./managerService";
+import {
+  detectIntent,
+  executeAction,
+  generateActionResponse,
+  ACTION_TYPES,
+} from "../../services/managerActionService";
 
-const RESPONSE_DELAY_MS = 900;
+const RESPONSE_DELAY_MS = 700;
+const NAVIGATE_DELAY_MS = 1200;
 
 export default function ManagerPanel({
   admin,
@@ -32,6 +39,8 @@ export default function ManagerPanel({
   liveData,
   timelineData,
   ready,
+  // Callbacks from AdminDashboard to open workspaces
+  onOpenWorkspace,
 }) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
@@ -47,7 +56,6 @@ export default function ManagerPanel({
   }, [ready, admin, intelligence, metrics, health]);
 
   const handleSend = useCallback((text) => {
-    // Add user message
     const userMsg = {
       id: `u-${Date.now()}`,
       role: "user",
@@ -57,49 +65,51 @@ export default function ManagerPanel({
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
 
-    // Generate response after short delay (typing simulation)
     setTimeout(() => {
+      // 1. Check action engine first (navigate / open workspace)
+      const actionIntent = detectIntent(text);
+      if (actionIntent) {
+        const actionResult = executeAction(actionIntent);
+        if (actionResult) {
+          const actionMsg = generateActionResponse(actionResult);
+          setIsTyping(false);
+          setMessages(prev => [...prev, actionMsg]);
+
+          // Execute the action after a brief confirmation moment
+          setTimeout(() => {
+            if (actionResult.type === ACTION_TYPES.OPEN_WORKSPACE) {
+              onOpenWorkspace?.(actionResult.workspace);
+            } else if (actionResult.type === ACTION_TYPES.NAVIGATE && actionResult.route) {
+              navigate(actionResult.route);
+            }
+          }, NAVIGATE_DELAY_MS);
+          return;
+        }
+      }
+
+      // 2. Conversational response
       const context = { intelligence, predictions, operations, metrics, health, liveData, timelineData };
       const response = generateResponse(text, context);
-
       setIsTyping(false);
       setMessages(prev => [...prev, response]);
-
-      // If response includes a route, navigate after a brief moment
-      if (response.route) {
-        setTimeout(() => navigate(response.route), 600);
-      }
     }, RESPONSE_DELAY_MS);
-  }, [intelligence, predictions, operations, metrics, health, liveData, timelineData, navigate]);
+  }, [intelligence, predictions, operations, metrics, health, liveData, timelineData, navigate, onOpenWorkspace]);
 
-  // Show greeting card in conversation only if intelligence is available
   const showGreeting = !!intelligence && !!metrics;
 
   return (
-    <Box
-      sx={{
-        borderRadius: radius.xl,
-        bgcolor: semantic.paper,
-        border: `1px solid ${semantic.border}`,
-        boxShadow: shadows.lg,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        // Fixed height so it feels like a proper panel, not a page section
-        height: { xs: 560, md: 620 },
-        position: "relative",
-      }}
-    >
+    <Box sx={{ borderRadius: radius.xl, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, boxShadow: shadows.lg, display: "flex", flexDirection: "column", overflow: "hidden", height: { xs: 560, md: 620 }, position: "relative" }}>
       {/* Header */}
       <ManagerHeader intelligence={intelligence} adminName={admin?.name} />
 
-      {/* Conversation - flex 1, scrollable */}
+      {/* Conversation */}
       <ManagerConversation
         messages={messages}
         isTyping={isTyping}
         intelligence={intelligence}
         metrics={metrics}
         showGreeting={showGreeting}
+        onSend={handleSend}
       />
 
       {/* Suggested prompts */}

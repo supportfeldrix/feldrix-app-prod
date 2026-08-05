@@ -1,4 +1,5 @@
 import { Box, Typography, Stack, Chip } from "@mui/material";
+import { ChevronRight } from "@mui/icons-material";
 import { semantic, radius, shadows } from "../../../shared/design";
 
 function formatContent(text) {
@@ -71,6 +72,23 @@ export default function ManagerMessage({ message }) {
                 </Box>
               ))}
             </Stack>
+          )}
+
+          {/* Follow-up suggestions (action messages) */}
+          {message.followups?.length > 0 && (
+            <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
+              <Typography sx={{ fontSize: "0.6rem", fontWeight: 600, color: semantic.textTertiary, mb: 0.75 }}>You may also want to:</Typography>
+              <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", gap: 0.75 }}>
+                {message.followups.map((f, i) => (
+                  <Box key={i} onClick={() => message.onFollowup?.(f)} sx={{ px: 1.25, py: 0.35, borderRadius: radius.pill, bgcolor: `${semantic.info}06`, border: `1px solid ${semantic.info}20`, cursor: message.onFollowup ? "pointer" : "default", transition: "all 0.15s ease", "&:hover": message.onFollowup ? { bgcolor: `${semantic.info}12`, borderColor: `${semantic.info}40` } : {} }}>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, color: semantic.info }}>{f}</Typography>
+                      {message.onFollowup && <ChevronRight sx={{ fontSize: 11, color: semantic.info }} />}
+                    </Stack>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
           )}
         </Box>
         <Typography sx={{ fontSize: "0.6rem", color: semantic.textTertiary, pl: 0.5 }}>{timeStr(message.timestamp)}</Typography>
