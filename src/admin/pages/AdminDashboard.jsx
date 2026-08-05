@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, Stack, Grid, Skeleton, Chip } from "@mui/material";
-import { ArrowForward, Refresh } from "@mui/icons-material";
+import { ArrowForward, Refresh, TrendingUp, Groups, Payments, Agriculture, MonitorHeart, Psychology } from "@mui/icons-material";
 import { Line, BarChart, Bar, PieChart, Pie, Cell, Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid, Legend } from "recharts";
 import { FxCard, semantic, typography as typo, shadows, radius, transitions } from "../../shared/design";
 import { useAdminContext } from "../context/AdminContext";
@@ -671,17 +671,17 @@ export default function AdminDashboard() {
         <SectionHeader icon="ðŸ“Š" title="EXECUTIVE ANALYTICS" subtitle="Deep-dive into business intelligence â€” click any workspace to explore." />
         <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
           {[
-            { id: "growth", icon: "ðŸ“ˆ", title: "Business Growth", lines: ["Customer growth", "Revenue trends", "Forecast"], color: semantic.info },
-            { id: "customers", icon: "ðŸ‘¥", title: "Customer Intelligence", lines: ["Customer health", "Retention", "Activity"], color: "#8B5CF6" },
-            { id: "revenue", icon: "ðŸ’°", title: "Revenue Intelligence", lines: ["MRR / ARR", "Payments", "Forecast"], color: semantic.success },
-            { id: "farms", icon: "ðŸšœ", title: "Farm Operations", lines: ["Livestock", "Crops", "Planner"], color: "#16A34A" },
-            { id: "platform", icon: "ðŸ–¥", title: "Platform Intelligence", lines: ["Usage", "Performance", "Infrastructure"], color: "#06B6D4" },
-            { id: "insights", icon: "ðŸ¤–", title: "Executive Insights", lines: ["Predictions", "AI Analysis", "Opportunities"], color: "#6366F1" },
+            { id: "growth", Icon: TrendingUp, title: "Business Growth", lines: ["Customer growth", "Revenue trends", "Forecast"], color: semantic.info },
+            { id: "customers", Icon: Groups, title: "Customer Intelligence", lines: ["Customer health", "Retention", "Activity"], color: "#8B5CF6" },
+            { id: "revenue", Icon: Payments, title: "Revenue Intelligence", lines: ["MRR / ARR", "Payments", "Forecast"], color: semantic.success },
+            { id: "farms", Icon: Agriculture, title: "Farm Operations", lines: ["Livestock", "Crops", "Planner"], color: "#16A34A" },
+            { id: "platform", Icon: MonitorHeart, title: "Platform Intelligence", lines: ["Usage", "Performance", "Infrastructure"], color: "#06B6D4" },
+            { id: "insights", Icon: Psychology, title: "Executive Insights", lines: ["Predictions", "AI Analysis", "Opportunities"], color: "#6366F1" },
           ].map((card) => (
             <Grid item xs={12} sm={6} md={4} key={card.id}>
-              <Box onClick={() => setActiveWorkspace(card.id)} sx={{ p: 3, borderRadius: radius.lg, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, cursor: "pointer", transition: transitions.smooth, height: 170, display: "flex", flexDirection: "column", justifyContent: "space-between", "&:hover": { boxShadow: shadows.md, transform: "translateY(-3px)", borderColor: `${card.color}40`, "& .hub-arrow": { opacity: 1, transform: "translateX(0)" } } }}>
+              <Box onClick={() => setActiveWorkspace(card.id)} sx={{ p: 3, borderRadius: radius.lg, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, cursor: "pointer", transition: transitions.smooth, height: 185, display: "flex", flexDirection: "column", justifyContent: "space-between", "&:hover": { boxShadow: shadows.md, transform: "translateY(-3px)", borderColor: `${card.color}60`, "& .hub-icon": { transform: "scale(1.08)" }, "& .hub-arrow": { opacity: 1, transform: "translateX(2px)" } } }}>
                 <Box>
-                  <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>{card.icon}</Typography>
+                  <Box className="hub-icon" sx={{ width: 52, height: 52, borderRadius: radius.lg, bgcolor: `${card.color}10`, display: "flex", alignItems: "center", justifyContent: "center", mb: 1.5, transition: transitions.smooth }}><card.Icon sx={{ fontSize: 28, color: card.color }} /></Box>
                   <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: semantic.text, mb: 0.75 }}>{card.title}</Typography>
                   {card.lines.map((line, i) => <Typography key={i} sx={{ fontSize: "0.68rem", color: semantic.textTertiary, lineHeight: 1.6 }}>{line}</Typography>)}
                 </Box>
