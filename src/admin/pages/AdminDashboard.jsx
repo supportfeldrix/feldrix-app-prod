@@ -557,235 +557,106 @@ export default function AdminDashboard() {
         </Box>
       )}
 
-      {/* ═══ LIVE EXECUTIVE MONITOR ═══ */}
+      {/* ═══ LIVE OPERATIONS CENTRE ═══ */}
       <Box>
-        <SectionHeader icon="📡" title="LIVE EXECUTIVE MONITOR" subtitle="Real-time platform health, activity feed, and operational status." />
+        <SectionHeader icon="📡" title="LIVE OPERATIONS CENTRE" subtitle="Unified real-time event stream, platform health, and executive summary." />
         <FxCard sx={{ p: { xs: 3, md: 4 }, position: "relative", overflow: "hidden", mt: 1.5 }}>
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #16A34A, #06B6D4, #3B82F6, #8B5CF6)" }} />
           <Grid container spacing={3}>
-            {/* LEFT: Live Activity Feed (9 cols) */}
+            {/* LEFT: Unified Event Stream (9 cols) */}
             <Grid item xs={12} md={9}>
-              <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
+              <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
                   <LiveDot color={semantic.success} pulse />
-                  <Typography sx={{ fontSize: "0.82rem", fontWeight: 700, color: semantic.text }}>Live Activity Feed</Typography>
+                  <Typography sx={{ fontSize: "0.82rem", fontWeight: 700, color: semantic.text }}>Event Stream</Typography>
                   <Box sx={{ px: 1, py: 0.2, borderRadius: radius.pill, bgcolor: semantic.infoBg }}>
-                    <Typography sx={{ fontSize: "0.55rem", fontWeight: 700, color: semantic.infoText }}>{liveData?.activity?.length || 0} events</Typography>
+                    <Typography sx={{ fontSize: "0.55rem", fontWeight: 700, color: semantic.infoText }}>{filteredTimeline.length} events</Typography>
                   </Box>
                 </Stack>
-                <Box sx={{ flex: 1, maxHeight: 480, overflowY: "auto", pr: 1, "&::-webkit-scrollbar": { width: 4 }, "&::-webkit-scrollbar-thumb": { borderRadius: 2, bgcolor: semantic.border } }}>
-                  {liveLoading ? (
+                <Stack spacing={1.5} sx={{ mb: 2 }}>
+                  <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                    {["All", "Customer", "Farm", "Finance", "Subscription", "Operations", "Platform", "Support", "AI", "System"].map(cat => (
+                      <Box key={cat} onClick={() => { setTimelineFilter(cat); setTimelineVisible(30); }} sx={{ px: 1.25, py: 0.4, borderRadius: radius.pill, bgcolor: timelineFilter === cat ? `${semantic.info}15` : "transparent", border: `1px solid ${timelineFilter === cat ? semantic.info : semantic.border}`, cursor: "pointer", transition: transitions.fast, "&:hover": { borderColor: semantic.borderHover } }}>
+                        <Typography sx={{ fontSize: "0.58rem", fontWeight: 600, color: timelineFilter === cat ? semantic.info : semantic.textSecondary }}>{cat}</Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                  <input type="text" placeholder="Search — customer, farm, payment, keyword..." value={timelineSearch} onChange={e => { setTimelineSearch(e.target.value); setTimelineVisible(30); }} style={{ width: "100%", padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(15,23,42,0.08)", background: "#F8FAFC", fontSize: "0.72rem", fontFamily: "Inter, sans-serif", outline: "none", color: "#0F172A", transition: "border-color 0.2s" }} />
+                </Stack>
+                <Box sx={{ flex: 1, maxHeight: 520, overflowY: "auto", pr: 1, position: "relative", pl: 3, "&::-webkit-scrollbar": { width: 4 }, "&::-webkit-scrollbar-thumb": { borderRadius: 2, bgcolor: semantic.border } }}>
+                  <Box sx={{ position: "absolute", left: 11, top: 0, bottom: 0, width: 2, bgcolor: semantic.border, borderRadius: 1 }} />
+                  {timelineLoading ? (
                     <Stack spacing={1.5}>{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: radius.md }} />)}</Stack>
-                  ) : liveData?.activity?.length > 0 ? (
-                    <Stack spacing={1.5}>
-                      {liveData.activity.map((event, i) => (
-                        <ActivityFeedItem key={`${event.badge}-${i}`} event={event} index={i} navigate={navigate} />
+                  ) : filteredTimeline.length === 0 ? (
+                    <Box sx={{ py: 6, textAlign: "center" }}>
+                      <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>📡</Typography>
+                      <Typography sx={{ fontSize: "0.78rem", color: semantic.textSecondary }}>No events found</Typography>
+                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, mt: 0.5 }}>Events will appear as platform activity occurs.</Typography>
+                    </Box>
+                  ) : (
+                    <Stack spacing={0}>
+                      {Object.entries(groupedTimeline).map(([group, events]) => events.length > 0 && (
+                        <Box key={group}>
+                          <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.8, mb: 1.25, mt: 1.5, ml: 1 }}>{group}</Typography>
+                          <Stack spacing={1}>{events.map((event, i) => <TimelineEvent key={event.id} event={event} index={i} navigate={navigate} />)}</Stack>
+                        </Box>
                       ))}
                     </Stack>
-                  ) : (
-                    <Box sx={{ py: 6, textAlign: "center" }}>
-                      <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>📋</Typography>
-                      <Typography sx={{ fontSize: "0.78rem", color: semantic.textSecondary }}>No recent activity</Typography>
-                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, mt: 0.5 }}>Events will appear as customers interact with the platform.</Typography>
+                  )}
+                  {filteredTimeline.length > timelineVisible && (
+                    <Box onClick={() => setTimelineVisible(v => v + 30)} sx={{ mt: 2, mb: 1, py: 1.25, textAlign: "center", borderRadius: radius.md, bgcolor: semantic.surface, border: `1px solid ${semantic.border}`, cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}06`, borderColor: semantic.borderHover } }}>
+                      <Typography sx={{ fontSize: "0.68rem", fontWeight: 600, color: semantic.info }}>Load more ({filteredTimeline.length - timelineVisible} remaining)</Typography>
                     </Box>
                   )}
                 </Box>
               </Box>
             </Grid>
-
-            {/* RIGHT: Single Operations Panel (3 cols) */}
+            {/* RIGHT: Executive Summary Panel (3 cols) */}
             <Grid item xs={12} md={3}>
               <Box sx={{ p: 2.5, borderRadius: radius.lg, bgcolor: semantic.surface, border: `1px solid ${semantic.border}`, height: "100%" }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
-                  <LiveDot color={semantic.success} pulse />
-                  <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>Live Operations</Typography>
-                </Stack>
-
-                {/* System Status */}
-                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1.25 }}>System Status</Typography>
-                <Stack spacing={0.75} sx={{ mb: 2.5 }}>
+                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Platform Status</Typography>
+                <Stack spacing={0.6} sx={{ mb: 2 }}>
                   {(liveData?.platform?.services || [{ name: "Database", status: "healthy" }, { name: "API", status: "healthy" }, { name: "Realtime", status: "healthy" }, { name: "AI Engine", status: "healthy" }, { name: "Background Jobs", status: "healthy" }]).map((svc) => (
                     <Stack key={svc.name} direction="row" justifyContent="space-between" alignItems="center">
                       <Stack direction="row" spacing={0.75} alignItems="center">
                         <LiveDot color={svc.status === "healthy" ? semantic.success : svc.status === "warning" ? semantic.warning : semantic.error} pulse={svc.status === "healthy"} />
-                        <Typography sx={{ fontSize: "0.68rem", color: semantic.text, fontWeight: 500 }}>{svc.name}</Typography>
+                        <Typography sx={{ fontSize: "0.65rem", color: semantic.text, fontWeight: 500 }}>{svc.name}</Typography>
                       </Stack>
-                      <Typography sx={{ fontSize: "0.55rem", fontWeight: 600, color: svc.status === "healthy" ? semantic.success : svc.status === "warning" ? semantic.warning : semantic.error, textTransform: "capitalize" }}>{svc.status}</Typography>
+                      <Typography sx={{ fontSize: "0.52rem", fontWeight: 600, color: svc.status === "healthy" ? semantic.success : svc.status === "warning" ? semantic.warning : semantic.error, textTransform: "capitalize" }}>{svc.status}</Typography>
                     </Stack>
                   ))}
                 </Stack>
-
-                {/* Live Metrics */}
-                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1.25 }}>Live Metrics</Typography>
-                <Grid container spacing={1} sx={{ mb: 2.5 }}>
+                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Live Counters</Typography>
+                <Grid container spacing={0.75} sx={{ mb: 2 }}>
                   <Grid item xs={6}><LiveCounter label="Online" value={liveData?.customers?.customersOnline || 0} color={semantic.success} /></Grid>
                   <Grid item xs={6}><LiveCounter label="Payments" value={liveData?.payments?.paymentsToday || 0} color={semantic.info} /></Grid>
                   <Grid item xs={6}><LiveCounter label="Support" value={liveData?.support?.openTickets || 0} color={semantic.warning} /></Grid>
                   <Grid item xs={6}><LiveCounter label="Farms" value={liveData?.farms?.activeFarms || 0} color="#8B5CF6" /></Grid>
                 </Grid>
-
-                {/* Latest */}
-                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1.25 }}>Latest</Typography>
-                <Stack spacing={1} sx={{ mb: 2.5 }}>
-                  <LastActivityRow icon="👤" label="Customer" value={liveData?.customers?.latestCustomer?.name || "—"} sub={liveData?.customers?.latestCustomer ? timeAgoFormat(liveData.customers.latestCustomer.joinedAt) : ""} />
-                  <LastActivityRow icon="💰" label="Payment" value={liveData?.payments?.lastPayment ? `R${liveData.payments.lastPayment.amount}` : "—"} sub={liveData?.payments?.lastPayment ? timeAgoFormat(liveData.payments.lastPayment.timestamp) : ""} />
-                  <LastActivityRow icon="🚜" label="Farm" value={`${liveData?.farms?.livestockUpdates || 0} records`} sub="This week" />
-                  <LastActivityRow icon="🟢" label="Online" value={`${liveData?.customers?.customersOnline || 0} users`} sub="Last 30 min" />
+                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Today's Summary</Typography>
+                <Stack spacing={0.75} sx={{ mb: 2 }}>
+                  <TimelineSummaryRow icon="👤" label="Registrations" value={timelineData?.summary?.registrations || 0} />
+                  <TimelineSummaryRow icon="💰" label="Revenue" value={timelineData?.summary?.revenue > 0 ? `R${timelineData.summary.revenue}` : "—"} />
+                  <TimelineSummaryRow icon="🚜" label="Farm Activity" value={timelineData?.summary?.farmActivity || 0} />
+                  <TimelineSummaryRow icon="⚠️" label="Alerts" value={timelineData?.summary?.platformAlerts || 0} />
                 </Stack>
-
-                {/* Auto Refresh */}
-                <Box sx={{ pt: 2, borderTop: `1px solid ${semantic.border}` }}>
-                  <Stack spacing={0.75}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Updated</Typography>
-                      <Typography sx={{ fontSize: "0.62rem", fontWeight: 600, color: semantic.text }}>{liveLastUpdated ? liveLastUpdated.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}</Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Interval</Typography>
-                      <Typography sx={{ fontSize: "0.62rem", fontWeight: 600, color: semantic.text }}>30s</Typography>
-                    </Stack>
-                    <Box onClick={refreshLiveMonitoring} sx={{ mt: 1, py: 0.75, borderRadius: radius.sm, bgcolor: `${semantic.info}08`, border: `1px solid ${semantic.info}15`, textAlign: "center", cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}15` } }}>
-                      <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
-                        <Refresh sx={{ fontSize: 12, color: semantic.info }} />
-                        <Typography sx={{ fontSize: "0.62rem", fontWeight: 600, color: semantic.info }}>Refresh Now</Typography>
-                      </Stack>
+                <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Statistics</Typography>
+                <Stack spacing={0.6} sx={{ mb: 2 }}>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Most Active</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.info }}>{timelineData?.statistics?.mostActiveModule || "—"}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Top Customer</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.text, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{timelineData?.statistics?.mostActiveCustomer || "—"}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Events Today</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.text }}>{timelineData?.statistics?.eventsToday || 0}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>This Week</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.text }}>{timelineData?.statistics?.eventsWeek || 0}</Typography></Stack>
+                </Stack>
+                {liveData?.alerts?.length > 0 && (<><Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Alerts</Typography><Stack spacing={0.6} sx={{ mb: 2 }}>{liveData.alerts.slice(0, 3).map((alert, i) => (<Stack key={i} direction="row" spacing={0.75} alignItems="flex-start"><Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: alert.severity === "critical" ? semantic.error : alert.severity === "warning" ? semantic.warning : semantic.info, flexShrink: 0, mt: "4px" }} /><Typography sx={{ fontSize: "0.6rem", color: semantic.textSecondary, lineHeight: 1.4 }}>{alert.title}</Typography></Stack>))}</Stack></>)}
+                <Box sx={{ pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
+                  <Stack spacing={0.5}>
+                    <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.58rem", color: semantic.textTertiary }}>Last Refresh</Typography><Typography sx={{ fontSize: "0.58rem", fontWeight: 600, color: semantic.text }}>{liveLastUpdated ? liveLastUpdated.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}</Typography></Stack>
+                    <Box onClick={refreshLiveMonitoring} sx={{ mt: 0.75, py: 0.6, borderRadius: radius.sm, bgcolor: `${semantic.info}08`, border: `1px solid ${semantic.info}15`, textAlign: "center", cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}15` } }}>
+                      <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center"><Refresh sx={{ fontSize: 11, color: semantic.info }} /><Typography sx={{ fontSize: "0.58rem", fontWeight: 600, color: semantic.info }}>Refresh Now</Typography></Stack>
                     </Box>
                   </Stack>
                 </Box>
               </Box>
-            </Grid>
-          </Grid>
-        </FxCard>
-      </Box>
-
-      {/* ═══ EXECUTIVE TIMELINE ═══ */}
-      <Box>
-        <SectionHeader icon="📜" title="EXECUTIVE TIMELINE" subtitle="Permanent chronological business history — the memory of Feldrix." />
-        <FxCard sx={{ p: { xs: 3, md: 4 }, position: "relative", overflow: "hidden", mt: 1.5 }}>
-          <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #6366F1, #8B5CF6, #A78BFA)" }} />
-          <Grid container spacing={3}>
-            {/* LEFT: Timeline (8 cols) */}
-            <Grid item xs={12} md={8}>
-              {/* Filters + Search */}
-              <Stack spacing={2} sx={{ mb: 2.5 }}>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 0.75 }}>
-                  {["All", "Customer", "Farm", "Finance", "Subscription", "Operations", "Platform", "Support", "AI", "System"].map(cat => (
-                    <Box key={cat} onClick={() => { setTimelineFilter(cat); setTimelineVisible(30); }} sx={{ px: 1.5, py: 0.5, borderRadius: radius.pill, bgcolor: timelineFilter === cat ? `${semantic.info}15` : semantic.surface, border: `1px solid ${timelineFilter === cat ? semantic.info : semantic.border}`, cursor: "pointer", transition: transitions.fast, "&:hover": { borderColor: semantic.borderHover } }}>
-                      <Typography sx={{ fontSize: "0.6rem", fontWeight: 600, color: timelineFilter === cat ? semantic.info : semantic.textSecondary }}>{cat}</Typography>
-                    </Box>
-                  ))}
-                </Stack>
-                <Box sx={{ position: "relative" }}>
-                  <input
-                    type="text"
-                    placeholder="Search timeline — customer, farm, payment, keyword..."
-                    value={timelineSearch}
-                    onChange={e => { setTimelineSearch(e.target.value); setTimelineVisible(30); }}
-                    style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid rgba(15,23,42,0.08)`, background: "#F8FAFC", fontSize: "0.75rem", fontFamily: "Inter, sans-serif", outline: "none", color: "#0F172A", transition: "border-color 0.2s" }}
-                  />
-                </Box>
-              </Stack>
-
-              {/* Timeline List */}
-              <Box sx={{ position: "relative", pl: 3 }}>
-                {/* Vertical connecting line */}
-                <Box sx={{ position: "absolute", left: 11, top: 0, bottom: 0, width: 2, bgcolor: semantic.border, borderRadius: 1 }} />
-
-                {timelineLoading ? (
-                  <Stack spacing={2}>{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: radius.md }} />)}</Stack>
-                ) : filteredTimeline.length === 0 ? (
-                  <Box sx={{ py: 6, textAlign: "center" }}>
-                    <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>📜</Typography>
-                    <Typography sx={{ fontSize: "0.78rem", color: semantic.textSecondary }}>No timeline events found</Typography>
-                    <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, mt: 0.5 }}>Events will appear as platform activity occurs.</Typography>
-                  </Box>
-                ) : (
-                  <Stack spacing={0}>
-                    {Object.entries(groupedTimeline).map(([group, events]) => events.length > 0 && (
-                      <Box key={group}>
-                        <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.8, mb: 1.5, mt: 2, ml: 1 }}>{group}</Typography>
-                        <Stack spacing={1}>
-                          {events.map((event, i) => (
-                            <TimelineEvent key={event.id} event={event} index={i} navigate={navigate} />
-                          ))}
-                        </Stack>
-                      </Box>
-                    ))}
-                  </Stack>
-                )}
-
-                {/* Load More */}
-                {filteredTimeline.length > timelineVisible && (
-                  <Box onClick={() => setTimelineVisible(v => v + 30)} sx={{ mt: 2, py: 1.5, textAlign: "center", borderRadius: radius.md, bgcolor: semantic.surface, border: `1px solid ${semantic.border}`, cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}06`, borderColor: semantic.borderHover } }}>
-                    <Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: semantic.info }}>Load more events ({filteredTimeline.length - timelineVisible} remaining)</Typography>
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-
-            {/* RIGHT: Summary + Statistics (4 cols) */}
-            <Grid item xs={12} md={4}>
-              <Stack spacing={2.5}>
-                {/* Daily Summary */}
-                <Box sx={{ p: 2.5, borderRadius: radius.lg, bgcolor: semantic.surface, border: `1px solid ${semantic.border}` }}>
-                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, mb: 2 }}>Today's Summary</Typography>
-                  <Stack spacing={1.25}>
-                    <TimelineSummaryRow icon="👤" label="Registrations" value={timelineData?.summary?.registrations || 0} />
-                    <TimelineSummaryRow icon="💰" label="Revenue" value={timelineData?.summary?.revenue > 0 ? `R${timelineData.summary.revenue}` : "—"} />
-                    <TimelineSummaryRow icon="🚜" label="Farm Activity" value={timelineData?.summary?.farmActivity || 0} />
-                    <TimelineSummaryRow icon="🤖" label="AI Recommendations" value={timelineData?.summary?.aiRecommendations || 0} />
-                    <TimelineSummaryRow icon="⚠️" label="Platform Alerts" value={timelineData?.summary?.platformAlerts || 0} />
-                    <TimelineSummaryRow icon="🎧" label="Support Cases" value={timelineData?.summary?.supportCases || 0} />
-                  </Stack>
-                </Box>
-
-                {/* Statistics */}
-                <Box sx={{ p: 2.5, borderRadius: radius.lg, bgcolor: semantic.surface, border: `1px solid ${semantic.border}` }}>
-                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, mb: 2 }}>Statistics</Typography>
-                  <Stack spacing={1.25}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Events Today</Typography>
-                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{timelineData?.statistics?.eventsToday || 0}</Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Events This Week</Typography>
-                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{timelineData?.statistics?.eventsWeek || 0}</Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Events This Month</Typography>
-                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{timelineData?.statistics?.eventsMonth || 0}</Typography>
-                    </Stack>
-                    <Box sx={{ pt: 1.5, mt: 0.5, borderTop: `1px solid ${semantic.border}` }}>
-                      <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                        <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Most Active Module</Typography>
-                        <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.info }}>{timelineData?.statistics?.mostActiveModule || "—"}</Typography>
-                      </Stack>
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Most Active Customer</Typography>
-                        <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.text, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{timelineData?.statistics?.mostActiveCustomer || "—"}</Typography>
-                      </Stack>
-                    </Box>
-                  </Stack>
-                </Box>
-
-                {/* Category Breakdown */}
-                <Box sx={{ p: 2.5, borderRadius: radius.lg, bgcolor: semantic.surface, border: `1px solid ${semantic.border}` }}>
-                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, mb: 2 }}>Categories</Typography>
-                  <Stack spacing={1}>
-                    {Object.entries(
-                      (timelineData?.timeline || []).reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + 1; return acc; }, {})
-                    ).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([cat, count]) => (
-                      <Stack key={cat} direction="row" justifyContent="space-between" alignItems="center">
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Box sx={{ width: 8, height: 8, borderRadius: 1, bgcolor: TIMELINE_CATEGORY_COLORS[cat] || semantic.neutral }} />
-                          <Typography sx={{ fontSize: "0.68rem", color: semantic.text, fontWeight: 500 }}>{cat}</Typography>
-                        </Stack>
-                        <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, color: semantic.textSecondary }}>{count}</Typography>
-                      </Stack>
-                    ))}
-                  </Stack>
-                </Box>
-              </Stack>
             </Grid>
           </Grid>
         </FxCard>
@@ -1191,27 +1062,6 @@ function ImpactRow({ label, value, level, negative }) {
 
 // ═══ LIVE MONITOR HELPERS ═══════════════════════════════════
 
-function timeAgoFormat(ts) {
-  if (!ts) return "";
-  const diff = Date.now() - new Date(ts).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
-const BADGE_COLORS = {
-  signup: { bg: semantic.infoBg, text: semantic.infoText },
-  payment: { bg: semantic.successBg, text: semantic.successText },
-  farm: { bg: "#F0FDF4", text: "#166534" },
-  health: { bg: "#FEF3C7", text: "#92400E" },
-  planner: { bg: "#EDE9FE", text: "#5B21B6" },
-  revenue: { bg: semantic.successBg, text: semantic.successText },
-  online: { bg: "#DCFCE7", text: "#166534" },
-};
-
 function LiveDot({ color, pulse }) {
   return (
     <Box sx={{ position: "relative", width: 8, height: 8, flexShrink: 0 }}>
@@ -1228,53 +1078,6 @@ function LiveCounter({ label, value, color }) {
     <Box sx={{ textAlign: "center", p: 1.5, borderRadius: radius.md, bgcolor: `${color}06`, border: `1px solid ${color}15` }}>
       <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color, lineHeight: 1, transition: transitions.smooth }}>{value}</Typography>
       <Typography sx={{ fontSize: "0.55rem", fontWeight: 600, color: semantic.textTertiary, mt: 0.5 }}>{label}</Typography>
-    </Box>
-  );
-}
-
-function LastActivityRow({ icon, label, value, sub }) {
-  return (
-    <Stack direction="row" spacing={1.25} alignItems="center">
-      <Typography sx={{ fontSize: "0.75rem" }}>{icon}</Typography>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography sx={{ fontSize: "0.65rem", color: semantic.textTertiary }}>{label}</Typography>
-          <Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: semantic.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 120 }}>{value}</Typography>
-        </Stack>
-        {sub && <Typography sx={{ fontSize: "0.55rem", color: semantic.textTertiary, textAlign: "right" }}>{sub}</Typography>}
-      </Box>
-    </Stack>
-  );
-}
-
-function ActivityFeedItem({ event, index, navigate }) {
-  const badge = BADGE_COLORS[event.badge] || BADGE_COLORS.signup;
-  return (
-    <Box
-      onClick={() => navigate(event.route)}
-      sx={{
-        p: 2, borderRadius: radius.md, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`,
-        cursor: "pointer", transition: transitions.smooth,
-        animation: `fadeSlideIn 0.3s ease ${index * 0.05}s both`,
-        "@keyframes fadeSlideIn": { from: { opacity: 0, transform: "translateY(8px)" }, to: { opacity: 1, transform: "translateY(0)" } },
-        "&:hover": { boxShadow: shadows.sm, borderColor: semantic.borderHover, transform: "translateX(3px)" },
-      }}
-    >
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Box sx={{ width: 32, height: 32, borderRadius: radius.sm, bgcolor: badge.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem", flexShrink: 0 }}>
-          {event.icon}
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-            <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: semantic.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{event.title}</Typography>
-            <Box sx={{ px: 0.75, py: 0.15, borderRadius: radius.xs, bgcolor: badge.bg, flexShrink: 0 }}>
-              <Typography sx={{ fontSize: "0.5rem", fontWeight: 700, color: badge.text, textTransform: "uppercase" }}>{event.badge}</Typography>
-            </Box>
-          </Stack>
-          <Typography sx={{ fontSize: "0.68rem", color: semantic.textSecondary, mt: 0.25, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{event.description}</Typography>
-          <Typography sx={{ fontSize: "0.58rem", color: semantic.textTertiary, mt: 0.5 }}>{event.timeAgo}</Typography>
-        </Box>
-      </Stack>
     </Box>
   );
 }
