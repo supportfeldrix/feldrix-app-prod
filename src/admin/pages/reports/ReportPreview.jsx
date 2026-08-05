@@ -2,7 +2,7 @@ import { Box, Typography, Stack, Grid, Chip, IconButton } from "@mui/material";
 import { Close, Download } from "@mui/icons-material";
 import { semantic, radius, shadows } from "../../../shared/design";
 
-export default function ReportPreview({ report, onClose }) {
+export default function ReportPreview({ report, onClose, onExport }) {
   if (!report) return null;
   return (
     <Box sx={{ position: "fixed", inset: 0, zIndex: 1300, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }} onClick={onClose}>
@@ -14,7 +14,7 @@ export default function ReportPreview({ report, onClose }) {
             <Typography sx={{ fontSize: "0.72rem", color: semantic.textTertiary, mt: 0.5 }}>Generated {new Date(report.generatedAt).toLocaleString("en-ZA")} by {report.generatedBy}</Typography>
           </Box>
           <Stack direction="row" spacing={1}>
-            <IconButton size="small" sx={{ border: `1px solid ${semantic.border}`, borderRadius: radius.md }}><Download sx={{ fontSize: 16 }} /></IconButton>
+            <IconButton onClick={onExport} size="small" sx={{ border: `1px solid ${semantic.border}`, borderRadius: radius.md }}><Download sx={{ fontSize: 16 }} /></IconButton>
             <IconButton onClick={onClose} size="small" sx={{ border: `1px solid ${semantic.border}`, borderRadius: radius.md }}><Close sx={{ fontSize: 16 }} /></IconButton>
           </Stack>
         </Stack>

@@ -2,7 +2,7 @@ import { Box, Typography, Stack } from "@mui/material";
 import { History } from "@mui/icons-material";
 import { semantic, radius } from "../../../shared/design";
 
-export default function ReportHistory({ history }) {
+export default function ReportHistory({ history, onDownload }) {
   if (!history || history.length === 0) {
     return (
       <Box sx={{ p: 3, borderRadius: radius.lg, bgcolor: semantic.surface, border: `1px solid ${semantic.border}`, textAlign: "center" }}>
@@ -15,12 +15,12 @@ export default function ReportHistory({ history }) {
   return (
     <Stack spacing={1}>
       {history.map((item, i) => (
-        <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 1.5, borderRadius: radius.md, border: `1px solid ${semantic.border}` }}>
+        <Stack key={i} direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 1.5, borderRadius: radius.md, border: `1px solid ${semantic.border}`, cursor: "pointer", "&:hover": { bgcolor: semantic.surface } }} onClick={() => onDownload?.(item)}>
           <Box>
             <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, color: semantic.text }}>{item.title}</Typography>
-            <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>{item.generatedAt}</Typography>
+            <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>{new Date(item.generatedAt).toLocaleString("en-ZA")}</Typography>
           </Box>
-          <Typography sx={{ fontSize: "0.62rem", fontWeight: 600, color: semantic.info }}>{item.format || "PDF"}</Typography>
+          <Typography sx={{ fontSize: "0.62rem", fontWeight: 600, color: semantic.info }}>{item.format ? item.format.toUpperCase() : "Download"}</Typography>
         </Stack>
       ))}
     </Stack>
