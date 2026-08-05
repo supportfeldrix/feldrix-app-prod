@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Typography, Stack, Grid, Skeleton, Chip } from "@mui/material";
-import { ArrowForward, Refresh, TrendingUp, Groups, Payments, Agriculture, MonitorHeart, Psychology } from "@mui/icons-material";
+import { ArrowForward, Refresh, TrendingUp, Groups, Payments, Agriculture, MonitorHeart, Psychology, TaskAlt, Hub, AutoAwesome, Insights, Description, Flag, WarningAmber, HealthAndSafety, History, Assessment, People, CellTower, Star, AttachMoney, CheckCircleOutlined, NavigateBefore, FiberManualRecord, NavigateNext, PersonAdd, SensorsOff } from "@mui/icons-material";
 import { Line, BarChart, Bar, PieChart, Pie, Cell, Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid, Legend } from "recharts";
 import { FxCard, semantic, typography as typo, shadows, radius, transitions } from "../../shared/design";
 import { useAdminContext } from "../context/AdminContext";
@@ -318,11 +318,11 @@ export default function AdminDashboard() {
               </Box>
             </Stack>
             <Stack spacing={1.5}>
-              <BriefingLine icon="âœ“" color={semantic.success} text={`${formatNumber(metrics?.totalUsers)} registered customers. ${formatNumber(metrics?.activeUsers)} active (${activePct}% engagement rate).`} />
-              {metrics?.todaySignups > 0 && <BriefingLine icon="âœ“" color={semantic.info} text={`${metrics.todaySignups} new sign-up(s) today â€” acquisition pipeline is active.`} />}
-              {metrics?.revenueMonth > 0 ? <BriefingLine icon="âœ“" color={semantic.success} text={`MRR: ${formatCurrency(metrics.revenueMonth)}. Projected ARR: ${formatCurrency(projectedARR)}. Revenue trajectory is positive.`} /> : <BriefingLine icon="âš " color={semantic.warning} text="No revenue recorded yet. Converting the first PRO subscriber should be the primary objective." />}
-              {(metrics?.pendingPayments || 0) > 0 ? <BriefingLine icon="âš " color={semantic.warning} text={`${metrics.pendingPayments} pending payment(s) require immediate review to maintain cash flow.`} /> : <BriefingLine icon="âœ“" color={semantic.success} text="All payments processed. No outstanding issues." />}
-              <BriefingLine icon="âœ“" color={healthPct >= 80 ? semantic.success : semantic.warning} text={`Infrastructure health: ${healthPct}%. ${healthPct >= 95 ? "All systems nominal." : "Monitor degraded services."}`} />
+              <BriefingLine icon="check" color={semantic.success} text={`${formatNumber(metrics?.totalUsers)} registered customers. ${formatNumber(metrics?.activeUsers)} active (${activePct}% engagement rate).`} />
+              {metrics?.todaySignups > 0 && <BriefingLine icon="check" color={semantic.info} text={`${metrics.todaySignups} new sign-up(s) today â€” acquisition pipeline is active.`} />}
+              {metrics?.revenueMonth > 0 ? <BriefingLine icon="check" color={semantic.success} text={`MRR: ${formatCurrency(metrics.revenueMonth)}. Projected ARR: ${formatCurrency(projectedARR)}. Revenue trajectory is positive.`} /> : <BriefingLine icon="warn" color={semantic.warning} text="No revenue recorded yet. Converting the first PRO subscriber should be the primary objective." />}
+              {(metrics?.pendingPayments || 0) > 0 ? <BriefingLine icon="warn" color={semantic.warning} text={`${metrics.pendingPayments} pending payment(s) require immediate review to maintain cash flow.`} /> : <BriefingLine icon="check" color={semantic.success} text="All payments processed. No outstanding issues." />}
+              <BriefingLine icon="check" color={healthPct >= 80 ? semantic.success : semantic.warning} text={`Infrastructure health: ${healthPct}%. ${healthPct >= 95 ? "All systems nominal." : "Monitor degraded services."}`} />
             </Stack>
           </Grid>
           <Grid item xs={12} md={4}>
@@ -370,13 +370,13 @@ export default function AdminDashboard() {
           <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${semantic.border}` }}>
             <Grid container spacing={2.5}>
               <Grid item xs={12} md={4}>
-                <HorizonCard label="Yesterday" icon="â—€" text={predictions.executiveForecast.summary.yesterday} />
+                <HorizonCard label="Yesterday" icon="prev" text={predictions.executiveForecast.summary.yesterday} />
               </Grid>
               <Grid item xs={12} md={4}>
-                <HorizonCard label="Today" icon="â—" text={predictions.executiveForecast.summary.today} active />
+                <HorizonCard label="Today" icon="now" text={predictions.executiveForecast.summary.today} active />
               </Grid>
               <Grid item xs={12} md={4}>
-                <HorizonCard label="Tomorrow" icon="â–¶" text={predictions.executiveForecast.summary.tomorrow} />
+                <HorizonCard label="Tomorrow" icon="next" text={predictions.executiveForecast.summary.tomorrow} />
               </Grid>
             </Grid>
           </Box>
@@ -433,7 +433,7 @@ export default function AdminDashboard() {
       {/* â•â•â• AI OPERATIONS CENTRE â•â•â• */}
       {operations && (
         <Box>
-          <SectionHeader icon="ðŸ¤–" title="AI OPERATIONS CENTRE" subtitle="Prioritised actions ranked by business impact. Your AI-powered work queue." />
+          <SectionHeader icon="ops" title="AI OPERATIONS CENTRE" subtitle="Prioritised actions ranked by business impact. Your AI-powered work queue." />
           <Grid container spacing={3} sx={{ mt: 0.5 }}>
             {/* Operations Queue */}
             <Grid item xs={12} md={8}>
@@ -563,7 +563,7 @@ export default function AdminDashboard() {
 
       {/* â•â•â• LIVE OPERATIONS CENTRE â•â•â• */}
       <Box>
-        <SectionHeader icon="ðŸ“¡" title="LIVE OPERATIONS CENTRE" subtitle="Unified real-time event stream, platform health, and executive summary." />
+        <SectionHeader icon="live" title="LIVE OPERATIONS CENTRE" subtitle="Unified real-time event stream, platform health, and executive summary." />
         <FxCard sx={{ p: { xs: 3, md: 4 }, position: "relative", overflow: "hidden", mt: 1.5 }}>
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #16A34A, #06B6D4, #3B82F6, #8B5CF6)" }} />
           <Grid container spacing={3}>
@@ -639,10 +639,10 @@ export default function AdminDashboard() {
                 </Grid>
                 <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Today's Summary</Typography>
                 <Stack spacing={0.75} sx={{ mb: 2 }}>
-                  <TimelineSummaryRow icon="ðŸ‘¤" label="Registrations" value={timelineData?.summary?.registrations || 0} />
-                  <TimelineSummaryRow icon="ðŸ’°" label="Revenue" value={timelineData?.summary?.revenue > 0 ? `R${timelineData.summary.revenue}` : "â€”"} />
-                  <TimelineSummaryRow icon="ðŸšœ" label="Farm Activity" value={timelineData?.summary?.farmActivity || 0} />
-                  <TimelineSummaryRow icon="âš ï¸" label="Alerts" value={timelineData?.summary?.platformAlerts || 0} />
+                  <TimelineSummaryRow icon="person" label="Registrations" value={timelineData?.summary?.registrations || 0} />
+                  <TimelineSummaryRow icon="payments" label="Revenue" value={timelineData?.summary?.revenue > 0 ? `R${timelineData.summary.revenue}` : "â€”"} />
+                  <TimelineSummaryRow icon="farm" label="Farm Activity" value={timelineData?.summary?.farmActivity || 0} />
+                  <TimelineSummaryRow icon="alert" label="Alerts" value={timelineData?.summary?.platformAlerts || 0} />
                 </Stack>
                 <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Statistics</Typography>
                 <Stack spacing={0.6} sx={{ mb: 2 }}>
@@ -668,7 +668,7 @@ export default function AdminDashboard() {
 
       {/* â•â•â• EXECUTIVE ANALYTICS HUB â•â•â• */}
       <Box>
-        <SectionHeader icon="ðŸ“Š" title="EXECUTIVE ANALYTICS" subtitle="Deep-dive into business intelligence â€” click any workspace to explore." />
+        <SectionHeader icon="analytics" title="EXECUTIVE ANALYTICS" subtitle="Deep-dive into business intelligence. Click any workspace to explore." />
         <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
           {[
             { id: "growth", Icon: TrendingUp, title: "Business Growth", lines: ["Customer growth", "Revenue trends", "Forecast"], color: semantic.info },
@@ -679,16 +679,20 @@ export default function AdminDashboard() {
             { id: "insights", Icon: Psychology, title: "Executive Insights", lines: ["Predictions", "AI Analysis", "Opportunities"], color: "#6366F1" },
           ].map((card) => (
             <Grid item xs={12} sm={6} md={4} key={card.id}>
-              <Box onClick={() => setActiveWorkspace(card.id)} sx={{ p: 3, borderRadius: radius.lg, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, cursor: "pointer", transition: transitions.smooth, height: 185, display: "flex", flexDirection: "column", justifyContent: "space-between", "&:hover": { boxShadow: shadows.md, transform: "translateY(-3px)", borderColor: `${card.color}60`, "& .hub-icon": { transform: "scale(1.08)" }, "& .hub-arrow": { opacity: 1, transform: "translateX(2px)" } } }}>
+              <Box onClick={() => setActiveWorkspace(card.id)} sx={{ p: 3, borderRadius: radius.lg, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, cursor: "pointer", transition: "all 0.25s ease", height: 220, display: "flex", flexDirection: "column", justifyContent: "space-between", "&:hover": { boxShadow: shadows.lg, transform: "translateY(-4px)", borderColor: `${card.color}60`, "& .hub-icon": { transform: "scale(1.08)" }, "& .hub-btn": { bgcolor: `${card.color}12` }, "& .hub-arrow": { transform: "translateX(2px)" } } }}>
                 <Box>
-                  <Box className="hub-icon" sx={{ width: 52, height: 52, borderRadius: radius.lg, bgcolor: `${card.color}10`, display: "flex", alignItems: "center", justifyContent: "center", mb: 1.5, transition: transitions.smooth }}><card.Icon sx={{ fontSize: 28, color: card.color }} /></Box>
-                  <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: semantic.text, mb: 0.75 }}>{card.title}</Typography>
-                  {card.lines.map((line, i) => <Typography key={i} sx={{ fontSize: "0.68rem", color: semantic.textTertiary, lineHeight: 1.6 }}>{line}</Typography>)}
+                  <Box className="hub-icon" sx={{ width: 56, height: 56, borderRadius: "16px", bgcolor: `${card.color}10`, display: "flex", alignItems: "center", justifyContent: "center", mb: 2, transition: "all 0.25s ease" }}>
+                    <card.Icon sx={{ fontSize: 30, color: card.color }} />
+                  </Box>
+                  <Typography sx={{ fontSize: "1.05rem", fontWeight: 700, color: semantic.text, mb: 0.5 }}>{card.title}</Typography>
+                  {card.lines.map((line, i) => <Typography key={i} sx={{ fontSize: "0.78rem", color: semantic.textTertiary, lineHeight: 1.7 }}>{line}</Typography>)}
                 </Box>
-                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 1 }}>
-                  <Typography sx={{ fontSize: "0.68rem", fontWeight: 600, color: card.color }}>View Analytics</Typography>
-                  <ArrowForward className="hub-arrow" sx={{ fontSize: 13, color: card.color, opacity: 0, transform: "translateX(-4px)", transition: transitions.normal }} />
-                </Stack>
+                <Box className="hub-btn" sx={{ mt: 1.5, px: 2, py: 1, borderRadius: radius.pill, bgcolor: `${card.color}06`, display: "inline-flex", alignItems: "center", gap: 1, alignSelf: "flex-start", transition: "all 0.25s ease" }}>
+                  <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, color: card.color }}>View Analytics</Typography>
+                  <Box sx={{ width: 22, height: 22, borderRadius: "50%", bgcolor: `${card.color}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <ArrowForward className="hub-arrow" sx={{ fontSize: 13, color: card.color, transition: "all 0.25s ease" }} />
+                  </Box>
+                </Box>
               </Box>
             </Grid>
           ))}
@@ -778,10 +782,12 @@ const TOOLTIP_STYLE = {
 // â•â•â• HELPER COMPONENTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function SectionHeader({ icon, title, subtitle }) {
+  const SECTION_ICONS = { ops: TaskAlt, live: Hub, analytics: Assessment, default: AutoAwesome };
+  const IconComp = SECTION_ICONS[icon] || SECTION_ICONS.default;
   return (
     <Box sx={{ mb: 1.5 }}>
       <Stack direction="row" spacing={1.5} alignItems="center">
-        <Typography sx={{ fontSize: "1rem" }}>{icon}</Typography>
+        <IconComp sx={{ fontSize: 20, color: semantic.textSecondary }} />
         <Typography sx={{ ...typo.sectionCaption, color: semantic.text, fontSize: "0.72rem" }}>{title}</Typography>
       </Stack>
       {subtitle && <Typography sx={{ fontSize: "0.78rem", color: semantic.textTertiary, mt: 0.5, ml: 4.5 }}>{subtitle}</Typography>}
@@ -800,17 +806,19 @@ function PillBadge({ label, value, color }) {
 }
 
 function KpiCard({ value, label, color, icon, sub, trend }) {
+  const KPI_ICONS = { people: People, signal: CellTower, star: Star, money: AttachMoney, health: HealthAndSafety, warning: WarningAmber };
+  const IconComp = KPI_ICONS[icon] || HealthAndSafety;
   return (
     <Box sx={{ p: { xs: 2, md: 2.5 }, borderRadius: radius.lg, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, boxShadow: shadows.xs, transition: transitions.smooth, "&:hover": { boxShadow: shadows.md, transform: "translateY(-2px)", borderColor: semantic.borderHover } }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-        <Box sx={{ width: 38, height: 38, borderRadius: radius.md, bgcolor: `${color}10`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>{icon}</Box>
+        <Box sx={{ width: 38, height: 38, borderRadius: radius.md, bgcolor: `${color}10`, display: "flex", alignItems: "center", justifyContent: "center" }}><IconComp sx={{ fontSize: 20, color }} /></Box>
         <Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: semantic.textSecondary, lineHeight: 1.3 }}>{label}</Typography>
       </Stack>
       <Stack direction="row" spacing={1} alignItems="baseline">
         <Typography sx={{ ...typo.metricValue, color: semantic.text, mb: 0.75 }}>{value}</Typography>
         {trend && trend.value !== 0 && (
           <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: trend.direction === "up" ? semantic.success : trend.direction === "down" ? semantic.error : semantic.textTertiary }}>
-            {trend.direction === "up" ? "â–²" : trend.direction === "down" ? "â–¼" : "â–¬"} {Math.abs(trend.value)}%
+            {trend.direction === "up" ? "\u25B2" : trend.direction === "down" ? "\u25BC" : "\u25AC"} {Math.abs(trend.value)}%
           </Typography>
         )}
       </Stack>
@@ -877,10 +885,12 @@ function EmptyChart({ message }) {
 }
 
 function BriefingLine({ icon, color, text }) {
+  const BRIEF_ICONS = { check: CheckCircleOutlined, warn: WarningAmber };
+  const IconComp = BRIEF_ICONS[icon] || CheckCircleOutlined;
   return (
     <Stack direction="row" spacing={1.5} alignItems="flex-start">
       <Box sx={{ width: 20, height: 20, borderRadius: radius.xs, bgcolor: `${color}12`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, mt: "2px" }}>
-        <Typography sx={{ fontSize: "0.7rem", color, lineHeight: 1 }}>{icon}</Typography>
+        <IconComp sx={{ fontSize: 13, color }} />
       </Box>
       <Typography sx={{ fontSize: "0.85rem", color: semantic.textSecondary, lineHeight: 1.6 }}>{text}</Typography>
     </Stack>
@@ -891,7 +901,7 @@ function ForecastMetric({ label, value, trend, negative }) {
   const trendColor = negative
     ? (trend === "up" ? semantic.success : trend === "down" ? semantic.error : semantic.textTertiary)
     : (trend === "up" ? semantic.success : trend === "down" ? semantic.error : semantic.textTertiary);
-  const trendIcon = trend === "up" ? "â–²" : trend === "down" ? "â–¼" : "â–¬";
+  const trendIcon = trend === "up" ? "\u25B2" : trend === "down" ? "\u25BC" : "\u25AC";
   return (
     <Box sx={{ textAlign: "center", p: 2, borderRadius: radius.md, bgcolor: semantic.surface, border: `1px solid ${semantic.border}` }}>
       <Typography sx={{ fontSize: "0.58rem", fontWeight: 600, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.5, mb: 0.75 }}>{label}</Typography>
@@ -902,10 +912,12 @@ function ForecastMetric({ label, value, trend, negative }) {
 }
 
 function HorizonCard({ label, icon, text, active }) {
+  const HORIZON_ICONS = { prev: NavigateBefore, now: FiberManualRecord, next: NavigateNext };
+  const IconComp = HORIZON_ICONS[icon] || FiberManualRecord;
   return (
     <Box sx={{ p: 2, borderRadius: radius.md, bgcolor: active ? `${semantic.info}06` : "transparent", border: active ? `1px solid ${semantic.info}20` : `1px solid ${semantic.border}` }}>
       <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
-        <Typography sx={{ fontSize: "0.6rem", color: active ? semantic.info : semantic.textTertiary }}>{icon}</Typography>
+        <IconComp sx={{ fontSize: 14, color: active ? semantic.info : semantic.textTertiary }} />
         <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, color: active ? semantic.info : semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Typography>
       </Stack>
       <Typography sx={{ fontSize: "0.75rem", color: semantic.textSecondary, lineHeight: 1.6 }}>{text}</Typography>
@@ -1026,10 +1038,12 @@ function TimelineEvent({ event, index, navigate }) {
 }
 
 function TimelineSummaryRow({ icon, label, value }) {
+  const SUMMARY_ICONS = { person: PersonAdd, payments: AttachMoney, farm: Agriculture, alert: WarningAmber };
+  const IconComp = SUMMARY_ICONS[icon] || CheckCircleOutlined;
   return (
     <Stack direction="row" justifyContent="space-between" alignItems="center">
       <Stack direction="row" spacing={1} alignItems="center">
-        <Typography sx={{ fontSize: "0.72rem" }}>{icon}</Typography>
+        <IconComp sx={{ fontSize: 15, color: semantic.textTertiary }} />
         <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>{label}</Typography>
       </Stack>
       <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{value}</Typography>
