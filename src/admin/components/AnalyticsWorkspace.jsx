@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Analytics Workspace
+ * Feldrix Control Centre - Analytics Workspace
  * Version 2.3.3
  *
  * Premium full-screen dialog for displaying analytics charts.

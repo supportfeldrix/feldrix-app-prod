@@ -1,7 +1,7 @@
 /**
  * ============================================================
- * Feldrix Control Centre â€” Executive Command Centre
- * Version 2.3.1.1 â€” Consolidation & Premium Polish
+ * Feldrix Control Centre - Executive Command Centre
+ * Version 2.3.1.1 - Consolidation & Premium Polish
  * Enterprise-grade: Azure Monitor / Datadog / Stripe density
  * ============================================================
  */
@@ -23,6 +23,7 @@ import { runOperationsAnalysis } from "../services/adminOperationsService";
 import { runLiveMonitoring } from "../services/adminLiveMonitoringService";
 import { runExecutiveTimeline } from "../services/adminExecutiveTimelineService";
 import AnalyticsWorkspace from "../components/AnalyticsWorkspace";
+import ManagerPanel from "../components/manager/ManagerPanel";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function AdminDashboard() {
   const [customerHealth, setCustomerHealth] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // â”€â”€â”€ Live Monitoring State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -"-"-" Live Monitoring State -"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"
   const [liveData, setLiveData] = useState(null);
   const [liveLoading, setLiveLoading] = useState(true);
   const [liveLastUpdated, setLiveLastUpdated] = useState(null);
@@ -58,7 +59,7 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, [refreshLiveMonitoring]);
 
-  // â”€â”€â”€ Executive Timeline State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -"-"-" Executive Timeline State -"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"
   const [timelineData, setTimelineData] = useState(null);
   const [timelineLoading, setTimelineLoading] = useState(true);
   const [timelineFilter, setTimelineFilter] = useState("All");
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
 
   useEffect(() => { loadTimeline(); }, [loadTimeline]);
 
-  // â”€â”€â”€ Analytics Workspace State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -"-"-" Analytics Workspace State -"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"-"
   const [activeWorkspace, setActiveWorkspace] = useState(null);
 
   // Filtered timeline
@@ -157,14 +158,14 @@ export default function AdminDashboard() {
     : 0;
   const activePct = metrics?.totalUsers > 0 ? Math.round((metrics.activeUsers / metrics.totalUsers) * 100) : 0;
 
-  // Executive Intelligence â€” computed from existing dashboard data (no extra API calls)
+  // Executive Intelligence - computed from existing dashboard data (no extra API calls)
   const intelligenceData = { metrics, health, growth, revenue, subBreakdown, platformActivity, featureUsage, customerHealth };
   const intelligence = !loading && metrics ? runIntelligenceAnalysis(intelligenceData) : null;
 
-  // Predictive Intelligence â€” forecasts, upgrade/churn predictions, priorities
+  // Predictive Intelligence - forecasts, upgrade/churn predictions, priorities
   const predictions = !loading && metrics ? runPredictiveAnalysis(intelligenceData) : null;
 
-  // AI Operations â€” prioritised queue, impact, revenue opportunities
+  // AI Operations - prioritised queue, impact, revenue opportunities
   const operations = !loading && metrics && intelligence && predictions
     ? runOperationsAnalysis(intelligenceData, intelligence, predictions) : null;
 
@@ -183,7 +184,7 @@ export default function AdminDashboard() {
   return (
     <Stack spacing={5} sx={{ width: "100%" }}>
 
-      {/* â•â•â• DARK EXECUTIVE BANNER â•â•â• */}
+      {/* --- DARK EXECUTIVE BANNER --- */}
       <Box sx={{ px: { xs: 3, md: 4.5 }, py: { xs: 3, md: 3.5 }, borderRadius: radius.xl, background: "linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #0F172A 100%)", position: "relative", overflow: "hidden" }}>
         <Box sx={{ position: "absolute", top: 0, right: 0, width: "60%", height: "100%", background: "radial-gradient(ellipse at 80% 50%, rgba(59,130,246,0.08) 0%, transparent 60%)", pointerEvents: "none" }} />
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2} sx={{ position: "relative" }}>
@@ -192,7 +193,7 @@ export default function AdminDashboard() {
               {greeting}, {admin?.name?.split(" ")[0] || "Admin"}
             </Typography>
             <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.5)", mt: 0.5 }}>{dateStr}</Typography>
-            <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", mt: 0.25 }}>Executive Command Centre â€” Real-time platform intelligence</Typography>
+            <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", mt: 0.25 }}>Executive Command Centre - Real-time platform intelligence</Typography>
           </Box>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
             <PillBadge label="Platform" value="Healthy" color={semantic.success} />
@@ -202,8 +203,21 @@ export default function AdminDashboard() {
           </Stack>
         </Stack>
       </Box>
+      {/* FELDRIX MANAGER */}
+      <ManagerPanel
+        admin={admin}
+        metrics={metrics}
+        health={health}
+        intelligence={intelligence}
+        predictions={predictions}
+        operations={operations}
+        liveData={liveData}
+        timelineData={timelineData}
+        ready={!loading}
+      />
 
-      {/* â•â•â• EXECUTIVE INTELLIGENCE â•â•â• */}
+
+      {/* --- EXECUTIVE INTELLIGENCE --- */}
       {intelligence && (
         <FxCard sx={{ p: { xs: 3, md: 4 }, position: "relative", overflow: "hidden" }}>
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: intelligence.overview.status === "excellent" ? `linear-gradient(90deg, ${semantic.success}, #06B6D4)` : intelligence.overview.status === "healthy" ? `linear-gradient(90deg, ${semantic.info}, ${semantic.success})` : intelligence.overview.status === "attention" ? `linear-gradient(90deg, ${semantic.warning}, #F59E0B)` : `linear-gradient(90deg, ${semantic.error}, ${semantic.warning})` }} />
@@ -235,7 +249,7 @@ export default function AdminDashboard() {
               <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
                   <Box sx={{ width: 24, height: 24, borderRadius: radius.xs, bgcolor: `${semantic.info}10`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Typography sx={{ fontSize: "0.7rem" }}>ðŸŽ¯</Typography>
+                    <Flag sx={{ fontSize: 13, color: semantic.info }} />
                   </Box>
                   <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>Today's Focus</Typography>
                 </Stack>
@@ -248,7 +262,7 @@ export default function AdminDashboard() {
               <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
                   <Box sx={{ width: 24, height: 24, borderRadius: radius.xs, bgcolor: `${semantic.success}10`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Typography sx={{ fontSize: "0.7rem" }}>ðŸš€</Typography>
+                    <TrendingUp sx={{ fontSize: 13, color: semantic.success }} />
                   </Box>
                   <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>Top Opportunity</Typography>
                 </Stack>
@@ -268,7 +282,7 @@ export default function AdminDashboard() {
               <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
                   <Box sx={{ width: 24, height: 24, borderRadius: radius.xs, bgcolor: intelligence.summary.topRisk ? `${semantic.warning}10` : `${semantic.success}10`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Typography sx={{ fontSize: "0.7rem" }}>{intelligence.summary.topRisk ? "âš ï¸" : "âœ“"}</Typography>
+                    {intelligence.summary.topRisk ? <WarningAmber sx={{ fontSize: 13, color: semantic.warning }} /> : <CheckCircleOutlined sx={{ fontSize: 13, color: semantic.success }} />}
                   </Box>
                   <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: semantic.textSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}>Top Risk</Typography>
                 </Stack>
@@ -294,7 +308,7 @@ export default function AdminDashboard() {
           <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${semantic.border}` }}>
             <Stack direction="row" spacing={1.25} alignItems="flex-start">
               <Box sx={{ width: 24, height: 24, borderRadius: radius.xs, bgcolor: "#6366F110", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, mt: "1px" }}>
-                <Typography sx={{ fontSize: "0.7rem" }}>ðŸ’¡</Typography>
+                <Typography sx={{ fontSize: "0.7rem" }}>'</Typography>
               </Box>
               <Box>
                 <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "#6366F1", textTransform: "uppercase", letterSpacing: 0.6, mb: 0.25 }}>Executive Recommendation</Typography>
@@ -305,21 +319,21 @@ export default function AdminDashboard() {
         </FxCard>
       )}
 
-      {/* â•â•â• EXECUTIVE BRIEFING + TODAY'S PRIORITY â•â•â• */}
+      {/* --- EXECUTIVE BRIEFING + TODAY'S PRIORITY --- */}
       <FxCard sx={{ position: "relative", overflow: "hidden", p: { xs: 3, md: 4 } }}>
         <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #6366F1, #3B82F6, #06B6D4)" }} />
         <Grid container spacing={4}>
           <Grid item xs={12} md={8}>
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2.5 }}>
-              <Box sx={{ width: 40, height: 40, borderRadius: radius.md, bgcolor: "#6366F112", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>ðŸ§ </Box>
+              <Box sx={{ width: 40, height: 40, borderRadius: radius.md, bgcolor: "#6366F112", display: "flex", alignItems: "center", justifyContent: "center" }}><AutoAwesome sx={{ fontSize: 18, color: "#6366F1" }} /></Box>
               <Box>
                 <Typography sx={{ fontSize: "1.05rem", fontWeight: 800, color: semantic.text }}>Executive Briefing</Typography>
-                <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>AI-generated Â· Updated now</Typography>
+                <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>AI-generated . Updated now</Typography>
               </Box>
             </Stack>
             <Stack spacing={1.5}>
               <BriefingLine icon="check" color={semantic.success} text={`${formatNumber(metrics?.totalUsers)} registered customers. ${formatNumber(metrics?.activeUsers)} active (${activePct}% engagement rate).`} />
-              {metrics?.todaySignups > 0 && <BriefingLine icon="check" color={semantic.info} text={`${metrics.todaySignups} new sign-up(s) today â€” acquisition pipeline is active.`} />}
+              {metrics?.todaySignups > 0 && <BriefingLine icon="check" color={semantic.info} text={`${metrics.todaySignups} new sign-up(s) today " acquisition pipeline is active.`} />}
               {metrics?.revenueMonth > 0 ? <BriefingLine icon="check" color={semantic.success} text={`MRR: ${formatCurrency(metrics.revenueMonth)}. Projected ARR: ${formatCurrency(projectedARR)}. Revenue trajectory is positive.`} /> : <BriefingLine icon="warn" color={semantic.warning} text="No revenue recorded yet. Converting the first PRO subscriber should be the primary objective." />}
               {(metrics?.pendingPayments || 0) > 0 ? <BriefingLine icon="warn" color={semantic.warning} text={`${metrics.pendingPayments} pending payment(s) require immediate review to maintain cash flow.`} /> : <BriefingLine icon="check" color={semantic.success} text="All payments processed. No outstanding issues." />}
               <BriefingLine icon="check" color={healthPct >= 80 ? semantic.success : semantic.warning} text={`Infrastructure health: ${healthPct}%. ${healthPct >= 95 ? "All systems nominal." : "Monitor degraded services."}`} />
@@ -331,19 +345,19 @@ export default function AdminDashboard() {
               <Typography sx={{ fontSize: "0.92rem", fontWeight: 600, color: semantic.text, lineHeight: 1.6, mb: 2.5, flex: 1 }}>
                 {metrics?.pendingPayments > 0 ? "Review pending payments and ensure cash flow continuity. Unresolved payments impact MRR projections." : metrics?.proSubscribers === 0 ? "Convert the first PRO subscriber. This establishes the revenue baseline and validates pricing." : "Monitor growth trajectories and platform engagement. Current trajectory is healthy."}
               </Typography>
-              <Chip label="View AI Operations â†’" onClick={() => navigate("/support")} size="small" sx={{ alignSelf: "flex-start", bgcolor: `${semantic.info}10`, color: semantic.info, fontWeight: 600, fontSize: "0.72rem", cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}18` } }} />
+              <Chip label="View AI Operations" onClick={() => navigate("/support")} size="small" sx={{ alignSelf: "flex-start", bgcolor: `${semantic.info}10`, color: semantic.info, fontWeight: 600, fontSize: "0.72rem", cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}18` } }} />
             </Box>
           </Grid>
         </Grid>
       </FxCard>
 
-      {/* â•â•â• EXECUTIVE KPI CARDS â•â•â• */}
+      {/* --- EXECUTIVE KPI CARDS --- */}
       {/* Forecast Panel */}
       {predictions && (
         <FxCard sx={{ p: { xs: 3, md: 4 }, position: "relative", overflow: "hidden" }}>
           <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #06B6D4, #3B82F6, #8B5CF6)" }} />
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
-            <Box sx={{ width: 32, height: 32, borderRadius: radius.md, bgcolor: "#06B6D410", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>ðŸ”®</Box>
+            <Box sx={{ width: 32, height: 32, borderRadius: radius.md, bgcolor: "#06B6D410", display: "flex", alignItems: "center", justifyContent: "center" }}><Insights sx={{ fontSize: 18, color: "#06B6D4" }} /></Box>
             <Box>
               <Typography sx={{ fontSize: "0.92rem", fontWeight: 800, color: semantic.text }}>Forecast (Next 30 Days)</Typography>
               <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Confidence: {predictions.executiveForecast.forecast.confidence}%</Typography>
@@ -357,7 +371,7 @@ export default function AdminDashboard() {
               <ForecastMetric label="Expected PRO" value={formatNumber(predictions.executiveForecast.forecast.expectedPRO)} trend={predictions.upgradePredictions.estimatedConversions > 0 ? "up" : "stable"} />
             </Grid>
             <Grid item xs={6} sm={4} md={2.4}>
-              <ForecastMetric label="Expected MRR" value={predictions.executiveForecast.forecast.expectedMRR > 0 ? formatCurrency(predictions.executiveForecast.forecast.expectedMRR) : "â€”"} trend={predictions.revenueForecast.trend === "growing" ? "up" : predictions.revenueForecast.trend === "declining" ? "down" : "stable"} />
+              <ForecastMetric label="Expected MRR" value={predictions.executiveForecast.forecast.expectedMRR > 0 ? formatCurrency(predictions.executiveForecast.forecast.expectedMRR) : "--"} trend={predictions.revenueForecast.trend === "growing" ? "up" : predictions.revenueForecast.trend === "declining" ? "down" : "stable"} />
             </Grid>
             <Grid item xs={6} sm={4} md={2.4}>
               <ForecastMetric label="Health Projection" value={`${predictions.executiveForecast.forecast.projectedHealth}/100`} trend={predictions.executiveForecast.forecast.projectedHealth >= 70 ? "up" : "down"} />
@@ -387,7 +401,7 @@ export default function AdminDashboard() {
       {predictions?.executiveForecast?.priorities?.length > 0 && (
         <FxCard sx={{ p: { xs: 3, md: 4 } }}>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2.5 }}>
-            <Box sx={{ width: 32, height: 32, borderRadius: radius.md, bgcolor: `${semantic.warning}10`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>ðŸŽ¯</Box>
+            <Box sx={{ width: 32, height: 32, borderRadius: radius.md, bgcolor: `${semantic.warning}10`, display: "flex", alignItems: "center", justifyContent: "center" }}><TaskAlt sx={{ fontSize: 18, color: semantic.warning }} /></Box>
             <Box>
               <Typography sx={{ fontSize: "0.92rem", fontWeight: 800, color: semantic.text }}>Executive Priorities</Typography>
               <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Top actions ranked by business impact</Typography>
@@ -422,15 +436,15 @@ export default function AdminDashboard() {
 
       {/* KPI Cards with Trend Indicators */}
       <Grid container spacing={2.5}>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.totalUsers)} label="Total Customers" color={semantic.info} icon="ðŸ‘¥" sub="Lifetime registrations" trend={predictions?.executiveForecast?.trends?.customers} /></Grid>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.activeUsers)} label="Active Customers" color="#0EA5E9" icon="ðŸ“¡" sub={`${activePct}% engagement`} trend={predictions?.executiveForecast?.trends?.activity} /></Grid>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.proSubscribers)} label="PRO Subscribers" color="#8B5CF6" icon="â­" sub="Paying customers" /></Grid>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={metrics?.revenueMonth > 0 ? formatCurrency(metrics.revenueMonth) : "â€”"} label="Monthly Revenue" color={semantic.success} icon="ðŸ’°" sub="Current MRR" trend={predictions?.executiveForecast?.trends?.revenue} /></Grid>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={`${healthPct}%`} label="Platform Health" color={healthPct >= 80 ? semantic.success : semantic.warning} icon="ðŸŸ¢" sub="Service availability" trend={predictions?.executiveForecast?.trends?.health} /></Grid>
-        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.pendingPayments || 0)} label="Pending Actions" color={metrics?.pendingPayments > 0 ? semantic.error : semantic.success} icon="âš ï¸" sub={metrics?.pendingPayments > 0 ? "Requires attention" : "All clear"} /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.totalUsers)} label="Total Customers" color={semantic.info} icon="'" sub="Lifetime registrations" trend={predictions?.executiveForecast?.trends?.customers} /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.activeUsers)} label="Active Customers" color="#0EA5E9" icon="--" sub={`${activePct}% engagement`} trend={predictions?.executiveForecast?.trends?.activity} /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.proSubscribers)} label="PRO Subscribers" color="#8B5CF6" icon="" sub="Paying customers" /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={metrics?.revenueMonth > 0 ? formatCurrency(metrics.revenueMonth) : "--"} label="Monthly Revenue" color={semantic.success} icon="'" sub="Current MRR" trend={predictions?.executiveForecast?.trends?.revenue} /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={`${healthPct}%`} label="Platform Health" color={healthPct >= 80 ? semantic.success : semantic.warning} icon="" sub="Service availability" trend={predictions?.executiveForecast?.trends?.health} /></Grid>
+        <Grid item xs={6} sm={4} md={2}><KpiCard value={formatNumber(metrics?.pendingPayments || 0)} label="Pending Actions" color={metrics?.pendingPayments > 0 ? semantic.error : semantic.success} icon=" " sub={metrics?.pendingPayments > 0 ? "Requires attention" : "All clear"} /></Grid>
       </Grid>
 
-      {/* â•â•â• AI OPERATIONS CENTRE â•â•â• */}
+      {/* --- AI OPERATIONS CENTRE --- */}
       {operations && (
         <Box>
           <SectionHeader icon="ops" title="AI OPERATIONS CENTRE" subtitle="Prioritised actions ranked by business impact. Your AI-powered work queue." />
@@ -492,10 +506,10 @@ export default function AdminDashboard() {
                 <FxCard sx={{ p: 3 }}>
                   <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: semantic.text, mb: 2 }}>Business Impact</Typography>
                   <Stack spacing={1.5}>
-                    <ImpactRow label="Revenue Gain" value={operations.impact.revenueGain.value > 0 ? `+R${operations.impact.revenueGain.value}/mo` : "â€”"} level={operations.impact.revenueGain.level} />
-                    <ImpactRow label="Revenue at Risk" value={operations.impact.revenueAtRisk.value > 0 ? `R${operations.impact.revenueAtRisk.value}/mo` : "â€”"} level={operations.impact.revenueAtRisk.level} negative />
+                    <ImpactRow label="Revenue Gain" value={operations.impact.revenueGain.value > 0 ? `+R${operations.impact.revenueGain.value}/mo` : "--"} level={operations.impact.revenueGain.level} />
+                    <ImpactRow label="Revenue at Risk" value={operations.impact.revenueAtRisk.value > 0 ? `R${operations.impact.revenueAtRisk.value}/mo` : "--"} level={operations.impact.revenueAtRisk.level} negative />
                     <ImpactRow label="Customers Impacted" value={operations.impact.customersAffected.value} level={operations.impact.customersAffected.level} />
-                    <ImpactRow label="Health Improvement" value={operations.impact.healthImprovement.value > 0 ? `+${operations.impact.healthImprovement.value} pts` : "â€”"} level={operations.impact.healthImprovement.level} />
+                    <ImpactRow label="Health Improvement" value={operations.impact.healthImprovement.value > 0 ? `+${operations.impact.healthImprovement.value} pts` : "--"} level={operations.impact.healthImprovement.level} />
                     <Box sx={{ pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center">
                         <Typography sx={{ fontSize: "0.65rem", color: semantic.textTertiary }}>Time to complete all</Typography>
@@ -511,11 +525,11 @@ export default function AdminDashboard() {
                   <Stack spacing={1} sx={{ mb: 2 }}>
                     <Stack direction="row" justifyContent="space-between">
                       <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Potential MRR</Typography>
-                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.success }}>{operations.revenueOps.potentialMRR > 0 ? `R${operations.revenueOps.potentialMRR}` : "â€”"}</Typography>
+                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.success }}>{operations.revenueOps.potentialMRR > 0 ? `R${operations.revenueOps.potentialMRR}` : "--"}</Typography>
                     </Stack>
                     <Stack direction="row" justifyContent="space-between">
                       <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Potential ARR</Typography>
-                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{operations.revenueOps.potentialARR > 0 ? `R${operations.revenueOps.potentialARR}` : "â€”"}</Typography>
+                      <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.text }}>{operations.revenueOps.potentialARR > 0 ? `R${operations.revenueOps.potentialARR}` : "--"}</Typography>
                     </Stack>
                     <Stack direction="row" justifyContent="space-between">
                       <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary }}>Expected conversions</Typography>
@@ -561,7 +575,7 @@ export default function AdminDashboard() {
         </Box>
       )}
 
-      {/* â•â•â• LIVE OPERATIONS CENTRE â•â•â• */}
+      {/* --- LIVE OPERATIONS CENTRE --- */}
       <Box>
         <SectionHeader icon="live" title="LIVE OPERATIONS CENTRE" subtitle="Unified real-time event stream, platform health, and executive summary." />
         <FxCard sx={{ p: { xs: 3, md: 4 }, position: "relative", overflow: "hidden", mt: 1.5 }}>
@@ -585,7 +599,7 @@ export default function AdminDashboard() {
                       </Box>
                     ))}
                   </Stack>
-                  <input type="text" placeholder="Search â€” customer, farm, payment, keyword..." value={timelineSearch} onChange={e => { setTimelineSearch(e.target.value); setTimelineVisible(30); }} style={{ width: "100%", padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(15,23,42,0.08)", background: "#F8FAFC", fontSize: "0.72rem", fontFamily: "Inter, sans-serif", outline: "none", color: "#0F172A", transition: "border-color 0.2s" }} />
+                  <input type="text" placeholder="Search by customer, farm, payment or keyword..." value={timelineSearch} onChange={e => { setTimelineSearch(e.target.value); setTimelineVisible(30); }} style={{ width: "100%", padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(15,23,42,0.08)", background: "#F8FAFC", fontSize: "0.72rem", fontFamily: "Inter, sans-serif", outline: "none", color: "#0F172A", transition: "border-color 0.2s" }} />
                 </Stack>
                 <Box sx={{ flex: 1, maxHeight: 520, overflowY: "auto", pr: 1, position: "relative", pl: 3, "&::-webkit-scrollbar": { width: 4 }, "&::-webkit-scrollbar-thumb": { borderRadius: 2, bgcolor: semantic.border } }}>
                   <Box sx={{ position: "absolute", left: 11, top: 0, bottom: 0, width: 2, bgcolor: semantic.border, borderRadius: 1 }} />
@@ -593,7 +607,7 @@ export default function AdminDashboard() {
                     <Stack spacing={1.5}>{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: radius.md }} />)}</Stack>
                   ) : filteredTimeline.length === 0 ? (
                     <Box sx={{ py: 6, textAlign: "center" }}>
-                      <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>ðŸ“¡</Typography>
+                      <Typography sx={{ fontSize: "1.2rem", mb: 1 }}>"</Typography>
                       <Typography sx={{ fontSize: "0.78rem", color: semantic.textSecondary }}>No events found</Typography>
                       <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, mt: 0.5 }}>Events will appear as platform activity occurs.</Typography>
                     </Box>
@@ -640,21 +654,21 @@ export default function AdminDashboard() {
                 <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Today's Summary</Typography>
                 <Stack spacing={0.75} sx={{ mb: 2 }}>
                   <TimelineSummaryRow icon="person" label="Registrations" value={timelineData?.summary?.registrations || 0} />
-                  <TimelineSummaryRow icon="payments" label="Revenue" value={timelineData?.summary?.revenue > 0 ? `R${timelineData.summary.revenue}` : "â€”"} />
+                  <TimelineSummaryRow icon="payments" label="Revenue" value={timelineData?.summary?.revenue > 0 ? `R${timelineData.summary.revenue}` : "--"} />
                   <TimelineSummaryRow icon="farm" label="Farm Activity" value={timelineData?.summary?.farmActivity || 0} />
                   <TimelineSummaryRow icon="alert" label="Alerts" value={timelineData?.summary?.platformAlerts || 0} />
                 </Stack>
                 <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Statistics</Typography>
                 <Stack spacing={0.6} sx={{ mb: 2 }}>
-                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Most Active</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.info }}>{timelineData?.statistics?.mostActiveModule || "â€”"}</Typography></Stack>
-                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Top Customer</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.text, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{timelineData?.statistics?.mostActiveCustomer || "â€”"}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Most Active</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.info }}>{timelineData?.statistics?.mostActiveModule || "--"}</Typography></Stack>
+                  <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Top Customer</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.text, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{timelineData?.statistics?.mostActiveCustomer || "--"}</Typography></Stack>
                   <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>Events Today</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.text }}>{timelineData?.statistics?.eventsToday || 0}</Typography></Stack>
                   <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary }}>This Week</Typography><Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: semantic.text }}>{timelineData?.statistics?.eventsWeek || 0}</Typography></Stack>
                 </Stack>
                 {liveData?.alerts?.length > 0 && (<><Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.textTertiary, textTransform: "uppercase", letterSpacing: 0.6, mb: 1 }}>Alerts</Typography><Stack spacing={0.6} sx={{ mb: 2 }}>{liveData.alerts.slice(0, 3).map((alert, i) => (<Stack key={i} direction="row" spacing={0.75} alignItems="flex-start"><Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: alert.severity === "critical" ? semantic.error : alert.severity === "warning" ? semantic.warning : semantic.info, flexShrink: 0, mt: "4px" }} /><Typography sx={{ fontSize: "0.6rem", color: semantic.textSecondary, lineHeight: 1.4 }}>{alert.title}</Typography></Stack>))}</Stack></>)}
                 <Box sx={{ pt: 1.5, borderTop: `1px solid ${semantic.border}` }}>
                   <Stack spacing={0.5}>
-                    <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.58rem", color: semantic.textTertiary }}>Last Refresh</Typography><Typography sx={{ fontSize: "0.58rem", fontWeight: 600, color: semantic.text }}>{liveLastUpdated ? liveLastUpdated.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "â€”"}</Typography></Stack>
+                    <Stack direction="row" justifyContent="space-between"><Typography sx={{ fontSize: "0.58rem", color: semantic.textTertiary }}>Last Refresh</Typography><Typography sx={{ fontSize: "0.58rem", fontWeight: 600, color: semantic.text }}>{liveLastUpdated ? liveLastUpdated.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--"}</Typography></Stack>
                     <Box onClick={refreshLiveMonitoring} sx={{ mt: 0.75, py: 0.6, borderRadius: radius.sm, bgcolor: `${semantic.info}08`, border: `1px solid ${semantic.info}15`, textAlign: "center", cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}15` } }}>
                       <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center"><Refresh sx={{ fontSize: 11, color: semantic.info }} /><Typography sx={{ fontSize: "0.58rem", fontWeight: 600, color: semantic.info }}>Refresh Now</Typography></Stack>
                     </Box>
@@ -666,7 +680,7 @@ export default function AdminDashboard() {
         </FxCard>
       </Box>
 
-      {/* â•â•â• EXECUTIVE ANALYTICS HUB â•â•â• */}
+      {/* --- EXECUTIVE ANALYTICS HUB --- */}
       <Box>
         <SectionHeader icon="analytics" title="EXECUTIVE ANALYTICS" subtitle="Deep-dive into business intelligence. Click any workspace to explore." />
         <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
@@ -707,7 +721,7 @@ export default function AdminDashboard() {
             </ChartCard>
           </Grid>
           <Grid item xs={12} md={4}>
-            <ChartCard title="Revenue Trend" subtitle="MRR (ZAR)" metrics={[{ label: "MRR", value: latestRevenue > 0 ? formatCurrency(latestRevenue) : "—" }, { label: "ARR", value: projectedARR > 0 ? formatCurrency(projectedARR) : "—" }]} insight={latestRevenue > 0 ? `MRR: ${formatCurrency(latestRevenue)}.` : "Revenue tracking started."}>
+            <ChartCard title="Revenue Trend" subtitle="MRR (ZAR)" metrics={[{ label: "MRR", value: latestRevenue > 0 ? formatCurrency(latestRevenue) : "-" }, { label: "ARR", value: projectedARR > 0 ? formatCurrency(projectedARR) : "-" }]} insight={latestRevenue > 0 ? `MRR: ${formatCurrency(latestRevenue)}.` : "Revenue tracking started."}>
               {revenue.length > 1 ? (<ResponsiveContainer width="100%" height={350}><AreaChart data={revenue} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}><defs><linearGradient id="rGW" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={semantic.success} stopOpacity={0.15} /><stop offset="95%" stopColor={semantic.success} stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" /><XAxis dataKey="month" tick={{ fontSize: 12, fill: semantic.textSecondary }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} tickFormatter={(v) => `R${v}`} /><RTooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`R${v}`, "Revenue"]} /><Area type="monotone" dataKey="revenue" stroke={semantic.success} strokeWidth={2.5} fill="url(#rGW)" dot={{ r: 4, fill: semantic.success, strokeWidth: 2, stroke: "#fff" }} animationDuration={800} /></AreaChart></ResponsiveContainer>) : (<EmptyChart message="No revenue trend yet." />)}
             </ChartCard>
           </Grid>
@@ -730,7 +744,7 @@ export default function AdminDashboard() {
       </AnalyticsWorkspace>
 
       <AnalyticsWorkspace open={activeWorkspace === "revenue"} onClose={() => setActiveWorkspace(null)} title="Revenue Intelligence" subtitle="MRR, ARR, payments">
-        <ChartCard title="Revenue Trend" subtitle="Monthly recurring revenue (ZAR)" metrics={[{ label: "MRR", value: latestRevenue > 0 ? formatCurrency(latestRevenue) : "—" }, { label: "ARR", value: projectedARR > 0 ? formatCurrency(projectedARR) : "—" }]} insight={latestRevenue > 0 ? `MRR: ${formatCurrency(latestRevenue)}.` : "Revenue tracking started."}>
+        <ChartCard title="Revenue Trend" subtitle="Monthly recurring revenue (ZAR)" metrics={[{ label: "MRR", value: latestRevenue > 0 ? formatCurrency(latestRevenue) : "-" }, { label: "ARR", value: projectedARR > 0 ? formatCurrency(projectedARR) : "-" }]} insight={latestRevenue > 0 ? `MRR: ${formatCurrency(latestRevenue)}.` : "Revenue tracking started."}>
           {revenue.length > 1 ? (<ResponsiveContainer width="100%" height={400}><AreaChart data={revenue} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}><defs><linearGradient id="rGW2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={semantic.success} stopOpacity={0.15} /><stop offset="95%" stopColor={semantic.success} stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" /><XAxis dataKey="month" tick={{ fontSize: 12, fill: semantic.textSecondary }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} tickFormatter={(v) => `R${v}`} /><RTooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`R${v}`, "Revenue"]} /><Area type="monotone" dataKey="revenue" stroke={semantic.success} strokeWidth={2.5} fill="url(#rGW2)" dot={{ r: 4, fill: semantic.success, strokeWidth: 2, stroke: "#fff" }} animationDuration={800} /></AreaChart></ResponsiveContainer>) : (<EmptyChart message="No revenue trend yet." />)}
         </ChartCard>
       </AnalyticsWorkspace>
@@ -738,7 +752,7 @@ export default function AdminDashboard() {
       <AnalyticsWorkspace open={activeWorkspace === "farms"} onClose={() => setActiveWorkspace(null)} title="Farm Operations" subtitle="Livestock, crops, planner">
         <Grid container spacing={3} sx={{ "& .MuiGrid-item": { display: "flex", minWidth: 0 } }}>
           <Grid item xs={12} md={5}>
-            <ChartCard title="Feature Usage" subtitle="Records per module" metrics={[{ label: "Total", value: formatNumber(totalRecords) }, { label: "Top", value: topFeature?.name || "—" }]} insight={topFeature ? `${topFeature.name} leads.` : "Tracking started."}>
+            <ChartCard title="Feature Usage" subtitle="Records per module" metrics={[{ label: "Total", value: formatNumber(totalRecords) }, { label: "Top", value: topFeature?.name || "-" }]} insight={topFeature ? `${topFeature.name} leads.` : "Tracking started."}>
               {sortedFeatures.length > 0 && totalRecords > 0 ? (<ResponsiveContainer width="100%" height={300}><BarChart data={sortedFeatures} layout="vertical" margin={{ top: 10, right: 40, bottom: 5, left: 80 }}><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} /><XAxis type="number" tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} /><YAxis type="category" dataKey="name" tick={{ fontSize: 13, fill: semantic.text, fontWeight: 600 }} axisLine={false} tickLine={false} width={75} /><RTooltip contentStyle={TOOLTIP_STYLE} /><Bar dataKey="records" radius={[0, 8, 8, 0]} barSize={22} animationDuration={800}>{sortedFeatures.map((f, i) => <Cell key={i} fill={f.color} />)}</Bar></BarChart></ResponsiveContainer>) : (<EmptyChart message="No data yet." />)}
             </ChartCard>
           </Grid>
@@ -751,7 +765,7 @@ export default function AdminDashboard() {
       </AnalyticsWorkspace>
 
       <AnalyticsWorkspace open={activeWorkspace === "platform"} onClose={() => setActiveWorkspace(null)} title="Platform Intelligence" subtitle="Usage, performance, infrastructure">
-        <ChartCard title="Platform Activity" subtitle="Daily logins (7 days)" metrics={[{ label: "Total", value: formatNumber(totalLogins) }, { label: "Avg/Day", value: formatNumber(avgLogins) }, { label: "Peak", value: peakDay?.day || "—" }, { label: "Health", value: `${healthPct}%` }]} insight={peakDay ? `Peak: ${peakDay.day} (${peakDay.logins}).` : "Tracking started."}>
+        <ChartCard title="Platform Activity" subtitle="Daily logins (7 days)" metrics={[{ label: "Total", value: formatNumber(totalLogins) }, { label: "Avg/Day", value: formatNumber(avgLogins) }, { label: "Peak", value: peakDay?.day || "-" }, { label: "Health", value: `${healthPct}%` }]} insight={peakDay ? `Peak: ${peakDay.day} (${peakDay.logins}).` : "Tracking started."}>
           {platformActivity.length > 0 ? (<ResponsiveContainer width="100%" height={400}><BarChart data={platformActivity} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} /><XAxis dataKey="day" tick={{ fontSize: 13, fill: semantic.text }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 11, fill: semantic.textTertiary }} axisLine={false} tickLine={false} allowDecimals={false} /><RTooltip contentStyle={TOOLTIP_STYLE} /><Bar dataKey="logins" fill={semantic.info} radius={[8, 8, 0, 0]} barSize={42} animationDuration={800} /></BarChart></ResponsiveContainer>) : (<EmptyChart message="No activity data yet." />)}
         </ChartCard>
       </AnalyticsWorkspace>
@@ -768,7 +782,7 @@ export default function AdminDashboard() {
 }
 
 
-// â•â•â• CONSTANTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// --------- CONSTANTS ------------------------------------------------------------------------------------------------------------------------------------------
 
 const TOOLTIP_STYLE = {
   borderRadius: 12,
@@ -779,7 +793,7 @@ const TOOLTIP_STYLE = {
   backdropFilter: "blur(8px)",
 };
 
-// â•â•â• HELPER COMPONENTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// --------- HELPER COMPONENTS ------------------------------------------------------------------------------------------------------------------
 
 function SectionHeader({ icon, title, subtitle }) {
   const SECTION_ICONS = { ops: TaskAlt, live: Hub, analytics: Assessment, default: AutoAwesome };
@@ -855,7 +869,7 @@ function ChartCard({ title, subtitle, metrics, insight, children }) {
         <Box sx={{ mt: "auto", pt: 2, borderTop: `1px solid ${semantic.border}` }}>
           <Stack direction="row" spacing={1.25} alignItems="flex-start">
             <Box sx={{ width: 22, height: 22, borderRadius: radius.xs, bgcolor: `${semantic.info}08`, border: `1px solid ${semantic.info}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, mt: "1px" }}>
-              <Typography sx={{ fontSize: "0.6rem" }}>ðŸ’¡</Typography>
+              <Insights sx={{ fontSize: 12, color: semantic.info }} />
             </Box>
             <Box>
               <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: semantic.info, textTransform: "uppercase", letterSpacing: 0.6, mb: 0.25 }}>Executive Insight</Typography>
@@ -939,7 +953,7 @@ function ImpactRow({ label, value, level, negative }) {
   );
 }
 
-// â•â•â• LIVE MONITOR HELPERS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// --------- LIVE MONITOR HELPERS ---------------------------------------------------------------------------------------------------------
 
 function LiveDot({ color, pulse }) {
   return (
@@ -961,7 +975,7 @@ function LiveCounter({ label, value, color }) {
   );
 }
 
-// â•â•â• EXECUTIVE TIMELINE HELPERS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// --------- EXECUTIVE TIMELINE HELPERS ---------------------------------------------------------------------------------------
 
 const TIMELINE_CATEGORY_COLORS = {
   Customer: "#3B82F6",
