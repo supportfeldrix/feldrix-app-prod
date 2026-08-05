@@ -1,97 +1,107 @@
 /**
- * Generate PNG icons from SVG masters for both Farmer App and Admin Control Centre.
- * Run: node scripts/generate-icons.mjs
+ * ============================================================
+ * Feldrix — PWA Icon Generator
+ *
+ * Takes a source logo and generates all required PWA icons
+ * with a white background, properly centered with padding.
+ *
+ * Usage:
+ *   node scripts/generate-icons.mjs <path-to-source-logo.png>
+ *
+ * Example:
+ *   node scripts/generate-icons.mjs logo-source.png
+ *
+ * Output goes to: public/icons/farmer-new/
+ * Review before replacing public/icons/farmer/
+ * ============================================================
  */
 
-import sharp from 'sharp';
-import { mkdirSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import sharp from "sharp";
+import { mkdirSync, existsSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, '..');
+const projectRoot = resolve(__dirname, "..");
 
-const SIZES = [1024, 512, 384, 192, 180, 152, 144, 120, 96, 72, 48, 32, 16];
-
-const icons = [
-  {
-    name: 'farmer',
-    src: resolve(root, 'public/branding/feldrix-farmer-icon.svg'),
-    outDir: resolve(root, 'public/icons/farmer'),
-  },
-  {
-    name: 'admin',
-    src: resolve(root, 'public/branding/feldrix-admin-icon.svg'),
-    outDir: resolve(root, 'public/icons/admin'),
-  },
-];
-
-async function generate() {
-  for (const icon of icons) {
-    if (!existsSync(icon.outDir)) {
-      mkdirSync(icon.outDir, { recursive: true });
-    }
-
-    console.log(`\nGenerating ${icon.name} icons from ${icon.src}...`);
-
-    for (const size of SIZES) {
-      const outPath = resolve(icon.outDir, `icon-${size}x${size}.png`);
-      await sharp(icon.src, { density: 300 })
-        .resize(size, size)
-        .png()
-        .toFile(outPath);
-      console.log(`  ✓ ${size}x${size}`);
-    }
-
-    // Apple Touch Icon (180x180)
-    const applePath = resolve(icon.outDir, 'apple-touch-icon.png');
-    await sharp(icon.src, { density: 300 })
-      .resize(180, 180)
-      .png()
-      .toFile(applePath);
-    console.log(`  ✓ apple-touch-icon.png`);
-
-    // Maskable icon (512x512 with padding for safe zone)
-    const maskablePath = resolve(icon.outDir, 'maskable-icon-512x512.png');
-    const padding = Math.round(512 * 0.1); // 10% padding
-    const innerSize = 512 - (padding * 2);
-    const resized = await sharp(icon.src, { density: 300 })
-      .resize(innerSize, innerSize)
-      .png()
-      .toBuffer();
-
-    // Determine background color
-    const bgColor = icon.name === 'farmer'
-      ? { r: 255, g: 255, b: 255, alpha: 1 }
-      : { r: 30, g: 41, b: 59, alpha: 1 };
-
-    await sharp({
-      create: { width: 512, height: 512, channels: 4, background: bgColor }
-    })
-      .composite([{ input: resized, top: padding, left: padding }])
-      .png()
-      .toFile(maskablePath);
-    console.log(`  ✓ maskable-icon-512x512.png`);
-
-    // Favicon (32x32)
-    const faviconPath = resolve(icon.outDir, 'favicon-32x32.png');
-    await sharp(icon.src, { density: 300 })
-      .resize(32, 32)
-      .png()
-      .toFile(faviconPath);
-    console.log(`  ✓ favicon-32x32.png`);
-
-    // Update branding 1024px master
-    if (icon.name === 'farmer') {
-      await sharp(icon.src, { density: 300 }).resize(1024, 1024).png().toFile(resolve(root, 'public/branding/app-icon-1024.png'));
-      console.log(`  ✓ Updated branding/app-icon-1024.png`);
-    }
-  }
-
-  console.log('\n✅ All icons generated successfully!\n');
+// Source image path from CLI arg
+const sourceArg = process.argv[2];
+if (!sourceArg) {
+  console.error("Usage: node scripts/generate-icons.mjs <source-image.png>");
+  console.error("Example: node scripts/generate-icons.mjs logo-source.png");
+  process.exit(1);
 }
 
-generate().catch((err) => {
-  console.error('Icon generation failed:', err);
+const sourcePath = resolve(projectRoot, sourceArg);
+if (!existsSync(sourcePath)) {
+  console.error(`Source image not found: ${sourcePath}`);
+  process.exit(1);
+}
+
+// Output directory (new folder so we can review before replacing)
+const outDir = resolve(projectRoot, "public/icons/farmer-new");
+mkdirSync(outDir, { recursive: true });
+
+// All required sizes
+const sizes = [16, 32, 48, 72, 96, 120, 144, 152, 180, 192, 384, 512, 1024];
+
+// Padding ratio — logo takes up 80% of the icon, 10% padding on each side
+const LOGO_RATIO = 0.75;
+
+async function generateIcon(size, filename, maskable = false) {
+  // For maskable icons, use less padding (safe zone is 80% center)
+  const ratio = maskable ? 0.65 : LOGO_RATIO;
+  const logoSize = Math.round(size * ratio);
+
+  // Resize the logo
+  const resizedLogo = await sharp(sourcePath)
+    .resize(logoSize, logoSize, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .png()
+    .toBuffer();
+
+  // Create white background and composite the logo centered
+  await sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    },
+  })
+    .composite([
+      {
+        input: resizedLogo,
+        gravity: "centre",
+      },
+    ])
+    .png()
+    .toFile(resolve(outDir, filename));
+
+  console.log(`  Generated: ${filename} (${size}x${size})`);
+}
+
+async function main() {
+  console.log(`\nSource: ${sourcePath}`);
+  console.log(`Output: ${outDir}\n`);
+  console.log("Generating standard icons...");
+
+  // Standard icons
+  for (const size of sizes) {
+    await generateIcon(size, `icon-${size}x${size}.png`);
+  }
+
+  // Special named icons
+  console.log("\nGenerating special icons...");
+  await generateIcon(32, "favicon-32x32.png");
+  await generateIcon(16, "icon-16x16.png");
+  await generateIcon(180, "apple-touch-icon.png");
+  await generateIcon(512, "maskable-icon-512x512.png", true);
+
+  console.log(`\n✅ All icons generated in: public/icons/farmer-new/`);
+  console.log("   Review them, then replace public/icons/farmer/ when ready.\n");
+}
+
+main().catch((err) => {
+  console.error("Error:", err.message);
   process.exit(1);
 });
