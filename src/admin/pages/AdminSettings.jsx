@@ -1,174 +1,144 @@
 /**
  * ============================================================
- * Feldrix Control Centre — Settings (Premium v2.1)
- * Matches Dashboard/Users/Farms standard.
+ * Feldrix Control Centre -- Enterprise Settings Control Centre
+ * Sprint 54.1 + 54.2
+ *
+ * Two-column layout: sticky sidebar + dynamic workspace.
  * ============================================================
  */
 
 import { useState, useEffect } from "react";
-import { Box, Typography, Stack, Grid, Skeleton, IconButton, Tooltip, Switch, Divider } from "@mui/material";
-import { Refresh } from "@mui/icons-material";
-import { FxCard, FxStatusChip, semantic, typography as typo, shadows, transitions } from "../../shared/design";
+import { Box, Typography, Stack, Skeleton, IconButton, Tooltip } from "@mui/material";
+import { Refresh, Business, SmartToy, Palette, Payments, Security, Notifications, WbSunny, Extension, Flag, History, Settings } from "@mui/icons-material";
+import { semantic, typography as typo, radius, shadows, transitions } from "../../shared/design";
 import { getPlatformSettings } from "../services/adminPlatformSettingsService";
+
+import GeneralSettings from "./settings/GeneralSettings";
+import AISettings from "./settings/AISettings";
+import BrandingSettings from "./settings/BrandingSettings";
+import BillingSettings from "./settings/BillingSettings";
+import SecuritySettings from "./settings/SecuritySettings";
+import NotificationsSettings from "./settings/NotificationsSettings";
+import WeatherSettings from "./settings/WeatherSettings";
+import FeatureFlagsSettings from "./settings/FeatureFlagsSettings";
+import AuditSettings from "./settings/AuditSettings";
+import AdvancedSettings from "./settings/AdvancedSettings";
+
+const SECTIONS = [
+  { id: "general", label: "General", desc: "Platform information", Icon: Business },
+  { id: "ai", label: "AI Platform", desc: "Feldrix Manager configuration", Icon: SmartToy },
+  { id: "branding", label: "Branding", desc: "Logo, colours, theme", Icon: Palette },
+  { id: "billing", label: "Billing", desc: "Subscriptions and payments", Icon: Payments },
+  { id: "security", label: "Security", desc: "Authentication and access", Icon: Security },
+  { id: "notifications", label: "Notifications", desc: "Email, push, SMS", Icon: Notifications },
+  { id: "weather", label: "Weather", desc: "Weather API integration", Icon: WbSunny },
+  { id: "integrations", label: "Feature Flags", desc: "Toggle platform features", Icon: Flag },
+  { id: "audit", label: "Audit", desc: "Logging and retention", Icon: History },
+  { id: "advanced", label: "Advanced", desc: "System and maintenance", Icon: Settings },
+];
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState("general");
 
-  function load() { setLoading(true); getPlatformSettings().then(setSettings).catch(() => {}).finally(() => setLoading(false)); }
+  function load() {
+    setLoading(true);
+    getPlatformSettings().then(setSettings).catch(() => {}).finally(() => setLoading(false));
+  }
   useEffect(() => { load(); }, []);
 
   if (loading) {
     return (
-      <Stack spacing={4}>
-        <Box><Skeleton variant="rounded" height={32} width={220} /><Skeleton variant="rounded" height={18} width={360} sx={{ mt: 1 }} /></Box>
-        <Stack spacing={2.5}>{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} variant="rounded" height={140} sx={{ borderRadius: 3 }} />)}</Stack>
+      <Stack spacing={3}>
+        <Skeleton variant="rounded" height={56} sx={{ borderRadius: radius.xl }} />
+        <Stack direction="row" spacing={3}>
+          <Skeleton variant="rounded" width={260} height={500} sx={{ borderRadius: radius.xl }} />
+          <Skeleton variant="rounded" sx={{ flex: 1, height: 500, borderRadius: radius.xl }} />
+        </Stack>
       </Stack>
     );
   }
 
   const s = settings || {};
 
+  function renderContent() {
+    switch (active) {
+      case "general": return <GeneralSettings settings={s} />;
+      case "ai": return <AISettings settings={s} />;
+      case "branding": return <BrandingSettings settings={s} />;
+      case "billing": return <BillingSettings settings={s} />;
+      case "security": return <SecuritySettings settings={s} />;
+      case "notifications": return <NotificationsSettings settings={s} />;
+      case "weather": return <WeatherSettings settings={s} />;
+      case "integrations": return <FeatureFlagsSettings settings={s} />;
+      case "audit": return <AuditSettings settings={s} />;
+      case "advanced": return <AdvancedSettings settings={s} />;
+      default: return <GeneralSettings settings={s} />;
+    }
+  }
+
   return (
-    <Stack spacing={4}>
+    <Stack spacing={3}>
       {/* Header */}
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1.5}>
         <Box>
-          <Typography sx={{ ...typo.pageTitle, color: semantic.text }}>Settings</Typography>
-          <Typography sx={{ ...typo.pageSubtitle, color: semantic.textSecondary, mt: 0.25 }}>
-            Platform configuration, branding, security, subscriptions and feature management.
-          </Typography>
+          <Typography sx={{ ...typo.pageTitle, color: semantic.text }}>Platform Administration</Typography>
+          <Typography sx={{ ...typo.pageSubtitle, color: semantic.textSecondary, mt: 0.25 }}>Platform configuration and enterprise management.</Typography>
         </Box>
-        <Tooltip title="Refresh"><IconButton onClick={load} sx={{ width: 40, height: 40, border: `1px solid ${semantic.border}`, borderRadius: 2.5 }}><Refresh sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box sx={{ px: 1.5, py: 0.4, borderRadius: radius.pill, bgcolor: semantic.surface, border: `1px solid ${semantic.border}` }}>
+            <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, color: semantic.textTertiary }}>v{s.platform?.version || "1.0.0"}</Typography>
+          </Box>
+          <Box sx={{ px: 1.5, py: 0.4, borderRadius: radius.pill, bgcolor: semantic.surface, border: `1px solid ${semantic.border}` }}>
+            <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, color: semantic.textTertiary }}>{s.platform?.environment || "production"}</Typography>
+          </Box>
+          <Tooltip title="Refresh settings">
+            <IconButton onClick={load} size="small" sx={{ width: 36, height: 36, border: `1px solid ${semantic.border}`, borderRadius: radius.md }}>
+              <Refresh sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </Stack>
 
-      {/* Settings Sections */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="🏢 Platform">
-            <Row label="Name" value={s.platform?.name} />
-            <Row label="Company" value={s.platform?.company} />
-            <Row label="Support Email" value={s.platform?.supportEmail} />
-            <Row label="Version" value={s.platform?.version} />
-            <Row label="Environment" value={s.platform?.environment} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="🎨 Branding">
-            <Row label="Primary" value={s.branding?.primaryColor} badge={s.branding?.primaryColor} />
-            <Row label="Secondary" value={s.branding?.secondaryColor} badge={s.branding?.secondaryColor} />
-            <Row label="Theme" value={s.branding?.theme} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="💳 Subscriptions">
-            <Row label="Starter" value={`R${s.subscriptions?.starterPrice || 0}`} />
-            <Row label="PRO" value={`R${s.subscriptions?.proPrice || 99}/mo`} />
-            <Row label="Trial Days" value={s.subscriptions?.trialDays || "0"} />
-            <Row label="Billing" value={s.subscriptions?.billingCycle || "monthly"} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="💰 PayFast">
-            <Row label="Merchant ID" value={s.payfast?.merchantId || "Not set"} />
-            <Row label="Mode" value={s.payfast?.sandbox ? "Sandbox" : "Live"} />
-            <Row label="Status" value={s.payfast?.connected ? "Connected" : "Not connected"} status={s.payfast?.connected ? "healthy" : "warning"} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="🧠 AI">
-            <Toggle label="AI Enabled" on={s.ai?.enabled} />
-            <Toggle label="Briefings" on={s.ai?.briefings} />
-            <Toggle label="Recommendations" on={s.ai?.recommendations} />
-            <Toggle label="Auto Refresh" on={s.ai?.autoRefresh} />
-            <Row label="Confidence" value={`${s.ai?.confidence || 70}%`} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="📨 Notifications">
-            <Toggle label="Email" on={s.notifications?.email} />
-            <Toggle label="Push" on={s.notifications?.push} />
-            <Toggle label="SMS" on={s.notifications?.sms} />
-            <Toggle label="Maintenance" on={s.notifications?.maintenance} />
-            <Toggle label="Billing" on={s.notifications?.billing} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="🔐 Security">
-            <Row label="Min Password" value={`${s.security?.passwordMinLength || 6} chars`} />
-            <Row label="Session Timeout" value={`${s.security?.sessionTimeout || 30} min`} />
-            <Row label="Failed Limit" value={s.security?.failedLoginLimit || 5} />
-            <Toggle label="Email Verification" on={s.security?.emailVerification} />
-            <Toggle label="MFA" on={s.security?.mfa} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="🌤️ Weather">
-            <Row label="API Key" value={s.weather?.apiKey ? "Configured" : "Not set"} status={s.weather?.apiKey ? "healthy" : "warning"} />
-            <Row label="Country" value={s.weather?.country || "ZA"} />
-            <Row label="Refresh" value={`${s.weather?.refreshInterval || 30} min`} />
-            <Row label="Connection" value={s.weather?.connected ? "Connected" : "—"} status={s.weather?.connected ? "healthy" : "inactive"} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12}>
-          <SettingsSection title="🚩 Feature Flags">
-            <Grid container spacing={0}>
-              {Object.entries(s.featureFlags || {}).map(([key, enabled]) => (
-                <Grid item xs={6} sm={4} md={3} key={key}>
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 0.75 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: enabled ? semantic.success : semantic.error }} />
-                    <Typography sx={{ ...typo.bodySmall, color: semantic.text, textTransform: "capitalize" }}>{key}</Typography>
+      {/* Two-column layout */}
+      <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ alignItems: "flex-start" }}>
+        {/* Sidebar */}
+        <Box sx={{ width: { xs: "100%", md: 260 }, flexShrink: 0, position: { md: "sticky" }, top: { md: 80 } }}>
+          <Box sx={{ borderRadius: radius.xl, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, boxShadow: shadows.sm, overflow: "hidden", p: 1 }}>
+            <Stack spacing={0.5}>
+              {SECTIONS.map(({ id, label, desc, Icon }) => (
+                <Box
+                  key={id}
+                  onClick={() => setActive(id)}
+                  sx={{
+                    px: 2, py: 1.5, borderRadius: radius.lg, cursor: "pointer",
+                    bgcolor: active === id ? `${semantic.info}08` : "transparent",
+                    border: active === id ? `1px solid ${semantic.info}20` : "1px solid transparent",
+                    transition: transitions.fast,
+                    "&:hover": { bgcolor: active === id ? `${semantic.info}08` : semantic.surface },
+                  }}
+                >
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Icon sx={{ fontSize: 18, color: active === id ? semantic.info : semantic.textTertiary, transition: transitions.fast }} />
+                    <Box>
+                      <Typography sx={{ fontSize: "0.78rem", fontWeight: active === id ? 700 : 500, color: active === id ? semantic.info : semantic.text }}>{label}</Typography>
+                      <Typography sx={{ fontSize: "0.62rem", color: semantic.textTertiary, mt: 0.1 }}>{desc}</Typography>
+                    </Box>
                   </Stack>
-                </Grid>
+                </Box>
               ))}
-            </Grid>
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="⚙️ System">
-            <Toggle label="Maintenance Mode" on={s.system?.maintenanceMode} />
-            <Row label="Version" value={s.system?.version || "1.0.0"} />
-            <Row label="Release" value={s.system?.release || "Sprint 53"} />
-          </SettingsSection>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <SettingsSection title="📋 Audit">
-            <Row label="Retention" value={`${s.audit?.retentionDays || 90} days`} />
-            <Row label="Level" value={s.audit?.level || "all"} />
-            <Toggle label="Security Monitoring" on={s.audit?.securityMonitoring} />
-          </SettingsSection>
-        </Grid>
-      </Grid>
-    </Stack>
-  );
-}
+            </Stack>
+          </Box>
+        </Box>
 
-function SettingsSection({ title, children }) {
-  return (
-    <FxCard sx={{ height: "100%" }}>
-      <Typography sx={{ ...typo.sectionTitle, color: semantic.text, mb: 2 }}>{title}</Typography>
-      <Stack spacing={0.25}>{children}</Stack>
-    </FxCard>
-  );
-}
-
-function Row({ label, value, badge, status }) {
-  return (
-    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.75 }}>
-      <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{label}</Typography>
-      <Stack direction="row" spacing={1} alignItems="center">
-        {badge && <Box sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: badge }} />}
-        {status ? <FxStatusChip status={status} /> : <Typography sx={{ ...typo.bodySmall, fontWeight: 600, color: semantic.text }}>{value ?? "—"}</Typography>}
+        {/* Content workspace */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Box sx={{ borderRadius: radius.xl, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, boxShadow: shadows.sm, p: { xs: 3, md: 4 }, minHeight: 500 }}>
+            {renderContent()}
+          </Box>
+        </Box>
       </Stack>
-    </Stack>
-  );
-}
-
-function Toggle({ label, on }) {
-  return (
-    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.5 }}>
-      <Typography sx={{ ...typo.bodySmall, color: semantic.textSecondary }}>{label}</Typography>
-      <Switch checked={!!on} size="small" disabled color="primary" />
     </Stack>
   );
 }
