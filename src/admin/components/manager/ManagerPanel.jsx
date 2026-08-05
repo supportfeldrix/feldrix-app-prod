@@ -111,7 +111,7 @@ export default function ManagerPanel({
   const showGreeting = !!intelligence && !!metrics;
 
   return (
-    <Box sx={{ borderRadius: radius.xl, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, boxShadow: shadows.lg, display: "flex", flexDirection: "column", overflow: "hidden", height: { xs: 560, md: 620 }, position: "relative" }}>
+    <Box sx={{ borderRadius: "16px", bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, boxShadow: shadows.lg, display: "flex", flexDirection: "column", overflow: "hidden", height: { xs: 560, md: 620 }, position: "relative" }}>
       <ManagerHeader intelligence={intelligence} adminName={admin?.name} />
       <ManagerConversation messages={messages} isTyping={isTyping} intelligence={intelligence} metrics={metrics} showGreeting={showGreeting} onSend={handleSend} />
       <SuggestedPrompts onSelect={handleSend} disabled={isTyping} />

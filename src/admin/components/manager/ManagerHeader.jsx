@@ -15,7 +15,7 @@ export default function ManagerHeader({ intelligence, adminName }) {
     : semantic.error;
 
   return (
-    <Box sx={{ px: { xs: 2.5, md: 3.5 }, pt: 2.5, pb: 2, borderBottom: `1px solid ${semantic.border}`, bgcolor: semantic.paper, borderRadius: `${radius.xl * 8}px ${radius.xl * 8}px 0 0` }}>
+    <Box sx={{ px: { xs: 2.5, md: 3.5 }, pt: 2.5, pb: 2, borderBottom: `1px solid ${semantic.border}`, bgcolor: semantic.paper, borderRadius: "16px 16px 0 0" }}>
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={1.5}>
         {/* Left: identity */}
         <Stack direction="row" spacing={1.5} alignItems="center">

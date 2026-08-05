@@ -27,8 +27,8 @@ export default function AdminSystemHealth() {
     return (
       <Stack spacing={4}>
         <Box><Skeleton variant="rounded" height={32} width={200} /><Skeleton variant="rounded" height={18} width={320} sx={{ mt: 1 }} /></Box>
-        <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
-        <Grid container spacing={2}>{Array.from({ length: 6 }).map((_, i) => <Grid item xs={6} sm={4} md={2} key={i}><Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} /></Grid>)}</Grid>
+        <Skeleton variant="rounded" height={140} sx={{ borderRadius: "12px" }} />
+        <Grid container spacing={2}>{Array.from({ length: 6 }).map((_, i) => <Grid item xs={6} sm={4} md={2} key={i}><Skeleton variant="rounded" height={140} sx={{ borderRadius: "12px" }} /></Grid>)}</Grid>
       </Stack>
     );
   }
@@ -51,7 +51,7 @@ export default function AdminSystemHealth() {
 
       {/* Overall Status Card */}
       {health && (
-        <FxCard sx={{ textAlign: "center", py: 4 }}>
+        <FxCard sx={{ textAlign: "center", py: 4, borderRadius: "16px" }}>
           <Box sx={{ position: "relative", width: 90, height: 90, mx: "auto", mb: 2 }}>
             <svg width={90} height={90} style={{ transform: "rotate(-90deg)" }}>
               <circle cx={45} cy={45} r={38} fill="none" stroke="#F1F5F9" strokeWidth={7} />

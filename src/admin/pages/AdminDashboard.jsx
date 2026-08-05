@@ -184,23 +184,23 @@ export default function AdminDashboard() {
   return (
     <Stack spacing={5} sx={{ width: "100%" }}>
 
-      {/* --- DARK EXECUTIVE BANNER --- */}
-      <Box sx={{ px: { xs: 3, md: 4.5 }, py: { xs: 3, md: 3.5 }, borderRadius: radius.xl, background: "linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #0F172A 100%)", position: "relative", overflow: "hidden" }}>
-        <Box sx={{ position: "absolute", top: 0, right: 0, width: "60%", height: "100%", background: "radial-gradient(ellipse at 80% 50%, rgba(59,130,246,0.08) 0%, transparent 60%)", pointerEvents: "none" }} />
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} spacing={2} sx={{ position: "relative" }}>
+      {/* --- ENTERPRISE BANNER --- */}
+      <Box sx={{ px: { xs: 3, md: 4.5 }, py: { xs: 3, md: 4 }, borderRadius: "16px", background: "linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)", position: "relative", overflow: "hidden" }}>
+        <Box sx={{ position: "absolute", top: 0, right: 0, width: "50%", height: "100%", background: "radial-gradient(ellipse at 80% 50%, rgba(255,255,255,0.05) 0%, transparent 60%)", pointerEvents: "none" }} />
+        <Stack spacing={3} sx={{ position: "relative" }}>
           <Box>
-            <Typography sx={{ fontSize: { xs: "1.4rem", md: "1.6rem" }, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
+            <Typography sx={{ fontSize: { xs: "1.5rem", md: "1.75rem" }, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
               {greeting}, {admin?.name?.split(" ")[0] || "Admin"}
             </Typography>
-            <Typography sx={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.5)", mt: 0.5 }}>{dateStr}</Typography>
-            <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", mt: 0.25 }}>Executive Command Centre - Real-time platform intelligence</Typography>
+            <Typography sx={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.6)", mt: 0.5 }}>{dateStr}</Typography>
+            <Typography sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", mt: 0.25 }}>Executive Command Centre - Real-time platform intelligence</Typography>
           </Box>
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <PillBadge label="Platform" value="Healthy" color={semantic.success} />
-            <PillBadge label="Database" value="Online" color={semantic.info} />
-            <PillBadge label="Services" value={`${healthPct}%`} color="#8B5CF6" />
-            <PillBadge label="AI Engine" value="Active" color={semantic.success} />
-          </Stack>
+          <Grid container spacing={1.5}>
+            <Grid item xs={6} sm={3}><StatusCard icon="platform" title="Platform" value="Healthy" /></Grid>
+            <Grid item xs={6} sm={3}><StatusCard icon="storage" title="Database" value="Online" /></Grid>
+            <Grid item xs={6} sm={3}><StatusCard icon="health" title="Services" value={`${healthPct}%`} /></Grid>
+            <Grid item xs={6} sm={3}><StatusCard icon="ai" title="AI Engine" value="Active" /></Grid>
+          </Grid>
         </Stack>
       </Box>
       {/* FELDRIX MANAGER */}
@@ -811,11 +811,18 @@ function SectionHeader({ icon, title, subtitle }) {
   );
 }
 
-function PillBadge({ label, value, color }) {
+function StatusCard({ icon, title, value }) {
+  const ICONS = { platform: MonitorHeart, storage: HealthAndSafety, health: CheckCircleOutlined, ai: Psychology };
+  const Icon = ICONS[icon] || CheckCircleOutlined;
   return (
-    <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, px: 1.5, py: 0.5, borderRadius: radius.pill, bgcolor: `${color}20`, backdropFilter: "blur(4px)" }}>
-      <Typography sx={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>{label}</Typography>
-      <Typography sx={{ fontSize: "0.62rem", color, fontWeight: 700 }}>{value}</Typography>
+    <Box sx={{ px: 2, py: 1.5, borderRadius: "12px", bgcolor: "rgba(255,255,255,0.1)", backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,0.12)" }}>
+      <Stack direction="row" spacing={1.25} alignItems="center">
+        <Icon sx={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }} />
+        <Box>
+          <Typography sx={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.55)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>{title}</Typography>
+          <Typography sx={{ fontSize: "0.82rem", color: "#fff", fontWeight: 700 }}>{value}</Typography>
+        </Box>
+      </Stack>
     </Box>
   );
 }
