@@ -23,6 +23,7 @@ const AdminFarms = lazy(() => import("./admin/pages/AdminFarms"));
 const AdminSubscriptions = lazy(() => import("./admin/pages/AdminSubscriptions"));
 const AdminPayments = lazy(() => import("./admin/pages/AdminPayments"));
 const AdminAnalytics = lazy(() => import("./admin/pages/AdminAnalytics"));
+const ReportsDashboard = lazy(() => import("./admin/pages/reports/ReportsDashboard"));
 const AdminSupport = lazy(() => import("./admin/pages/AdminSupport"));
 const AdminNotifications = lazy(() => import("./admin/pages/AdminNotifications"));
 const AdminSystemHealth = lazy(() => import("./admin/pages/AdminSystemHealth"));
@@ -66,6 +67,7 @@ export default function AdminApp() {
             <Route path="/subscriptions" element={<Suspense fallback={null}><AdminSubscriptions /></Suspense>} />
             <Route path="/payments" element={<Suspense fallback={null}><AdminPayments /></Suspense>} />
             <Route path="/analytics" element={<Suspense fallback={null}><AdminAnalytics /></Suspense>} />
+            <Route path="/reports" element={<Suspense fallback={null}><ReportsDashboard /></Suspense>} />
             <Route path="/support" element={<Suspense fallback={null}><AdminSupport /></Suspense>} />
             <Route path="/notifications" element={<Suspense fallback={null}><AdminNotifications /></Suspense>} />
             <Route path="/system" element={<Suspense fallback={null}><AdminSystemHealth /></Suspense>} />
