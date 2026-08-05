@@ -6,9 +6,8 @@
  */
 
 import { useState } from "react";
-import { Box, Typography, Stack, Grid, IconButton, Tooltip } from "@mui/material";
-import { Refresh, Assessment, Description } from "@mui/icons-material";
-import { semantic, typography as typo, radius, shadows } from "../../../shared/design";
+import { Box, Typography, Stack, Grid } from "@mui/material";
+import { FxStatCard, semantic, typography as typo, radius } from "../../../shared/design";
 import { getAllTemplates } from "../../services/reportTemplateService";
 import { generateReport } from "../../services/reportService";
 import ReportCard from "./ReportCard";
@@ -60,18 +59,10 @@ export default function ReportsDashboard() {
       {/* Summary cards */}
       <Grid container spacing={2.5}>
         <Grid item xs={6} sm={3}>
-          <Box sx={{ p: 2.5, borderRadius: radius.lg, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, textAlign: "center" }}>
-            <Assessment sx={{ fontSize: 24, color: semantic.info, mb: 0.5 }} />
-            <Typography sx={{ fontSize: "1.2rem", fontWeight: 800, color: semantic.text }}>{templates.length}</Typography>
-            <Typography sx={{ fontSize: "0.65rem", color: semantic.textTertiary }}>Available Reports</Typography>
-          </Box>
+          <FxStatCard icon="assessment" label="Available" value={templates.length} color={semantic.info} />
         </Grid>
         <Grid item xs={6} sm={3}>
-          <Box sx={{ p: 2.5, borderRadius: radius.lg, bgcolor: semantic.paper, border: `1px solid ${semantic.border}`, textAlign: "center" }}>
-            <Description sx={{ fontSize: 24, color: semantic.success, mb: 0.5 }} />
-            <Typography sx={{ fontSize: "1.2rem", fontWeight: 800, color: semantic.text }}>{history.length}</Typography>
-            <Typography sx={{ fontSize: "0.65rem", color: semantic.textTertiary }}>Recent Reports</Typography>
-          </Box>
+          <FxStatCard icon="description" label="Generated" value={history.length} color={semantic.success} />
         </Grid>
       </Grid>
 
