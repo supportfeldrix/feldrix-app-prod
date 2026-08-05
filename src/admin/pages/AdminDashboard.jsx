@@ -186,7 +186,7 @@ export default function AdminDashboard() {
 
       {/* --- ENTERPRISE BANNER --- */}
       <Box sx={{ px: { xs: 3, md: 4.5 }, py: { xs: 3, md: 4 }, borderRadius: "16px", background: "linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)", position: "relative", overflow: "hidden" }}>
-        <Box sx={{ position: "absolute", top: 0, right: 0, width: "50%", height: "100%", background: "radial-gradient(ellipse at 80% 50%, rgba(255,255,255,0.05) 0%, transparent 60%)", pointerEvents: "none" }} />
+        <Box sx={{ position: "absolute", top: 0, right: 0, width: "55%", height: "100%", backgroundImage: "url(/branding/login/login-sunrise.png)", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.15, maskImage: "linear-gradient(to left, rgba(0,0,0,0.6) 0%, transparent 100%)", WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,0.6) 0%, transparent 100%)", pointerEvents: "none" }} />
         <Stack spacing={3} sx={{ position: "relative" }}>
           <Box>
             <Typography sx={{ fontSize: { xs: "1.5rem", md: "1.75rem" }, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
