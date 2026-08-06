@@ -66,7 +66,8 @@ export async function getBillingMetrics() {
     const { count } = await supabase
       .from("subscriptions")
       .select("*", { count: "exact", head: true })
-      .eq("status", "active");
+      .ilike("status", "active")
+      .ilike("plan", "pro");
     proSubscribers = count || 0;
   } catch { /* table may not exist */ }
 
@@ -74,12 +75,13 @@ export async function getBillingMetrics() {
     const { count } = await supabase
       .from("subscriptions")
       .select("*", { count: "exact", head: true })
-      .eq("status", "active")
+      .ilike("status", "active")
+      .not("renewal_date", "is", null)
       .lte("renewal_date", weekFromNow);
     pendingRenewals = count || 0;
   } catch { /* table may not exist */ }
 
-  const starterUsers = totalProfiles - proSubscribers;
+  const starterUsers = Math.max(0, totalProfiles - proSubscribers);
   const mrr = revenueThisMonth;
   const arr = mrr * 12;
 
