@@ -17,10 +17,6 @@ const API_KEY = import.meta.env.VITE_WEATHER_API_KEY || "";
 const DEFAULT_LOCATION = import.meta.env.VITE_WEATHER_LOCATION || "Johannesburg,ZA";
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
 
-// Debug — remove after diagnosing
-console.log("[Weather] API Key:", API_KEY ? `${API_KEY.slice(0, 6)}...` : "MISSING");
-console.log("[Weather] Default Location:", DEFAULT_LOCATION);
-
 // =====================================================
 // Safe Defaults
 // =====================================================
@@ -112,7 +108,6 @@ function parseForecastDay(item) {
  */
 export async function getCurrentWeather(location) {
   if (!API_KEY) {
-    console.log("[Weather] No API key — returning defaults");
     return getDefaultCurrent();
   }
 
@@ -120,14 +115,10 @@ export async function getCurrentWeather(location) {
 
   try {
     const url = `${BASE_URL}/weather?q=${encodeURIComponent(loc)}&units=metric&appid=${API_KEY}`;
-    console.log("[Weather] Fetching:", url.replace(API_KEY, "***"));
 
     const response = await fetch(url);
-    console.log("[Weather] Status:", response.status);
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.log("[Weather] Error body:", errorBody);
       // 404 = city not found by OpenWeatherMap
       if (response.status === 404) {
         return { ...getDefaultCurrent(), locationError: true };
@@ -136,7 +127,6 @@ export async function getCurrentWeather(location) {
     }
 
     const data = await response.json();
-    console.log("[Weather] Response:", data);
     return parseCurrent(data);
   } catch (err) {
     console.error("[Weather] Fetch failed:", err);

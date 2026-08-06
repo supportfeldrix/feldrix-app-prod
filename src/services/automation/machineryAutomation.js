@@ -43,14 +43,7 @@ export async function runMachineryAutomation() {
 
     result.scanned = machines.length;
 
-    console.log(
-      `[Automation] Scanning ${machines.length} machines...`
-    );
-
     for (const machine of machines) {
-      console.log(
-        `[Automation] Checking ${machine.name || machine.id}`
-      );
 
       /*
        * Sprint 22.2
@@ -64,10 +57,6 @@ export async function runMachineryAutomation() {
        * 5. Log automation activity
        */
     }
-
-    console.log(
-      `[Automation] Machinery scan completed`
-    );
 
     return result;
   } catch (error) {

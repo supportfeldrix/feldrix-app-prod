@@ -21,8 +21,6 @@ export default function TaskCard({
   onEdit,
 }) {
 
-  console.log("TaskCard", task);
-
   const priorityColor = {
     Critical: "error",
     High: "error",

@@ -45,14 +45,7 @@ export async function runCropAutomation() {
 
     result.scanned = crops.length;
 
-    console.log(
-      `[Automation] Scanning ${crops.length} crops...`
-    );
-
     for (const crop of crops) {
-      console.log(
-        `[Automation] Checking ${crop.name || crop.crop_name || crop.id}`
-      );
 
       /*
        * Sprint 22.3
@@ -67,10 +60,6 @@ export async function runCropAutomation() {
        * 6. Generate reminders
        */
     }
-
-    console.log(
-      "[Automation] Crop scan completed"
-    );
 
     return result;
   } catch (error) {

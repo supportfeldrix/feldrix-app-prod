@@ -346,7 +346,7 @@ export default function AdminDashboard() {
               <Typography sx={{ fontSize: "0.92rem", fontWeight: 600, color: semantic.text, lineHeight: 1.6, mb: 2.5, flex: 1 }}>
                 {metrics?.pendingPayments > 0 ? "Review pending payments and ensure cash flow continuity. Unresolved payments impact MRR projections." : metrics?.proSubscribers === 0 ? "Convert the first PRO subscriber. This establishes the revenue baseline and validates pricing." : "Monitor growth trajectories and platform engagement. Current trajectory is healthy."}
               </Typography>
-              <Chip label="View AI Operations" onClick={() => navigate("/support")} size="small" sx={{ alignSelf: "flex-start", bgcolor: `${semantic.info}10`, color: semantic.info, fontWeight: 600, fontSize: "0.72rem", cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}18` } }} />
+              <Chip label="View AI Operations" onClick={() => navigate("/admin/support")} size="small" sx={{ alignSelf: "flex-start", bgcolor: `${semantic.info}10`, color: semantic.info, fontWeight: 600, fontSize: "0.72rem", cursor: "pointer", transition: transitions.normal, "&:hover": { bgcolor: `${semantic.info}18` } }} />
             </Box>
           </Grid>
         </Grid>

@@ -84,7 +84,7 @@ export default function Register() {
       alert("Account created successfully! Please sign in.");
       navigate("/login");
     } catch (err) {
-      console.error("REGISTER ERROR", err);
+      console.error("Registration failed:", err);
       alert(err.message || "Registration failed.");
     } finally {
       setLoading(false);
