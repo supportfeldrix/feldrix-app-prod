@@ -34,6 +34,7 @@ function getDefaultCurrent() {
     rainfall: null,
     icon: "🌤️",
     updatedAt: null,
+    locationError: false,
   };
 }
 
@@ -127,6 +128,10 @@ export async function getCurrentWeather(location) {
     if (!response.ok) {
       const errorBody = await response.text();
       console.log("[Weather] Error body:", errorBody);
+      // 404 = city not found by OpenWeatherMap
+      if (response.status === 404) {
+        return { ...getDefaultCurrent(), locationError: true };
+      }
       return getDefaultCurrent();
     }
 
@@ -199,6 +204,7 @@ export async function getWeatherSummary(location) {
     current,
     forecast,
     available: current.updatedAt !== null,
+    locationError: current.locationError || false,
     location: location || DEFAULT_LOCATION,
   };
 }

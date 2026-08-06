@@ -30,6 +30,49 @@ const farmTypes = [
 
 const unitOptions = ["Metric", "Imperial"];
 
+const weatherLocations = [
+  { label: "Johannesburg", value: "Johannesburg,ZA" },
+  { label: "Cape Town", value: "Cape Town,ZA" },
+  { label: "Durban", value: "Durban,ZA" },
+  { label: "Pretoria", value: "Pretoria,ZA" },
+  { label: "Port Elizabeth (Gqeberha)", value: "Port Elizabeth,ZA" },
+  { label: "Bloemfontein", value: "Bloemfontein,ZA" },
+  { label: "East London", value: "East London,ZA" },
+  { label: "Pietermaritzburg", value: "Pietermaritzburg,ZA" },
+  { label: "Polokwane", value: "Polokwane,ZA" },
+  { label: "Nelspruit (Mbombela)", value: "Nelspruit,ZA" },
+  { label: "Kimberley", value: "Kimberley,ZA" },
+  { label: "Rustenburg", value: "Rustenburg,ZA" },
+  { label: "George", value: "George,ZA" },
+  { label: "Stellenbosch", value: "Stellenbosch,ZA" },
+  { label: "Paarl", value: "Paarl,ZA" },
+  { label: "Worcester", value: "Worcester,ZA" },
+  { label: "Upington", value: "Upington,ZA" },
+  { label: "Welkom", value: "Welkom,ZA" },
+  { label: "Bethlehem", value: "Bethlehem,ZA" },
+  { label: "Kroonstad", value: "Kroonstad,ZA" },
+  { label: "Grahamstown (Makhanda)", value: "Grahamstown,ZA" },
+  { label: "Oudtshoorn", value: "Oudtshoorn,ZA" },
+  { label: "Ceres", value: "Ceres,ZA" },
+  { label: "Cradock", value: "Cradock,ZA" },
+  { label: "Standerton", value: "Standerton,ZA" },
+  { label: "Lichtenburg", value: "Lichtenburg,ZA" },
+  { label: "Tzaneen", value: "Tzaneen,ZA" },
+  { label: "Louis Trichardt (Makhado)", value: "Louis Trichardt,ZA" },
+  { label: "Mossel Bay", value: "Mossel Bay,ZA" },
+  { label: "Vryburg", value: "Vryburg,ZA" },
+  { label: "Ermelo", value: "Ermelo,ZA" },
+  { label: "Middelburg (Mpumalanga)", value: "Middelburg,ZA" },
+  { label: "Potchefstroom", value: "Potchefstroom,ZA" },
+  { label: "Klerksdorp", value: "Klerksdorp,ZA" },
+  { label: "Harrismith", value: "Harrismith,ZA" },
+  { label: "Ladysmith", value: "Ladysmith,ZA" },
+  { label: "Newcastle", value: "Newcastle,ZA" },
+  { label: "Vereeniging", value: "Vereeniging,ZA" },
+  { label: "Phalaborwa", value: "Phalaborwa,ZA" },
+  { label: "Graaff-Reinet", value: "Graaff-Reinet,ZA" },
+];
+
 export default function EditFarmDialog({
   open,
   onClose,
@@ -218,14 +261,23 @@ export default function EditFarmDialog({
 
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
+              select
               fullWidth
               label="Weather Location"
               name="weather_location"
               value={form.weather_location}
               onChange={handleChange}
-              placeholder="e.g. Stellenbosch,ZA"
-              helperText="Town and country code for weather forecasts"
-            />
+              helperText="Nearest town for weather forecasts"
+            >
+              <MenuItem value="">
+                <em>Use default (Johannesburg)</em>
+              </MenuItem>
+              {weatherLocations.map((loc) => (
+                <MenuItem key={loc.value} value={loc.value}>
+                  {loc.label}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
         </Grid>
       </DialogContent>

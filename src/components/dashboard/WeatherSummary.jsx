@@ -155,10 +155,12 @@ export default function WeatherSummary({ weather }) {
           <Box sx={{ py: 3, textAlign: "center" }}>
             <CloudIcon sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
             <Typography variant="body2" fontWeight={600} color="text.primary">
-              Weather Unavailable
+              {weather?.locationError ? "Location Not Found" : "Weather Unavailable"}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Configure an API key to enable weather intelligence.
+              {weather?.locationError
+                ? "Update your Weather Location in Account → Farm Information."
+                : "Configure an API key to enable weather intelligence."}
             </Typography>
           </Box>
         )}

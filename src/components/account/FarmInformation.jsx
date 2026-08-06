@@ -70,7 +70,9 @@ export default function FarmInformation() {
     },
     {
       label: "Weather Location",
-      value: profile?.weather_location || "Not Set",
+      value: profile?.weather_location
+        ? profile.weather_location.replace(",ZA", "")
+        : "Default (Johannesburg)",
     },
   ];
 
