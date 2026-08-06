@@ -138,7 +138,11 @@ export async function markEmailRead(id, isRead = true) {
     .select()
     .single();
 
-  if (error) return null;
+  if (error) {
+    console.error("Failed to update email read status:", error.message);
+    throw new Error("Failed to update email status.");
+  }
+
   return data ? mapEmail(data) : null;
 }
 

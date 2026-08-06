@@ -137,8 +137,8 @@ async function getSubscriptions() {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
   const [starterToday, proToday, pendingPayments, failedPayments] = await Promise.all([
-    safeCount("subscriptions", q => q.eq("plan", "starter").gte("created_at", todayStart)),
-    safeCount("subscriptions", q => q.eq("plan", "pro").gte("created_at", todayStart)),
+    safeCount("subscriptions", q => q.ilike("plan", "starter").gte("created_at", todayStart)),
+    safeCount("subscriptions", q => q.ilike("plan", "pro").gte("created_at", todayStart)),
     safeCount("subscription_payments", q => q.eq("status", "pending")),
     safeCount("subscription_payments", q => q.eq("status", "failed")),
   ]);

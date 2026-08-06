@@ -106,8 +106,8 @@ export async function getDashboardMetrics() {
     const { count } = await supabase
       .from("subscriptions")
       .select("*", { count: "exact", head: true })
-      .eq("status", "active")
-      .eq("plan", "pro");
+      .ilike("status", "active")
+      .ilike("plan", "pro");
 
     proSubscribers = count || 0;
   } catch {

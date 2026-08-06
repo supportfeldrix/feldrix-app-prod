@@ -82,7 +82,7 @@ export async function getRecommendations() {
   ]);
 
   let proCount = 0;
-  try { const { count } = await supabase.from("subscriptions").select("*", { count: "exact", head: true }).eq("status", "active"); proCount = count || 0; } catch {}
+  try { const { count } = await supabase.from("subscriptions").select("*", { count: "exact", head: true }).ilike("status", "active").ilike("plan", "pro"); proCount = count || 0; } catch {}
 
   const starterUsers = totalUsers - proCount;
   const recommendations = [];
@@ -197,7 +197,7 @@ export async function getOpportunities() {
   ]);
 
   let proCount = 0;
-  try { const { count } = await supabase.from("subscriptions").select("*", { count: "exact", head: true }).eq("status", "active"); proCount = count || 0; } catch {}
+  try { const { count } = await supabase.from("subscriptions").select("*", { count: "exact", head: true }).ilike("status", "active").ilike("plan", "pro"); proCount = count || 0; } catch {}
 
   const starterUsers = totalUsers - proCount;
 
