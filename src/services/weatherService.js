@@ -14,12 +14,12 @@
  */
 
 const API_KEY = import.meta.env.VITE_WEATHER_API_KEY || "";
-const LOCATION = import.meta.env.VITE_WEATHER_LOCATION || "Johannesburg,ZA";
+const DEFAULT_LOCATION = import.meta.env.VITE_WEATHER_LOCATION || "Johannesburg,ZA";
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 // Debug — remove after diagnosing
 console.log("[Weather] API Key:", API_KEY ? `${API_KEY.slice(0, 6)}...` : "MISSING");
-console.log("[Weather] Location:", LOCATION);
+console.log("[Weather] Default Location:", DEFAULT_LOCATION);
 
 // =====================================================
 // Safe Defaults
@@ -106,15 +106,19 @@ function parseForecastDay(item) {
 /**
  * Get current weather conditions.
  * Returns safe defaults if the API is unavailable or unconfigured.
+ *
+ * @param {string} [location] - Optional location override (e.g. "Stellenbosch,ZA")
  */
-export async function getCurrentWeather() {
+export async function getCurrentWeather(location) {
   if (!API_KEY) {
     console.log("[Weather] No API key — returning defaults");
     return getDefaultCurrent();
   }
 
+  const loc = location || DEFAULT_LOCATION;
+
   try {
-    const url = `${BASE_URL}/weather?q=${encodeURIComponent(LOCATION)}&units=metric&appid=${API_KEY}`;
+    const url = `${BASE_URL}/weather?q=${encodeURIComponent(loc)}&units=metric&appid=${API_KEY}`;
     console.log("[Weather] Fetching:", url.replace(API_KEY, "***"));
 
     const response = await fetch(url);
@@ -138,15 +142,19 @@ export async function getCurrentWeather() {
 /**
  * Get 5-day forecast (3-hour intervals).
  * Returns one entry per day (midday reading).
+ *
+ * @param {string} [location] - Optional location override
  */
-export async function getForecast() {
+export async function getForecast(location) {
   if (!API_KEY) {
     return getDefaultForecast();
   }
 
+  const loc = location || DEFAULT_LOCATION;
+
   try {
     const response = await fetch(
-      `${BASE_URL}/forecast?q=${encodeURIComponent(LOCATION)}&units=metric&appid=${API_KEY}`
+      `${BASE_URL}/forecast?q=${encodeURIComponent(loc)}&units=metric&appid=${API_KEY}`
     );
 
     if (!response.ok) {
@@ -178,16 +186,19 @@ export async function getForecast() {
 /**
  * Get a complete weather summary (current + forecast).
  * Single call for components that need everything.
+ *
+ * @param {string} [location] - Optional location override (e.g. "Stellenbosch,ZA")
  */
-export async function getWeatherSummary() {
+export async function getWeatherSummary(location) {
   const [current, forecast] = await Promise.all([
-    getCurrentWeather(),
-    getForecast(),
+    getCurrentWeather(location),
+    getForecast(location),
   ]);
 
   return {
     current,
     forecast,
     available: current.updatedAt !== null,
+    location: location || DEFAULT_LOCATION,
   };
 }

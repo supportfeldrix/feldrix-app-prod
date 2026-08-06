@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { createPurchaseFinanceRecord } from "./autoFinanceService";
 
 export async function getAnimals() {
   const { data, error } = await supabase
@@ -18,14 +19,21 @@ export async function addAnimal(animal) {
 
   if (!user) throw new Error("You must be logged in.");
 
-  const { error } = await supabase.from("livestock").insert([
+  const { data, error } = await supabase.from("livestock").insert([
     {
       ...animal,
       user_id: user.id,
     },
-  ]);
+  ]).select().single();
 
   if (error) throw error;
+
+  // Auto-create finance record if purchase_price is provided
+  if (data && Number(animal.purchase_price) > 0) {
+    await createPurchaseFinanceRecord(data);
+  }
+
+  return data;
 }
 
 export async function updateAnimal(id, updates) {

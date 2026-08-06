@@ -68,6 +68,10 @@ export default function FarmInformation() {
       label: "Preferred Units",
       value: profile?.preferred_units || "Metric",
     },
+    {
+      label: "Weather Location",
+      value: profile?.weather_location || "Not Set",
+    },
   ];
 
   if (loading) {

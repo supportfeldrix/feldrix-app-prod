@@ -7,6 +7,7 @@ import SecurityCard from "../components/account/SecurityCard";
 import StatisticsCard from "../components/account/StatisticsCard";
 import SubscriptionCard from "../components/account/SubscriptionCard";
 import QuickActionsCard from "../components/account/QuickActionsCard";
+import ContactSupportCard from "../components/account/ContactSupportCard";
 import EmailNotificationPreferences from "../components/account/EmailNotificationPreferences";
 import OnboardingTrigger from "../components/onboarding/OnboardingTrigger";
 
@@ -56,6 +57,10 @@ export default function Account() {
             <Stack spacing={3}>
               <QuickActionsCard />
             </Stack>
+          </Grid>
+
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <ContactSupportCard />
           </Grid>
         </Grid>
 

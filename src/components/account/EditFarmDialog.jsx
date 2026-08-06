@@ -42,6 +42,7 @@ export default function EditFarmDialog({
     country: "",
     farm_size: "",
     preferred_units: "Metric",
+    weather_location: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -64,6 +65,7 @@ export default function EditFarmDialog({
       country: profile.country || "",
       farm_size: profile.farm_size ?? "",
       preferred_units: profile.preferred_units || "Metric",
+      weather_location: profile.weather_location || "",
     });
   }
 
@@ -212,6 +214,18 @@ export default function EditFarmDialog({
                 </MenuItem>
               ))}
             </TextField>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Weather Location"
+              name="weather_location"
+              value={form.weather_location}
+              onChange={handleChange}
+              placeholder="e.g. Stellenbosch,ZA"
+              helperText="Town and country code for weather forecasts"
+            />
           </Grid>
         </Grid>
       </DialogContent>

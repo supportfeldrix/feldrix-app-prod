@@ -65,6 +65,7 @@ export default function Dashboard() {
   async function loadDashboard() {
     try {
       // Load user name for personalised greeting
+      let weatherLocation = "";
       try {
         const user = await getCurrentUser();
         if (user) {
@@ -77,6 +78,7 @@ export default function Dashboard() {
           setUserName(name);
           setFarmName(profile?.farm_name || "");
           setFarmRegion(profile?.province || "South Africa");
+          weatherLocation = profile?.weather_location || "";
         }
       } catch { /* non-blocking */ }
 
@@ -84,7 +86,7 @@ export default function Dashboard() {
         getDashboardStats(),
         getHealthRecords(),
         getNotifications(),
-        getWeatherSummary(),
+        getWeatherSummary(weatherLocation || undefined),
       ]);
 
       setDashboard(dash);

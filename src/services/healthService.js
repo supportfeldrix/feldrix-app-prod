@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { createHealthFinanceRecord } from "./autoFinanceService";
 
 /*
  * Get all health records (Health page)
@@ -93,7 +94,14 @@ export async function addHealthRecord(record) {
     throw error;
   }
 
-  return data[0];
+  const created = data[0];
+
+  // Auto-create finance record if cost is provided
+  if (created && Number(record.cost) > 0) {
+    await createHealthFinanceRecord(created);
+  }
+
+  return created;
 }
 
 /*
