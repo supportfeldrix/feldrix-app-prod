@@ -26,16 +26,13 @@ export const ROLE_LABELS = {
 // ─── Navigation ─────────────────────────────────────────────
 export const ADMIN_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "📊", path: "" },
-  { id: "users", label: "Users", icon: "👥", path: "/users" },
-  { id: "farms", label: "Farms", icon: "🚜", path: "/farms" },
+  { id: "users", label: "Customers", icon: "👥", path: "/users" },
   { id: "subscriptions", label: "Subscriptions", icon: "💳", path: "/subscriptions" },
-  { id: "payments", label: "Payments", icon: "💰", path: "/payments" },
-  { id: "reports", label: "Reports", icon: "📊", path: "/reports" },
-  { id: "analytics", label: "Analytics", icon: "📈", path: "/analytics" },
-  { id: "support", label: "Support", icon: "🎧", path: "/support" },
+  { id: "customer-success", label: "Customer Success", icon: "🎯", path: "/customer-success" },
   { id: "notifications", label: "Notifications", icon: "📨", path: "/notifications" },
+  { id: "analytics", label: "Analytics", icon: "📈", path: "/analytics" },
   { id: "system", label: "System Health", icon: "🛠", path: "/system" },
-  { id: "audit", label: "Audit Log", icon: "📋", path: "/audit" },
+  { id: "audit", label: "Audit Logs", icon: "📋", path: "/audit" },
   { id: "settings", label: "Settings", icon: "⚙️", path: "/settings" },
 ];
 
@@ -111,13 +108,10 @@ export const PERMISSION_MATRIX = {
 const NAV_PERMISSIONS = {
   dashboard: "canViewDashboard",
   users: "canManageUsers",
-  farms: "canViewFarms",
   subscriptions: "canViewSubscriptions",
-  payments: "canViewPayments",
-  reports: "canViewAnalytics",
-  analytics: "canViewAnalytics",
-  support: "canViewSupport",
+  "customer-success": "canViewSupport",
   notifications: "canSendNotifications",
+  analytics: "canViewAnalytics",
   system: "canViewSystem",
   audit: "canViewAudit",
   settings: "canModifySettings",

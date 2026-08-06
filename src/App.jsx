@@ -37,6 +37,7 @@ const AdminNotifications = lazy(() => import("./admin/pages/AdminNotifications")
 const AdminSystemHealth = lazy(() => import("./admin/pages/AdminSystemHealth"));
 const AdminAuditLog = lazy(() => import("./admin/pages/AdminAuditLog"));
 const AdminSettings = lazy(() => import("./admin/pages/AdminSettings"));
+const AdminCustomerSuccess = lazy(() => import("./admin/pages/customer-success/CustomerSuccessCentre"));
 
 export default function App() {
   return (
@@ -85,6 +86,7 @@ export default function App() {
           <Route path="users" element={<Suspense fallback={null}><AdminUsers /></Suspense>} />
           <Route path="farms" element={<Suspense fallback={null}><AdminFarms /></Suspense>} />
           <Route path="subscriptions" element={<Suspense fallback={null}><AdminSubscriptions /></Suspense>} />
+          <Route path="customer-success" element={<Suspense fallback={null}><AdminCustomerSuccess /></Suspense>} />
           <Route path="payments" element={<Suspense fallback={null}><AdminPayments /></Suspense>} />
           <Route path="analytics" element={<Suspense fallback={null}><AdminAnalytics /></Suspense>} />
           <Route path="support" element={<Suspense fallback={null}><AdminSupport /></Suspense>} />
