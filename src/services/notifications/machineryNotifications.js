@@ -141,10 +141,11 @@ function formatDaysAgo(date, today) {
 
 /**
  * Builds a standardized notification object from a machine record.
+ * ID is deterministic so dismissed/read state persists across page refreshes.
  */
 function buildNotification(machine, priority, title, message, type) {
   return {
-    id: `machinery-${type}-${machine.id || Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `machinery-${type}-${machine.id}`,
     type: `machinery_${type}`,
     priority,
     title,
@@ -152,6 +153,6 @@ function buildNotification(machine, priority, title, message, type) {
     module: "Machinery",
     route: "/machinery",
     read: false,
-    createdAt: new Date().toISOString(),
+    createdAt: machine.next_service_date || machine.nextServiceDate || machine.created_at || new Date().toISOString(),
   };
 }

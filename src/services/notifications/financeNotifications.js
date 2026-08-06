@@ -152,10 +152,11 @@ function getDaysDiff(from, to) {
 
 /**
  * Builds a standardized notification object from a finance record.
+ * ID is deterministic so dismissed/read state persists across page refreshes.
  */
 function buildNotification(record, priority, title, message, type) {
   return {
-    id: `finance-${type}-${record.id || Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `finance-${type}-${record.id}`,
     type: `finance_${type}`,
     priority,
     title,
@@ -163,6 +164,6 @@ function buildNotification(record, priority, title, message, type) {
     module: "Finance",
     route: "/finance",
     read: false,
-    createdAt: new Date().toISOString(),
+    createdAt: record.due_date || record.date || record.created_at || new Date().toISOString(),
   };
 }

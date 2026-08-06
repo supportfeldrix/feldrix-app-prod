@@ -117,10 +117,11 @@ function formatDaysAgo(scheduledDate, today) {
 
 /**
  * Builds a standardized notification object from a health record.
+ * ID is deterministic so dismissed/read state persists across page refreshes.
  */
 function buildNotification(record, priority, title, message) {
   return {
-    id: `livestock-health-${record.id || Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `livestock-health-${record.id}`,
     type: "health_treatment",
     priority,
     title,
@@ -128,6 +129,6 @@ function buildNotification(record, priority, title, message) {
     module: "Livestock",
     route: "/health",
     read: false,
-    createdAt: new Date().toISOString(),
+    createdAt: record.next_due || record.scheduled_date || record.created_at || new Date().toISOString(),
   };
 }

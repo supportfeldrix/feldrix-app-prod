@@ -211,10 +211,11 @@ function getMinTemp(current, forecast) {
 
 /**
  * Builds a standardized notification object for weather events.
+ * ID is deterministic (one per weather type) so dismissed/read state persists.
  */
 function buildNotification(priority, title, message, type) {
   return {
-    id: `weather-${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `weather-${type}`,
     type: `weather_${type}`,
     priority,
     title,

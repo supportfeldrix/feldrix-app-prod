@@ -134,10 +134,12 @@ export default function NotificationCenter({
   }
 
   function handleMarkAllRead() {
+    localNotifications.filter((n) => !n.read).forEach((n) => onMarkAsRead?.(n));
     setLocalNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
   function handleClearAllRead() {
+    localNotifications.filter((n) => n.read).forEach((n) => onClear?.(n));
     setLocalNotifications((prev) => prev.filter((n) => !n.read));
   }
 

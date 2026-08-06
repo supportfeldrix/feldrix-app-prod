@@ -81,10 +81,11 @@ function deduplicateById(notifications) {
 
 /**
  * Builds a notification from an intelligence insight.
+ * ID is deterministic so dismissed/read state persists across page refreshes.
  */
 function buildInsightNotification(insight) {
   return {
-    id: `ai-insight-${insight.id || Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `ai-insight-${insight.id || insight.title?.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}`,
     type: "ai_insight",
     priority: mapPriority(insight.priority),
     title: insight.title,
@@ -92,16 +93,17 @@ function buildInsightNotification(insight) {
     module: "AI",
     route: insight.route || "/dashboard",
     read: false,
-    createdAt: new Date().toISOString(),
+    createdAt: insight.createdAt || new Date().toISOString(),
   };
 }
 
 /**
  * Builds a notification from a system event.
+ * ID is deterministic so dismissed/read state persists across page refreshes.
  */
 function buildSystemNotification(event) {
   return {
-    id: `system-${event.id || event.type || Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `system-${event.id || event.type || event.title?.replace(/\s+/g, "-").toLowerCase().slice(0, 40)}`,
     type: "system_event",
     priority: "Info",
     title: event.title,

@@ -120,10 +120,11 @@ function formatDaysAgo(dueDate, today) {
 
 /**
  * Builds a standardized notification object from a planner task.
+ * ID is deterministic so dismissed/read state persists across page refreshes.
  */
 function buildNotification(task, priority, title, message) {
   return {
-    id: `planner-${task.id || task.sourceId || Date.now()}`,
+    id: `planner-${task.id || task.sourceId}`,
     type: "planner_task",
     priority,
     title,
@@ -131,6 +132,6 @@ function buildNotification(task, priority, title, message) {
     module: "Planner",
     route: "/planner",
     read: false,
-    createdAt: new Date().toISOString(),
+    createdAt: task.due_date || task.originalDate || task.created_at || new Date().toISOString(),
   };
 }

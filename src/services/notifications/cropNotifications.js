@@ -138,10 +138,11 @@ function formatDaysAgo(date, today) {
 
 /**
  * Builds a standardized notification object from a crop record.
+ * ID is deterministic so dismissed/read state persists across page refreshes.
  */
 function buildNotification(crop, priority, title, message, type) {
   return {
-    id: `crop-${type}-${crop.id || Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `crop-${type}-${crop.id}`,
     type: `crop_${type}`,
     priority,
     title,
@@ -149,6 +150,6 @@ function buildNotification(crop, priority, title, message, type) {
     module: "Crops",
     route: "/crops",
     read: false,
-    createdAt: new Date().toISOString(),
+    createdAt: crop.harvest_date || crop.planting_date || crop.created_at || new Date().toISOString(),
   };
 }
