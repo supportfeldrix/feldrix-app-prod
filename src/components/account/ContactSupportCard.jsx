@@ -6,28 +6,54 @@ import {
   Card,
   CardContent,
   Divider,
+  MenuItem,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import toast from "react-hot-toast";
 
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import SendIcon from "@mui/icons-material/Send";
-import EmailIcon from "@mui/icons-material/Email";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-const SUPPORT_EMAIL = "support@feldrix.com";
+import { createSupportTicket } from "../../services/supportTicketService";
+
+const CATEGORIES = [
+  "Technical Issue",
+  "Billing",
+  "Subscription",
+  "Livestock",
+  "Animal Health",
+  "Breeding",
+  "Crops",
+  "Finance",
+  "Planner",
+  "Weather",
+  "Reports",
+  "Feature Request",
+  "General Question",
+  "Other",
+];
 
 export default function ContactSupportCard() {
   const [subject, setSubject] = useState("");
+  const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(null);
   const [error, setError] = useState("");
 
-  function handleSend() {
+  async function handleSubmit() {
     setError("");
 
     if (!subject.trim()) {
       setError("Please enter a subject.");
+      return;
+    }
+
+    if (!category) {
+      setError("Please select a category.");
       return;
     }
 
@@ -36,14 +62,30 @@ export default function ContactSupportCard() {
       return;
     }
 
-    // Open the user's default email client with pre-filled fields
-    const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject.trim())}&body=${encodeURIComponent(message.trim())}`;
-    window.location.href = mailtoUrl;
+    setSubmitting(true);
 
-    setSent(true);
+    try {
+      const ticket = await createSupportTicket({
+        subject: subject.trim(),
+        category,
+        message: message.trim(),
+      });
 
-    // Reset after a few seconds so the user can send another if needed
-    setTimeout(() => setSent(false), 5000);
+      toast.success(`Support request submitted successfully.\nTicket ${ticket.ticket_number} has been created.`);
+
+      setSubmitted(ticket.ticket_number);
+
+      // Reset form
+      setSubject("");
+      setCategory("");
+      setMessage("");
+    } catch (err) {
+      console.error("Support ticket creation failed:", err);
+      toast.error("Failed to submit support request. Please try again.");
+      setError(err?.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -62,19 +104,31 @@ export default function ContactSupportCard() {
               Contact Support
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Need help? Send us a message and we will get back to you.
+              Need help? Submit a request and our team will get back to you.
             </Typography>
           </Box>
         </Stack>
 
         <Divider sx={{ my: 2 }} />
 
-        {sent && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Your email client has been opened. Send the message to complete your request.
+        {/* Success State */}
+        {submitted && (
+          <Alert
+            severity="success"
+            icon={<CheckCircleIcon />}
+            sx={{ mb: 2 }}
+            onClose={() => setSubmitted(null)}
+          >
+            <Typography variant="body2" fontWeight={600}>
+              Support request submitted successfully.
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Ticket {submitted} has been created. Our support team will contact you shortly.
+            </Typography>
           </Alert>
         )}
 
+        {/* Error State */}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
             {error}
@@ -82,15 +136,6 @@ export default function ContactSupportCard() {
         )}
 
         <Stack spacing={2.5}>
-          <Box>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-              <EmailIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-              <Typography variant="body2" color="text.secondary">
-                {SUPPORT_EMAIL}
-              </Typography>
-            </Stack>
-          </Box>
-
           <TextField
             fullWidth
             label="Subject"
@@ -98,23 +143,45 @@ export default function ContactSupportCard() {
             onChange={(e) => { setSubject(e.target.value); if (error) setError(""); }}
             placeholder="What do you need help with?"
             size="small"
+            required
           />
+
+          <TextField
+            select
+            fullWidth
+            label="Category"
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); if (error) setError(""); }}
+            size="small"
+            required
+          >
+            <MenuItem value="" disabled>
+              Select a category...
+            </MenuItem>
+            {CATEGORIES.map((cat) => (
+              <MenuItem key={cat} value={cat}>
+                {cat}
+              </MenuItem>
+            ))}
+          </TextField>
 
           <TextField
             fullWidth
             label="Message"
             value={message}
             onChange={(e) => { setMessage(e.target.value); if (error) setError(""); }}
-            placeholder="Describe your issue or question..."
+            placeholder="Describe your issue or question in detail..."
             multiline
             rows={4}
             size="small"
+            required
           />
 
           <Button
             variant="contained"
             startIcon={<SendIcon />}
-            onClick={handleSend}
+            onClick={handleSubmit}
+            disabled={submitting}
             sx={{
               alignSelf: "flex-start",
               borderRadius: 2,
@@ -123,7 +190,7 @@ export default function ContactSupportCard() {
               px: 3,
             }}
           >
-            Send Message
+            {submitting ? "Submitting..." : "Submit Request"}
           </Button>
         </Stack>
       </CardContent>

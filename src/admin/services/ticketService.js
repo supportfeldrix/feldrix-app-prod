@@ -1,12 +1,77 @@
 /**
  * ============================================================
  * Feldrix Customer Success Centre — Ticket Service
- * Version 1.0
+ * Version 1.1
  *
  * Manages support tickets, messages, notes, assignments.
- * Uses mock data for v1.0 — future versions read from Supabase.
+ * Reads from BOTH mock data and Supabase (farmer-created tickets).
  * ============================================================
  */
+
+import { supabase } from "../../supabaseClient";
+
+// ─── Supabase Integration ───────────────────────────────────
+
+/**
+ * Fetch real tickets from Supabase (created by farmers).
+ */
+async function fetchSupabaseTickets() {
+  try {
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) return [];
+
+    return (data || []).map((t) => ({
+      id: t.id,
+      ticket_number: t.ticket_number,
+      customer_id: t.customer_id,
+      customer_name: t.customer_name || "Unknown",
+      customer_email: t.customer_email || "",
+      farm_name: t.farm_name || "",
+      subject: t.subject,
+      priority: t.priority || "medium",
+      status: t.status || "open",
+      assigned_to: t.assigned_to || null,
+      created_at: t.created_at,
+      updated_at: t.updated_at || t.created_at,
+      resolved_at: t.resolved_at || null,
+      closed_at: t.closed_at || null,
+      tags: t.tags || [],
+      source: t.source || "farmer_app",
+      category: t.category || null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch real messages for a ticket from Supabase.
+ */
+async function fetchSupabaseMessages(ticketId) {
+  try {
+    const { data, error } = await supabase
+      .from("ticket_messages")
+      .select("*")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: true });
+
+    if (error) return null;
+
+    return (data || []).map((m) => ({
+      id: m.id,
+      sender_type: m.sender_type,
+      sender_name: m.sender_type === "customer" ? "Customer" : "Support Agent",
+      content: m.content,
+      created_at: m.created_at,
+    }));
+  } catch {
+    return null;
+  }
+}
 
 // ─── Mock Data ──────────────────────────────────────────────
 
@@ -144,9 +209,24 @@ const MOCK_NOTES = {
 
 /**
  * Get tickets with optional status filter.
+ * Merges mock tickets with real Supabase tickets (farmer-created).
  */
 export async function getTickets({ status = null, search = "" } = {}) {
-  let filtered = [...MOCK_TICKETS];
+  // Fetch real tickets from Supabase
+  const realTickets = await fetchSupabaseTickets();
+
+  // Merge: real tickets first, then mock data
+  let allTickets = [...realTickets, ...MOCK_TICKETS];
+
+  // Deduplicate by ticket_number (real takes precedence)
+  const seen = new Set();
+  allTickets = allTickets.filter((t) => {
+    if (seen.has(t.ticket_number)) return false;
+    seen.add(t.ticket_number);
+    return true;
+  });
+
+  let filtered = allTickets;
 
   if (status && status !== "all") {
     filtered = filtered.filter((t) => t.status === status);
@@ -176,8 +256,14 @@ export async function getTicketById(id) {
 
 /**
  * Get ticket messages (conversation thread).
+ * Checks Supabase first, falls back to mock data.
  */
 export async function getTicketMessages(ticketId) {
+  // Try Supabase first (for real farmer-created tickets)
+  const realMessages = await fetchSupabaseMessages(ticketId);
+  if (realMessages && realMessages.length > 0) return realMessages;
+
+  // Fall back to mock data
   return MOCK_MESSAGES[ticketId] || [];
 }
 
@@ -273,9 +359,9 @@ export async function assignTicket(ticketId, assignee) {
 }
 
 /**
- * Create a new ticket (e.g. from Convert to Ticket).
+ * Create a new ticket (e.g. from Convert to Ticket or admin-created).
  */
-export async function createTicket({ customer_name, customer_email, subject, content, priority = "medium", email_id = null }) {
+export async function createTicket({ customer_name, customer_email, subject, content, priority = "medium", email_id = null, source = "email" }) {
   const ticket = {
     id: `tkt-${Date.now()}`,
     ticket_number: `FDX-${1000 + MOCK_TICKETS.length + 1}`,
@@ -290,6 +376,8 @@ export async function createTicket({ customer_name, customer_email, subject, con
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     tags: email_id ? ["from-email"] : [],
+    source,
+    category: null,
   };
 
   MOCK_TICKETS.unshift(ticket);

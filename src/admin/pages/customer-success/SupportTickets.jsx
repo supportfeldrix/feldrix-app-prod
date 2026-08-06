@@ -279,6 +279,14 @@ export default function SupportTickets({ openTicketId, onTicketOpened }) {
               <Typography sx={{ fontSize: "0.72rem", color: semantic.textTertiary, mt: 0.25 }}>
                 {selectedTicket.customer_name} &middot; {selectedTicket.customer_email} &middot; {selectedTicket.farm_name}
               </Typography>
+              <Stack direction="row" spacing={0.75} sx={{ mt: 0.75 }}>
+                {selectedTicket.source && (
+                  <Chip label={selectedTicket.source === "farmer_app" ? "Farmer App" : selectedTicket.source === "email" ? "Email" : selectedTicket.source} size="small" sx={{ height: 18, fontSize: "0.55rem", fontWeight: 600, bgcolor: selectedTicket.source === "farmer_app" ? `${semantic.success}12` : `${semantic.info}12`, color: selectedTicket.source === "farmer_app" ? semantic.success : semantic.info }} />
+                )}
+                {selectedTicket.category && (
+                  <Chip label={selectedTicket.category} size="small" sx={{ height: 18, fontSize: "0.55rem", fontWeight: 600, bgcolor: `${semantic.neutral}12`, color: semantic.neutral }} />
+                )}
+              </Stack>
             </Box>
 
             {/* Tabs */}
