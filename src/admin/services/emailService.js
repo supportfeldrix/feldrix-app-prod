@@ -221,3 +221,21 @@ export async function toggleStarEmail(id) {
   if (email) email.is_starred = !email.is_starred;
   return email;
 }
+
+// ─── Email ↔ Ticket Links ───────────────────────────────────
+
+const EMAIL_TICKET_LINKS = new Map();
+
+/**
+ * Link an email to a ticket (prevents duplicate conversions).
+ */
+export function linkEmailToTicket(emailId, ticketNumber) {
+  EMAIL_TICKET_LINKS.set(emailId, ticketNumber);
+}
+
+/**
+ * Get the linked ticket number for an email (null if not converted).
+ */
+export function getLinkedTicket(emailId) {
+  return EMAIL_TICKET_LINKS.get(emailId) || null;
+}

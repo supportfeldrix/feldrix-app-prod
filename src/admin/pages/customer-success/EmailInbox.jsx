@@ -1,10 +1,16 @@
 /**
  * ============================================================
  * Feldrix Customer Success Centre — Email Inbox
- * Version 1.0
+ * Version 1.1
  *
  * Provider-agnostic email UI with folder navigation,
  * email list, detail view, and Convert to Ticket action.
+ *
+ * Workflow:
+ *   - Convert to Ticket shows toast (no browser alert)
+ *   - Auto-navigates to ticket after creation
+ *   - Shows "Converted to Ticket #XXXX" badge on converted emails
+ *   - Prevents duplicate ticket creation
  * ============================================================
  */
 
@@ -17,10 +23,11 @@ import {
 import {
   Inbox, MarkEmailUnread, Send, Archive, Delete, Search,
   Star, StarBorder, Reply, ReplyAll, Forward, ConfirmationNumber,
-  MarkEmailRead, AttachFile, ArrowBack, Circle,
+  MarkEmailRead, AttachFile, ArrowBack, Circle, OpenInNew,
 } from "@mui/icons-material";
+import toast from "react-hot-toast";
 import { semantic, radius, shadows, transitions } from "../../../shared/design/tokens";
-import { getEmails, getEmailCounts, markEmailRead, moveEmail, toggleStarEmail, getEmailById } from "../../services/emailService";
+import { getEmails, getEmailCounts, markEmailRead, moveEmail, toggleStarEmail, linkEmailToTicket, getLinkedTicket } from "../../services/emailService";
 import { createTicket } from "../../services/ticketService";
 import { getCustomerContext } from "../../services/supportService";
 
@@ -38,7 +45,7 @@ const PRIORITY_COLORS = { urgent: semantic.error, high: "#F59E0B", normal: seman
 
 // ─── Email Inbox Page ───────────────────────────────────────
 
-export default function EmailInbox() {
+export default function EmailInbox({ onTicketCreated }) {
   const [folder, setFolder] = useState("inbox");
   const [emails, setEmails] = useState([]);
   const [counts, setCounts] = useState({});
@@ -46,6 +53,7 @@ export default function EmailInbox() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [customerCtx, setCustomerCtx] = useState(null);
+  const [converting, setConverting] = useState(false);
 
   const loadEmails = useCallback(async () => {
     setLoading(true);
@@ -107,15 +115,47 @@ export default function EmailInbox() {
 
   async function handleConvertToTicket() {
     if (!selectedEmail) return;
-    await createTicket({
-      customer_name: selectedEmail.from_name || selectedEmail.from_address,
-      customer_email: selectedEmail.from_address,
-      subject: selectedEmail.subject,
-      content: selectedEmail.body_text,
-      priority: selectedEmail.priority === "urgent" ? "urgent" : selectedEmail.priority === "high" ? "high" : "medium",
-      email_id: selectedEmail.id,
-    });
-    alert(`Ticket created for: ${selectedEmail.subject}`);
+
+    // Prevent duplicate: if already converted, navigate to existing ticket
+    const existingTicket = getLinkedTicket(selectedEmail.id);
+    if (existingTicket) {
+      toast(`This email is already linked to Ticket ${existingTicket}`, { icon: "🎫" });
+      if (onTicketCreated) onTicketCreated(existingTicket);
+      return;
+    }
+
+    setConverting(true);
+    try {
+      const ticket = await createTicket({
+        customer_name: selectedEmail.from_name || selectedEmail.from_address,
+        customer_email: selectedEmail.from_address,
+        subject: selectedEmail.subject,
+        content: selectedEmail.body_text,
+        priority: selectedEmail.priority === "urgent" ? "urgent" : selectedEmail.priority === "high" ? "high" : "medium",
+        email_id: selectedEmail.id,
+      });
+
+      // Link email to ticket for deduplication
+      linkEmailToTicket(selectedEmail.id, ticket.ticket_number);
+
+      // Toast notification
+      toast.success(`Support Ticket ${ticket.ticket_number} created successfully.`);
+
+      // Navigate to the new ticket
+      if (onTicketCreated) onTicketCreated(ticket.id);
+    } catch (err) {
+      toast.error("Failed to create ticket. Please try again.");
+    } finally {
+      setConverting(false);
+    }
+  }
+
+  function handleViewLinkedTicket() {
+    if (!selectedEmail) return;
+    const ticketNumber = getLinkedTicket(selectedEmail.id);
+    if (ticketNumber && onTicketCreated) {
+      onTicketCreated(ticketNumber);
+    }
   }
 
   function formatTime(dateStr) {
@@ -130,6 +170,9 @@ export default function EmailInbox() {
     }
     return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
   }
+
+  // Check if current email has a linked ticket
+  const linkedTicket = selectedEmail ? getLinkedTicket(selectedEmail.id) : null;
 
   // ─── Render ─────────────────────────────────────────────────
 
@@ -186,46 +229,58 @@ export default function EmailInbox() {
               <Typography variant="body2" color="text.secondary">No emails in this folder.</Typography>
             </Box>
           ) : (
-            emails.map((email) => (
-              <Box
-                key={email.id}
-                onClick={() => handleSelectEmail(email)}
-                sx={{
-                  px: 2, py: 1.5, cursor: "pointer",
-                  bgcolor: selectedEmail?.id === email.id ? `${semantic.info}08` : email.is_read ? "transparent" : `${semantic.info}04`,
-                  borderBottom: `1px solid ${semantic.border}`,
-                  transition: transitions.fast,
-                  "&:hover": { bgcolor: `${semantic.info}06` },
-                }}
-              >
-                <Stack direction="row" spacing={1} alignItems="flex-start">
-                  {!email.is_read && <Circle sx={{ fontSize: 8, color: semantic.info, mt: 0.8, flexShrink: 0 }} />}
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography sx={{ fontSize: "0.8rem", fontWeight: email.is_read ? 500 : 700, color: semantic.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {email.from_name || email.from_address}
+            emails.map((email) => {
+              const emailLinked = getLinkedTicket(email.id);
+              return (
+                <Box
+                  key={email.id}
+                  onClick={() => handleSelectEmail(email)}
+                  sx={{
+                    px: 2, py: 1.5, cursor: "pointer",
+                    bgcolor: selectedEmail?.id === email.id ? `${semantic.info}08` : email.is_read ? "transparent" : `${semantic.info}04`,
+                    borderBottom: `1px solid ${semantic.border}`,
+                    transition: transitions.fast,
+                    "&:hover": { bgcolor: `${semantic.info}06` },
+                  }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="flex-start">
+                    {!email.is_read && <Circle sx={{ fontSize: 8, color: semantic.info, mt: 0.8, flexShrink: 0 }} />}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography sx={{ fontSize: "0.8rem", fontWeight: email.is_read ? 500 : 700, color: semantic.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {email.from_name || email.from_address}
+                        </Typography>
+                        <Typography sx={{ fontSize: "0.65rem", color: semantic.textTertiary, flexShrink: 0, ml: 1 }}>
+                          {formatTime(email.received_at)}
+                        </Typography>
+                      </Stack>
+                      <Typography sx={{ fontSize: "0.75rem", fontWeight: email.is_read ? 400 : 600, color: semantic.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", mt: 0.25 }}>
+                        {email.subject}
                       </Typography>
-                      <Typography sx={{ fontSize: "0.65rem", color: semantic.textTertiary, flexShrink: 0, ml: 1 }}>
-                        {formatTime(email.received_at)}
-                      </Typography>
-                    </Stack>
-                    <Typography sx={{ fontSize: "0.75rem", fontWeight: email.is_read ? 400 : 600, color: semantic.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", mt: 0.25 }}>
-                      {email.subject}
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
-                      <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                        {email.body_text?.slice(0, 80)}...
-                      </Typography>
-                      {email.has_attachments && <AttachFile sx={{ fontSize: 12, color: semantic.textTertiary }} />}
-                      {email.priority !== "normal" && <Circle sx={{ fontSize: 6, color: PRIORITY_COLORS[email.priority] }} />}
-                    </Stack>
-                  </Box>
-                  <IconButton size="small" onClick={(e) => handleStar(e, email)} sx={{ mt: -0.5 }}>
-                    {email.is_starred ? <Star sx={{ fontSize: 16, color: "#F59E0B" }} /> : <StarBorder sx={{ fontSize: 16, color: semantic.textTertiary }} />}
-                  </IconButton>
-                </Stack>
-              </Box>
-            ))
+                      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                        {emailLinked ? (
+                          <Chip
+                            label={`Ticket ${emailLinked}`}
+                            size="small"
+                            icon={<ConfirmationNumber sx={{ fontSize: 10 }} />}
+                            sx={{ height: 16, fontSize: "0.55rem", fontWeight: 600, bgcolor: `${semantic.success}12`, color: semantic.success }}
+                          />
+                        ) : (
+                          <Typography sx={{ fontSize: "0.68rem", color: semantic.textTertiary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                            {email.body_text?.slice(0, 80)}...
+                          </Typography>
+                        )}
+                        {email.has_attachments && <AttachFile sx={{ fontSize: 12, color: semantic.textTertiary }} />}
+                        {email.priority !== "normal" && <Circle sx={{ fontSize: 6, color: PRIORITY_COLORS[email.priority] }} />}
+                      </Stack>
+                    </Box>
+                    <IconButton size="small" onClick={(e) => handleStar(e, email)} sx={{ mt: -0.5 }}>
+                      {email.is_starred ? <Star sx={{ fontSize: 16, color: "#F59E0B" }} /> : <StarBorder sx={{ fontSize: 16, color: semantic.textTertiary }} />}
+                    </IconButton>
+                  </Stack>
+                </Box>
+              );
+            })
           )}
         </Box>
       </Box>
@@ -247,16 +302,44 @@ export default function EmailInbox() {
               <Tooltip title="Delete"><IconButton size="small" onClick={handleDelete}><Delete sx={{ fontSize: 18, color: semantic.error }} /></IconButton></Tooltip>
               <Tooltip title="Mark Unread"><IconButton size="small" onClick={handleMarkUnread}><MarkEmailUnread sx={{ fontSize: 18 }} /></IconButton></Tooltip>
               <Box sx={{ flex: 1 }} />
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<ConfirmationNumber sx={{ fontSize: 14 }} />}
-                onClick={handleConvertToTicket}
-                sx={{ textTransform: "none", fontSize: "0.72rem", fontWeight: 600, borderRadius: radius.sm }}
-              >
-                Convert to Ticket
-              </Button>
+
+              {/* Convert to Ticket OR View Linked Ticket */}
+              {linkedTicket ? (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  startIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+                  onClick={handleViewLinkedTicket}
+                  sx={{ textTransform: "none", fontSize: "0.72rem", fontWeight: 600, borderRadius: radius.sm }}
+                >
+                  View Ticket {linkedTicket}
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<ConfirmationNumber sx={{ fontSize: 14 }} />}
+                  onClick={handleConvertToTicket}
+                  disabled={converting}
+                  sx={{ textTransform: "none", fontSize: "0.72rem", fontWeight: 600, borderRadius: radius.sm }}
+                >
+                  {converting ? "Creating..." : "Convert to Ticket"}
+                </Button>
+              )}
             </Stack>
+
+            {/* Converted Badge */}
+            {linkedTicket && (
+              <Box sx={{ px: 3, py: 1, bgcolor: `${semantic.success}08`, borderBottom: `1px solid ${semantic.success}20` }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <ConfirmationNumber sx={{ fontSize: 14, color: semantic.success }} />
+                  <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: semantic.success }}>
+                    Converted to Ticket {linkedTicket}
+                  </Typography>
+                </Stack>
+              </Box>
+            )}
 
             {/* Email Content */}
             <Box sx={{ flex: 1, overflowY: "auto", p: 3 }}>

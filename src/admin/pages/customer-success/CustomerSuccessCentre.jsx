@@ -4,10 +4,12 @@
  * Version 1.0
  *
  * Container page with Email Inbox and Support Tickets modules.
+ * Coordinates cross-module navigation (e.g. Convert to Ticket
+ * switches to Tickets tab and opens the new ticket).
  * ============================================================
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Box, Typography, Stack, Tab, Tabs, Chip } from "@mui/material";
 import { Email, ConfirmationNumber } from "@mui/icons-material";
 import { semantic } from "../../../shared/design/tokens";
@@ -16,6 +18,23 @@ import SupportTickets from "./SupportTickets";
 
 export default function CustomerSuccessCentre() {
   const [activeTab, setActiveTab] = useState(0);
+  const [openTicketId, setOpenTicketId] = useState(null);
+
+  /**
+   * Called by EmailInbox after converting an email to a ticket.
+   * Switches to Support Tickets tab and auto-opens the new ticket.
+   */
+  const handleTicketCreated = useCallback((ticketId) => {
+    setOpenTicketId(ticketId);
+    setActiveTab(1);
+  }, []);
+
+  /**
+   * Called by SupportTickets once it has consumed the openTicketId.
+   */
+  const handleTicketOpened = useCallback(() => {
+    setOpenTicketId(null);
+  }, []);
 
   return (
     <Stack spacing={2.5}>
@@ -55,8 +74,8 @@ export default function CustomerSuccessCentre() {
 
       {/* Content */}
       <Box>
-        {activeTab === 0 && <EmailInbox />}
-        {activeTab === 1 && <SupportTickets />}
+        {activeTab === 0 && <EmailInbox onTicketCreated={handleTicketCreated} />}
+        {activeTab === 1 && <SupportTickets openTicketId={openTicketId} onTicketOpened={handleTicketOpened} />}
       </Box>
     </Stack>
   );

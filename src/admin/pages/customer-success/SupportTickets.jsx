@@ -54,7 +54,7 @@ const TIMELINE_ICONS = {
 
 // ─── Support Tickets Page ───────────────────────────────────
 
-export default function SupportTickets() {
+export default function SupportTickets({ openTicketId, onTicketOpened }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [tickets, setTickets] = useState([]);
   const [counts, setCounts] = useState({});
@@ -84,6 +84,17 @@ export default function SupportTickets() {
   }, [statusFilter, search]);
 
   useEffect(() => { loadTickets(); }, [loadTickets]);
+
+  // Auto-open ticket when navigated from Email Inbox (Convert to Ticket)
+  useEffect(() => {
+    if (!openTicketId || loading) return;
+    // Find ticket by id or ticket_number
+    const ticket = tickets.find((t) => t.id === openTicketId || t.ticket_number === openTicketId);
+    if (ticket) {
+      handleSelectTicket(ticket);
+      if (onTicketOpened) onTicketOpened();
+    }
+  }, [openTicketId, loading, tickets]);
 
   async function handleSelectTicket(ticket) {
     setSelectedTicket(ticket);
