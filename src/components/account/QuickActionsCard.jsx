@@ -14,37 +14,46 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
+import { useNavigate } from "react-router-dom";
+
 export default function QuickActionsCard() {
+  const navigate = useNavigate();
+
   const actions = [
     {
       title: "Add Animal",
       subtitle: "Register new livestock",
       icon: <PetsIcon />,
       color: "#4CAF50",
+      path: "/livestock",
     },
     {
       title: "Add Crop",
       subtitle: "Create crop record",
       icon: <AgricultureIcon />,
       color: "#2196F3",
+      path: "/crops",
     },
     {
       title: "Add Machine",
       subtitle: "Register machinery",
       icon: <PrecisionManufacturingIcon />,
       color: "#FF9800",
+      path: "/machinery",
     },
     {
       title: "Create Task",
       subtitle: "Planner workspace",
       icon: <AssignmentIcon />,
       color: "#9C27B0",
+      path: "/planner",
     },
     {
       title: "Generate Report",
       subtitle: "Open Reports Centre",
       icon: <AssessmentIcon />,
       color: "#009688",
+      path: "/reports",
     },
   ];
 
@@ -76,6 +85,7 @@ export default function QuickActionsCard() {
           {actions.map((action) => (
             <Box
               key={action.title}
+              onClick={() => navigate(action.path)}
               sx={{
                 border: "1px solid",
                 borderColor: "divider",

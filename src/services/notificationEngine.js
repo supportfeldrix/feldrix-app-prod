@@ -66,6 +66,7 @@ function sortNotifications(notifications) {
 
 /**
  * Generates all notifications from the supplied farm data.
+ * Filters out dismissed notifications and marks previously read ones.
  *
  * @param {object} data - Farm data context (planner, livestock, crops, machinery, finance, weather)
  * @returns {Array} Sorted array of notification objects
@@ -85,7 +86,18 @@ export function getNotifications(data = {}) {
     // Deduplicate by id
     const deduplicated = deduplicateById(notifications);
 
-    return sortNotifications(deduplicated);
+    // Filter out dismissed notifications
+    const dismissedIds = getDismissedIds();
+    const readIds = getReadIds();
+
+    const active = deduplicated
+      .filter((n) => !n.id || !dismissedIds.has(n.id))
+      .map((n) => ({
+        ...n,
+        read: n.read || (n.id ? readIds.has(n.id) : false),
+      }));
+
+    return sortNotifications(active);
   } catch {
     return [];
   }
@@ -123,26 +135,67 @@ export function getCriticalNotifications(data = {}) {
 
 /**
  * Marks a notification as read by ID.
+ * Persists the read state in localStorage so it survives page refreshes.
  *
  * @param {string} id - Notification ID to mark as read
  * @returns {boolean} Success status
  */
 export function markAsRead(id) {
-  // TODO: Persist read state to local storage or database
-  // TODO: Update in-memory notification state
-  // TODO: Emit event for UI components to re-render
-  return true;
+  if (!id) return false;
+  try {
+    const key = "fhp_read_notifications";
+    const stored = JSON.parse(localStorage.getItem(key) || "[]");
+    if (!stored.includes(id)) {
+      stored.push(id);
+      localStorage.setItem(key, JSON.stringify(stored));
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Removes a notification from the active list by ID.
+ * Persists the dismissed state in localStorage so the notification
+ * will not reappear on page refresh.
  *
- * @param {string} id - Notification ID to clear
+ * @param {string} id - Notification ID to clear/dismiss
  * @returns {boolean} Success status
  */
 export function clearNotification(id) {
-  // TODO: Remove from active notification list
-  // TODO: Persist cleared state to prevent re-generation
-  // TODO: Emit event for UI components to re-render
-  return true;
+  if (!id) return false;
+  try {
+    const key = "fhp_dismissed_notifications";
+    const stored = JSON.parse(localStorage.getItem(key) || "[]");
+    if (!stored.includes(id)) {
+      stored.push(id);
+      localStorage.setItem(key, JSON.stringify(stored));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Returns the set of dismissed notification IDs from localStorage.
+ */
+export function getDismissedIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem("fhp_dismissed_notifications") || "[]"));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Returns the set of read notification IDs from localStorage.
+ */
+export function getReadIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem("fhp_read_notifications") || "[]"));
+  } catch {
+    return new Set();
+  }
 }

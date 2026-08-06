@@ -32,7 +32,7 @@ import { generateAIInsights } from "../utils/aiInsights";
 import { generateFarmTimeline } from "../utils/farmTimeline";
 import { generateActionCenter } from "../utils/actionCenter";
 import { getFarmInsights } from "../services/intelligence";
-import { getNotifications as getEngineNotifications } from "../services/notificationEngine";
+import { getNotifications as getEngineNotifications, markAsRead, clearNotification } from "../services/notificationEngine";
 import { getSmartDashboardCards } from "../services/dashboard/smartCards";
 import { getDailyFarmBriefing } from "../services/dashboard/dailyBriefing";
 import { useNotificationBadge } from "../context/NotificationContext";
@@ -307,8 +307,15 @@ export default function Dashboard() {
           <NotificationCenter
             notifications={engineNotifications}
             onNotificationClick={(n) => navigate(n.route || "/dashboard")}
-            onMarkAsRead={() => {}}
-            onClear={() => {}}
+            onMarkAsRead={(n) => {
+              markAsRead(n.id);
+              setUnreadCount((prev) => Math.max(0, prev - 1));
+            }}
+            onClear={(n) => {
+              clearNotification(n.id);
+              setEngineNotifications((prev) => prev.filter((x) => x.id !== n.id));
+              if (!n.read) setUnreadCount((prev) => Math.max(0, prev - 1));
+            }}
           />
         </PremiumDashboardSection>
 

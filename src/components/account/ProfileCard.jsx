@@ -18,11 +18,13 @@ import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import EditIcon from "@mui/icons-material/Edit";
 
 import { createProfile } from "../../services/profileService";
+import EditProfileDialog from "./EditProfileDialog";
 
 export default function ProfileCard() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -162,6 +164,7 @@ export default function ProfileCard() {
               variant="contained"
               color="inherit"
               startIcon={<EditIcon />}
+              onClick={() => setEditOpen(true)}
               sx={{
                 color: "primary.main",
                 fontWeight: 700,
@@ -231,6 +234,12 @@ export default function ProfileCard() {
           </Box>
         </Stack>
       </CardContent>
+
+      <EditProfileDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSaved={loadProfile}
+      />
     </Card>
   );
 }
