@@ -63,11 +63,13 @@ export default function Account() {
           <Grid size={{ xs: 12, lg: 6 }}>
             <ContactSupportCard />
           </Grid>
+
+          <Grid size={{ xs: 12, lg: 6 }}>
+            <MySupportTickets />
+          </Grid>
         </Grid>
 
         {/* Email Notification Preferences — full width */}
-        <MySupportTickets />
-
         <EmailNotificationPreferences />
 
         {/* Getting Started — onboarding trigger */}

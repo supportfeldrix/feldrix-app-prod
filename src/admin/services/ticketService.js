@@ -249,8 +249,31 @@ export async function getTickets({ status = null, search = "" } = {}) {
 
 /**
  * Get ticket by ID.
+ * Checks Supabase first, falls back to mock.
  */
 export async function getTicketById(id) {
+  try {
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (!error && data) {
+      return {
+        ...data,
+        customer_name: data.customer_name || "Unknown",
+        customer_email: data.customer_email || "",
+        farm_name: data.farm_name || "",
+        source: data.source || "farmer_app",
+        category: data.category || null,
+        tags: data.tags || [],
+      };
+    }
+  } catch {
+    // Fall through to mock
+  }
+
   return MOCK_TICKETS.find((t) => t.id === id) || null;
 }
 
@@ -356,14 +379,43 @@ export async function addTicketNote(ticketId, content) {
 
 /**
  * Update ticket status.
+ * Writes to Supabase for real tickets, falls back to mock for demo.
  */
 export async function updateTicketStatus(ticketId, newStatus) {
+  // Try Supabase first
+  try {
+    const updates = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    };
+    if (newStatus === "resolved") updates.resolved_at = new Date().toISOString();
+    if (newStatus === "closed") updates.closed_at = new Date().toISOString();
+    // Reopen clears resolved/closed timestamps
+    if (newStatus === "open") {
+      updates.resolved_at = null;
+      updates.closed_at = null;
+    }
+
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .update(updates)
+      .eq("id", ticketId)
+      .select()
+      .single();
+
+    if (!error && data) return data;
+  } catch {
+    // Fall through to mock
+  }
+
+  // Fallback: mock data
   const ticket = MOCK_TICKETS.find((t) => t.id === ticketId);
   if (ticket) {
     ticket.status = newStatus;
     ticket.updated_at = new Date().toISOString();
     if (newStatus === "resolved") ticket.resolved_at = new Date().toISOString();
     if (newStatus === "closed") ticket.closed_at = new Date().toISOString();
+    if (newStatus === "open") { ticket.resolved_at = null; ticket.closed_at = null; }
   }
   return ticket;
 }

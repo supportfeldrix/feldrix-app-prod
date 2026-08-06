@@ -113,9 +113,10 @@ export default function MySupportTickets() {
   if (selectedTicket) {
     const status = STATUS_CONFIG[selectedTicket.status] || STATUS_CONFIG.open;
     const canReply = selectedTicket.status !== "closed";
+    const isResolved = selectedTicket.status === "resolved";
 
     return (
-      <Card elevation={2} sx={{ borderRadius: 3 }}>
+      <Card elevation={2} sx={{ borderRadius: 3, height: "100%" }}>
         <CardContent sx={{ p: 0 }}>
           {/* Header */}
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider" }}>
@@ -174,6 +175,15 @@ export default function MySupportTickets() {
             )}
           </Box>
 
+          {/* Resolved Notice */}
+          {isResolved && (
+            <Box sx={{ px: 3, py: 1.5, bgcolor: "success.50", borderTop: "1px solid", borderColor: "success.100" }}>
+              <Typography variant="body2" color="success.dark" sx={{ textAlign: "center", fontSize: "0.8rem" }}>
+                This ticket has been resolved. If you need further assistance, reply below to reopen the conversation.
+              </Typography>
+            </Box>
+          )}
+
           {/* Reply Input */}
           {canReply && (
             <Box sx={{ px: 3, py: 2, borderTop: "1px solid", borderColor: "divider" }}>
@@ -216,7 +226,7 @@ export default function MySupportTickets() {
   // ─── Ticket List View ─────────────────────────────────────
 
   return (
-    <Card elevation={2} sx={{ borderRadius: 3 }}>
+    <Card elevation={2} sx={{ borderRadius: 3, height: "100%" }}>
       <CardContent sx={{ p: 3 }}>
         {/* Header */}
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>

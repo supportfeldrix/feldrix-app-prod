@@ -16,8 +16,9 @@ import {
 import {
   Search, ArrowBack, Send, Edit, Close, Flag,
   PersonAdd, CheckCircle, Schedule, Circle, AccessTime,
-  StickyNote2, Timeline as TimelineIcon, ChatBubble,
+  StickyNote2, Timeline as TimelineIcon, ChatBubble, Replay,
 } from "@mui/icons-material";
+import toast from "react-hot-toast";
 import { semantic, radius, shadows, transitions } from "../../../shared/design/tokens";
 import { getTickets, getTicketById, getTicketMessages, getTicketNotes, getTicketCounts, addTicketReply, addTicketNote, updateTicketStatus, updateTicketPriority } from "../../services/ticketService";
 import { getCustomerContext, getCustomerTimeline } from "../../services/supportService";
@@ -141,6 +142,9 @@ export default function SupportTickets({ openTicketId, onTicketOpened }) {
     const updated = await getTicketById(selectedTicket.id);
     setSelectedTicket(updated);
     loadTickets();
+
+    const labels = { resolved: "Ticket resolved successfully.", closed: "Ticket closed successfully.", open: "Ticket reopened." };
+    toast.success(labels[newStatus] || `Status changed to ${newStatus}.`);
   }
 
   async function handlePriorityChange(priority) {
@@ -262,14 +266,25 @@ export default function SupportTickets({ openTicketId, onTicketOpened }) {
                 <Chip label={selectedTicket.status.replace("_", " ")} size="small" sx={{ height: 20, fontSize: "0.6rem", fontWeight: 600, bgcolor: STATUS_COLORS[selectedTicket.status]?.bg, color: STATUS_COLORS[selectedTicket.status]?.text }} />
                 <Chip label={selectedTicket.priority} size="small" sx={{ height: 20, fontSize: "0.6rem", fontWeight: 600, bgcolor: `${PRIORITY_COLORS[selectedTicket.priority]}15`, color: PRIORITY_COLORS[selectedTicket.priority] }} />
                 <Box sx={{ flex: 1 }} />
+                {/* Status Action Buttons */}
                 {selectedTicket.status !== "resolved" && selectedTicket.status !== "closed" && (
                   <Button size="small" variant="outlined" color="success" startIcon={<CheckCircle sx={{ fontSize: 14 }} />} onClick={() => handleStatusChange("resolved")} sx={{ textTransform: "none", fontSize: "0.7rem", fontWeight: 600, borderRadius: radius.sm }}>
                     Resolve
                   </Button>
                 )}
                 {selectedTicket.status === "resolved" && (
-                  <Button size="small" variant="outlined" startIcon={<Close sx={{ fontSize: 14 }} />} onClick={() => handleStatusChange("closed")} sx={{ textTransform: "none", fontSize: "0.7rem", fontWeight: 600, borderRadius: radius.sm }}>
-                    Close
+                  <Stack direction="row" spacing={0.75}>
+                    <Button size="small" variant="outlined" startIcon={<Replay sx={{ fontSize: 14 }} />} onClick={() => handleStatusChange("open")} sx={{ textTransform: "none", fontSize: "0.7rem", fontWeight: 600, borderRadius: radius.sm }}>
+                      Reopen
+                    </Button>
+                    <Button size="small" variant="outlined" color="error" startIcon={<Close sx={{ fontSize: 14 }} />} onClick={() => handleStatusChange("closed")} sx={{ textTransform: "none", fontSize: "0.7rem", fontWeight: 600, borderRadius: radius.sm }}>
+                      Close
+                    </Button>
+                  </Stack>
+                )}
+                {selectedTicket.status === "closed" && (
+                  <Button size="small" variant="outlined" startIcon={<Replay sx={{ fontSize: 14 }} />} onClick={() => handleStatusChange("open")} sx={{ textTransform: "none", fontSize: "0.7rem", fontWeight: 600, borderRadius: radius.sm }}>
+                    Reopen
                   </Button>
                 )}
               </Stack>
