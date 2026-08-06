@@ -205,3 +205,48 @@ export async function getSupportMetrics() {
     pendingAssignment: 2,
   };
 }
+
+
+// ─── Customer Matching by Email ─────────────────────────────
+
+import { supabase } from "../../supabaseClient";
+
+/**
+ * Match a customer by their email address.
+ * Looks up the profiles table in Supabase.
+ * Returns context data or null if no match.
+ */
+export async function matchCustomerByEmail(email) {
+  if (!email) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, email, farm_name, province, created_at, weather_location")
+      .eq("email", email)
+      .single();
+
+    if (error || !data) return null;
+
+    // Build a context object similar to mock data
+    return {
+      id: data.id,
+      full_name: data.full_name || email.split("@")[0],
+      email: data.email,
+      farm_name: data.farm_name || "—",
+      province: data.province || "—",
+      subscription: "—",
+      subscription_status: "—",
+      member_since: data.created_at,
+      last_login: null,
+      weather_location: data.weather_location || "—",
+      livestock_count: "—",
+      crop_count: "—",
+      planner_tasks: "—",
+      finance_records: "—",
+      health_score: "—",
+    };
+  } catch {
+    return null;
+  }
+}

@@ -23,13 +23,13 @@ import {
 import {
   Inbox, MarkEmailUnread, Send, Archive, Delete, Search,
   Star, StarBorder, Reply, ReplyAll, Forward, ConfirmationNumber,
-  MarkEmailRead, AttachFile, ArrowBack, Circle, OpenInNew,
+  MarkEmailRead, AttachFile, ArrowBack, Circle, OpenInNew, Refresh,
 } from "@mui/icons-material";
 import toast from "react-hot-toast";
 import { semantic, radius, shadows, transitions } from "../../../shared/design/tokens";
-import { getEmails, getEmailCounts, markEmailRead, moveEmail, toggleStarEmail, linkEmailToTicket, getLinkedTicket } from "../../services/emailService";
+import { getEmails, getEmailCounts, markEmailRead, moveEmail, toggleStarEmail, linkEmailToTicket, getLinkedTicket, syncMailbox, sendEmailReply, getSentReplies } from "../../services/emailService";
 import { createTicket } from "../../services/ticketService";
-import { getCustomerContext } from "../../services/supportService";
+import { getCustomerContext, matchCustomerByEmail } from "../../services/supportService";
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -54,6 +54,12 @@ export default function EmailInbox({ onTicketCreated }) {
   const [loading, setLoading] = useState(true);
   const [customerCtx, setCustomerCtx] = useState(null);
   const [converting, setConverting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState("");
+  const [showReply, setShowReply] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sentReplies, setSentReplies] = useState([]);
 
   const loadEmails = useCallback(async () => {
     setLoading(true);
@@ -72,14 +78,64 @@ export default function EmailInbox({ onTicketCreated }) {
 
   useEffect(() => { loadEmails(); }, [loadEmails]);
 
+  async function handleSync() {
+    setSyncing(true);
+    setSyncError("");
+    try {
+      await syncMailbox();
+      toast.success("Mailbox synchronized successfully.");
+      await loadEmails();
+    } catch (err) {
+      const msg = err?.message || "Unable to connect to the support mailbox.";
+      setSyncError(msg);
+      toast.error(msg);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleSendReply() {
+    if (!replyText.trim() || !selectedEmail) return;
+    setSending(true);
+    try {
+      const subject = selectedEmail.subject.startsWith("Re:") ? selectedEmail.subject : `Re: ${selectedEmail.subject}`;
+      const sent = await sendEmailReply({
+        to: selectedEmail.from_address,
+        subject,
+        text: replyText.trim(),
+        in_reply_to: selectedEmail.message_id || null,
+        references: selectedEmail.message_id || null,
+        original_email_id: selectedEmail.id,
+      });
+      toast.success("Reply sent successfully.");
+      setReplyText("");
+      setShowReply(false);
+      // Append to local conversation immediately
+      setSentReplies((prev) => [...prev, sent]);
+    } catch (err) {
+      toast.error(err?.message || "Unable to send email. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function handleSelectEmail(email) {
     setSelectedEmail(email);
+    setShowReply(false);
+    setReplyText("");
     if (!email.is_read) {
       await markEmailRead(email.id, true);
       loadEmails();
     }
+    // Load sent replies for conversation display
+    const replies = await getSentReplies(email.id);
+    setSentReplies(replies);
+    // Customer matching: try customer_id first, then match by sender email
     if (email.customer_id) {
       const ctx = await getCustomerContext(email.customer_id);
+      setCustomerCtx(ctx);
+    } else if (email.from_address) {
+      const ctx = await matchCustomerByEmail(email.from_address);
       setCustomerCtx(ctx);
     } else {
       setCustomerCtx(null);
@@ -199,6 +255,19 @@ export default function EmailInbox({ onTicketCreated }) {
             </ListItemButton>
           ))}
         </List>
+        <Box sx={{ px: 2, mt: 2 }}>
+          <Button
+            fullWidth
+            size="small"
+            variant="outlined"
+            startIcon={<Refresh sx={{ fontSize: 14 }} />}
+            onClick={handleSync}
+            disabled={syncing}
+            sx={{ textTransform: "none", fontSize: "0.72rem", fontWeight: 600, borderRadius: radius.sm }}
+          >
+            {syncing ? "Syncing..." : "Sync Now"}
+          </Button>
+        </Box>
       </Box>
 
       {/* Email List */}
@@ -226,7 +295,24 @@ export default function EmailInbox({ onTicketCreated }) {
             </Stack>
           ) : emails.length === 0 ? (
             <Box sx={{ py: 6, textAlign: "center" }}>
-              <Typography variant="body2" color="text.secondary">No emails in this folder.</Typography>
+              {syncError ? (
+                <>
+                  <Typography variant="body2" color="error.main" fontWeight={600} sx={{ mb: 1 }}>
+                    {syncError}
+                  </Typography>
+                  <Button size="small" variant="outlined" startIcon={<Refresh sx={{ fontSize: 14 }} />} onClick={handleSync} disabled={syncing} sx={{ textTransform: "none", fontSize: "0.72rem" }}>
+                    Retry
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Inbox sx={{ fontSize: 32, color: semantic.textDisabled, mb: 1 }} />
+                  <Typography variant="body2" color="text.secondary">No emails have been received yet.</Typography>
+                  <Button size="small" sx={{ mt: 1, textTransform: "none", fontSize: "0.72rem" }} onClick={handleSync} disabled={syncing} startIcon={<Refresh sx={{ fontSize: 14 }} />}>
+                    Sync Mailbox
+                  </Button>
+                </>
+              )}
             </Box>
           ) : (
             emails.map((email) => {
@@ -294,9 +380,9 @@ export default function EmailInbox({ onTicketCreated }) {
               <IconButton size="small" onClick={() => setSelectedEmail(null)} sx={{ display: { md: "none" } }}>
                 <ArrowBack sx={{ fontSize: 18 }} />
               </IconButton>
-              <Tooltip title="Reply"><IconButton size="small"><Reply sx={{ fontSize: 18 }} /></IconButton></Tooltip>
-              <Tooltip title="Reply All"><IconButton size="small"><ReplyAll sx={{ fontSize: 18 }} /></IconButton></Tooltip>
-              <Tooltip title="Forward"><IconButton size="small"><Forward sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+              <Tooltip title="Reply"><IconButton size="small" onClick={() => setShowReply(!showReply)}><Reply sx={{ fontSize: 18, color: showReply ? semantic.info : undefined }} /></IconButton></Tooltip>
+              <Tooltip title="Reply All (coming soon)"><span><IconButton size="small" disabled><ReplyAll sx={{ fontSize: 18 }} /></IconButton></span></Tooltip>
+              <Tooltip title="Forward (coming soon)"><span><IconButton size="small" disabled><Forward sx={{ fontSize: 18 }} /></IconButton></span></Tooltip>
               <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
               <Tooltip title="Archive"><IconButton size="small" onClick={handleArchive}><Archive sx={{ fontSize: 18 }} /></IconButton></Tooltip>
               <Tooltip title="Delete"><IconButton size="small" onClick={handleDelete}><Delete sx={{ fontSize: 18, color: semantic.error }} /></IconButton></Tooltip>
@@ -373,6 +459,77 @@ export default function EmailInbox({ onTicketCreated }) {
                   {selectedEmail.body_text}
                 </Typography>
               </Paper>
+
+              {/* Sent Replies — Conversation Thread */}
+              {sentReplies.length > 0 && (
+                <Stack spacing={2} sx={{ mt: 3 }}>
+                  <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: semantic.textTertiary }}>
+                    Replies ({sentReplies.length})
+                  </Typography>
+                  {sentReplies.map((reply) => (
+                    <Paper key={reply.id} elevation={0} sx={{ p: 2.5, borderRadius: radius.md, bgcolor: `${semantic.info}06`, border: `1px solid ${semantic.info}20` }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <Avatar sx={{ width: 24, height: 24, bgcolor: semantic.info, fontSize: "0.6rem", fontWeight: 700 }}>F</Avatar>
+                        <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: semantic.info }}>Feldrix Support</Typography>
+                        <Typography sx={{ fontSize: "0.6rem", color: semantic.textTertiary }}>{reply.sent_at ? new Date(reply.sent_at).toLocaleString("en-ZA") : "Pending..."}</Typography>
+                        <Chip label={reply.status === "sent" ? "Sent" : reply.status === "failed" ? "Failed" : "Sending..."} size="small" sx={{ height: 16, fontSize: "0.5rem", fontWeight: 600, bgcolor: reply.status === "sent" ? `${semantic.success}12` : reply.status === "failed" ? `${semantic.error}12` : `${semantic.warning}12`, color: reply.status === "sent" ? semantic.success : reply.status === "failed" ? semantic.error : semantic.warning }} />
+                      </Stack>
+                      <Typography sx={{ fontSize: "0.82rem", color: semantic.text, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                        {reply.body}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+
+              {/* Reply Composer */}
+              {showReply && (
+                <Paper elevation={0} sx={{ mt: 3, p: 2.5, borderRadius: radius.md, border: `1px solid ${semantic.info}40`, bgcolor: `${semantic.info}04` }}>
+                  <Stack spacing={2}>
+                    <Stack direction="row" spacing={2}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, color: semantic.textTertiary, mb: 0.5 }}>From</Typography>
+                        <Typography sx={{ fontSize: "0.78rem", color: semantic.text }}>support@feldrix.com</Typography>
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, color: semantic.textTertiary, mb: 0.5 }}>To</Typography>
+                        <Typography sx={{ fontSize: "0.78rem", color: semantic.text }}>{selectedEmail.from_address}</Typography>
+                      </Box>
+                    </Stack>
+                    <Box>
+                      <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, color: semantic.textTertiary, mb: 0.5 }}>Subject</Typography>
+                      <Typography sx={{ fontSize: "0.78rem", color: semantic.text }}>
+                        {selectedEmail.subject.startsWith("Re:") ? selectedEmail.subject : `Re: ${selectedEmail.subject}`}
+                      </Typography>
+                    </Box>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={5}
+                      placeholder="Type your reply..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      size="small"
+                      InputProps={{ sx: { fontSize: "0.82rem", borderRadius: radius.sm } }}
+                    />
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button size="small" onClick={() => { setShowReply(false); }} sx={{ textTransform: "none", fontSize: "0.72rem" }}>
+                        Cancel
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<Send sx={{ fontSize: 14 }} />}
+                        onClick={handleSendReply}
+                        disabled={!replyText.trim() || sending}
+                        sx={{ textTransform: "none", fontSize: "0.72rem", fontWeight: 600, borderRadius: radius.sm }}
+                      >
+                        {sending ? "Sending..." : "Send Reply"}
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </Paper>
+              )}
 
               {/* Customer Context (if available) */}
               {customerCtx && (

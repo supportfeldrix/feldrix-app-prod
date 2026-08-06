@@ -1,225 +1,176 @@
 /**
  * ============================================================
  * Feldrix Customer Success Centre — Email Service
- * Version 1.0
+ * Version 2.0
  *
- * Provider-agnostic email service.
- * Uses mock data for v1.0 — prepared for future integration with:
- *   - Microsoft 365 (Graph API)
- *   - Google Workspace (Gmail API)
- *   - IMAP/SMTP
- *   - Exchange Online
+ * Reads emails from the imported_emails table (populated by
+ * the email-sync Edge Function via IMAP).
  *
- * Changing providers should not require UI changes.
+ * Provider-agnostic — the Edge Function handles IMAP specifics.
+ * This service only reads from Supabase.
  * ============================================================
  */
 
-// ─── Mock Data ──────────────────────────────────────────────
+import { supabase } from "../../supabaseClient";
 
-const MOCK_EMAILS = [
-  {
-    id: "em-001",
-    from_address: "jan.vandermerwe@gmail.com",
-    from_name: "Jan van der Merwe",
-    to_address: "support@feldrix.com",
-    subject: "Cannot add more than 50 animals",
-    body_text: "Hi Feldrix Support,\n\nI'm on the Pro plan but getting an error when I try to add my 51st animal. The system says I've reached my limit. Can you please look into this?\n\nThanks,\nJan\n\nFarm: Bosveld Boerdery\nProvince: Limpopo",
-    body_html: null,
-    folder: "inbox",
-    is_read: false,
-    is_starred: true,
-    priority: "high",
-    has_attachments: false,
-    received_at: "2026-08-06T08:15:00Z",
-    customer_id: "usr-001",
-  },
-  {
-    id: "em-002",
-    from_address: "maria.botha@outlook.com",
-    from_name: "Maria Botha",
-    to_address: "support@feldrix.com",
-    subject: "Weather not showing for my area",
-    body_text: "Good day,\n\nI changed my weather location to Ceres but it still shows Johannesburg weather. I've tried logging out and back in but it doesn't help.\n\nRegards,\nMaria Botha\nCeres Valley Wines",
-    body_html: null,
-    folder: "inbox",
-    is_read: false,
-    is_starred: false,
-    priority: "normal",
-    has_attachments: false,
-    received_at: "2026-08-06T07:42:00Z",
-    customer_id: "usr-002",
-  },
-  {
-    id: "em-003",
-    from_address: "pieter.du.plessis@farmmail.co.za",
-    from_name: "Pieter du Plessis",
-    to_address: "support@feldrix.com",
-    subject: "Invoice for July not received",
-    body_text: "Hi there,\n\nI haven't received my invoice for July yet. My accountant needs it for the VAT submission. Can you please send it?\n\nPieter du Plessis\nDu Plessis Dairy\nFree State",
-    body_html: null,
-    folder: "inbox",
-    is_read: true,
-    is_starred: false,
-    priority: "normal",
-    has_attachments: false,
-    received_at: "2026-08-05T16:30:00Z",
-    customer_id: "usr-003",
-  },
-  {
-    id: "em-004",
-    from_address: "thandi.nkosi@icloud.com",
-    from_name: "Thandi Nkosi",
-    to_address: "support@feldrix.com",
-    subject: "App crashes when opening Reports",
-    body_text: "Hello Feldrix team,\n\nEvery time I try to open the Reports page, I get a white screen. This has been happening since yesterday. I'm using Chrome on my laptop.\n\nPlease help, I need to generate my monthly report.\n\nThandi Nkosi\nNkosi Poultry Farm\nKwaZulu-Natal",
-    body_html: null,
-    folder: "inbox",
-    is_read: false,
-    is_starred: true,
-    priority: "urgent",
-    has_attachments: true,
-    received_at: "2026-08-06T09:05:00Z",
-    customer_id: "usr-004",
-  },
-  {
-    id: "em-005",
-    from_address: "henk.joubert@vodamail.co.za",
-    from_name: "Henk Joubert",
-    to_address: "support@feldrix.com",
-    subject: "How do I upgrade to Pro?",
-    body_text: "Hi,\n\nI'm currently on the Starter plan. How do I upgrade to Pro? I can't find the upgrade button anywhere.\n\nThanks\nHenk",
-    body_html: null,
-    folder: "inbox",
-    is_read: true,
-    is_starred: false,
-    priority: "low",
-    has_attachments: false,
-    received_at: "2026-08-05T11:20:00Z",
-    customer_id: "usr-005",
-  },
-  {
-    id: "em-006",
-    from_address: "support@feldrix.com",
-    from_name: "Feldrix Support",
-    to_address: "henk.joubert@vodamail.co.za",
-    subject: "Re: How do I upgrade to Pro?",
-    body_text: "Hi Henk,\n\nThanks for reaching out! You can upgrade by going to Account > Subscription and clicking 'Upgrade to Pro'.\n\nLet me know if you need anything else.\n\nBest regards,\nFeldrix Support Team",
-    body_html: null,
-    folder: "sent",
-    is_read: true,
-    is_starred: false,
-    priority: "normal",
-    has_attachments: false,
-    received_at: "2026-08-05T11:45:00Z",
-    customer_id: "usr-005",
-  },
-  {
-    id: "em-007",
-    from_address: "willem.pretorius@telkomsa.net",
-    from_name: "Willem Pretorius",
-    to_address: "support@feldrix.com",
-    subject: "Breeding records disappeared",
-    body_text: "My breeding records from last month are all gone. I had about 12 entries and now the page is empty. Did something happen to the database?\n\nThis is very concerning as I need those records for my stud book.\n\nWillem Pretorius\nPretorius Brahman Stud",
-    body_html: null,
-    folder: "inbox",
-    is_read: false,
-    is_starred: true,
-    priority: "urgent",
-    has_attachments: false,
-    received_at: "2026-08-06T06:30:00Z",
-    customer_id: "usr-006",
-  },
-  {
-    id: "em-008",
-    from_address: "annemarie.venter@gmail.com",
-    from_name: "Annemarie Venter",
-    to_address: "support@feldrix.com",
-    subject: "Thank you for the quick fix!",
-    body_text: "Hi team,\n\nJust wanted to say thank you for fixing the planner issue so quickly. Everything is working perfectly now.\n\nKeep up the great work!\n\nAnnemarie",
-    body_html: null,
-    folder: "archive",
-    is_read: true,
-    is_starred: false,
-    priority: "normal",
-    has_attachments: false,
-    received_at: "2026-08-04T14:10:00Z",
-    customer_id: "usr-007",
-  },
-];
-
-// ─── Public API ─────────────────────────────────────────────
+// ─── Email Sync (triggers Edge Function) ────────────────────
 
 /**
- * Get emails by folder with optional filters.
+ * Trigger the email-sync Edge Function to fetch new emails from IMAP.
  */
-export async function getEmails({ folder = "inbox", search = "", unreadOnly = false } = {}) {
-  let filtered = MOCK_EMAILS.filter((e) => e.folder === folder);
+export async function syncMailbox() {
+  const { data, error } = await supabase.functions.invoke("email-sync", {
+    method: "POST",
+  });
 
-  if (unreadOnly) {
-    filtered = filtered.filter((e) => !e.is_read);
+  if (error) {
+    throw new Error(error.message || "Mailbox sync failed.");
   }
 
+  return data;
+}
+
+// ─── Read Emails from Database ──────────────────────────────
+
+/**
+ * Get emails with optional folder filter and search.
+ */
+export async function getEmails({ folder = "inbox", search = "", unreadOnly = false } = {}) {
+  let query = supabase
+    .from("imported_emails")
+    .select("*")
+    .order("received_at", { ascending: false })
+    .limit(100);
+
+  if (folder !== "unread") {
+    query = query.eq("folder", folder);
+  }
+
+  if (unreadOnly || folder === "unread") {
+    query = query.eq("is_read", false);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Failed to load emails:", error);
+    return [];
+  }
+
+  let emails = data || [];
+
+  // Client-side search filter
   if (search.trim()) {
     const q = search.toLowerCase();
-    filtered = filtered.filter(
+    emails = emails.filter(
       (e) =>
-        e.subject.toLowerCase().includes(q) ||
-        e.from_name?.toLowerCase().includes(q) ||
-        e.from_address.toLowerCase().includes(q) ||
-        e.body_text?.toLowerCase().includes(q)
+        (e.subject || "").toLowerCase().includes(q) ||
+        (e.sender_name || "").toLowerCase().includes(q) ||
+        (e.sender_email || "").toLowerCase().includes(q) ||
+        (e.preview || "").toLowerCase().includes(q)
     );
   }
 
-  filtered.sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
-
-  return filtered;
+  return emails.map(mapEmail);
 }
 
 /**
  * Get a single email by ID.
  */
 export async function getEmailById(id) {
-  return MOCK_EMAILS.find((e) => e.id === id) || null;
+  const { data, error } = await supabase
+    .from("imported_emails")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) return null;
+  return data ? mapEmail(data) : null;
 }
 
 /**
  * Get email folder counts.
  */
 export async function getEmailCounts() {
+  const { count: inbox } = await supabase
+    .from("imported_emails")
+    .select("*", { count: "exact", head: true })
+    .eq("folder", "inbox");
+
+  const { count: unread } = await supabase
+    .from("imported_emails")
+    .select("*", { count: "exact", head: true })
+    .eq("folder", "inbox")
+    .eq("is_read", false);
+
+  const { count: sent } = await supabase
+    .from("imported_emails")
+    .select("*", { count: "exact", head: true })
+    .eq("folder", "sent");
+
+  const { count: archive } = await supabase
+    .from("imported_emails")
+    .select("*", { count: "exact", head: true })
+    .eq("folder", "archive");
+
+  const { count: trash } = await supabase
+    .from("imported_emails")
+    .select("*", { count: "exact", head: true })
+    .eq("folder", "trash");
+
   return {
-    inbox: MOCK_EMAILS.filter((e) => e.folder === "inbox").length,
-    unread: MOCK_EMAILS.filter((e) => e.folder === "inbox" && !e.is_read).length,
-    sent: MOCK_EMAILS.filter((e) => e.folder === "sent").length,
-    archive: MOCK_EMAILS.filter((e) => e.folder === "archive").length,
-    trash: MOCK_EMAILS.filter((e) => e.folder === "trash").length,
+    inbox: inbox || 0,
+    unread: unread || 0,
+    sent: sent || 0,
+    archive: archive || 0,
+    trash: trash || 0,
   };
 }
 
 /**
- * Mark email as read/unread.
+ * Mark email as read/unread (local database only — not on mail server).
  */
 export async function markEmailRead(id, isRead = true) {
-  const email = MOCK_EMAILS.find((e) => e.id === id);
-  if (email) email.is_read = isRead;
-  return email;
+  const { data, error } = await supabase
+    .from("imported_emails")
+    .update({ is_read: isRead })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data ? mapEmail(data) : null;
 }
 
 /**
- * Move email to folder.
+ * Move email to folder (local database only — not on mail server).
  */
 export async function moveEmail(id, folder) {
-  const email = MOCK_EMAILS.find((e) => e.id === id);
-  if (email) email.folder = folder;
-  return email;
+  const { data, error } = await supabase
+    .from("imported_emails")
+    .update({ folder })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data ? mapEmail(data) : null;
 }
 
 /**
- * Star/unstar email.
+ * Star/unstar email (stores in local field).
  */
 export async function toggleStarEmail(id) {
-  const email = MOCK_EMAILS.find((e) => e.id === id);
-  if (email) email.is_starred = !email.is_starred;
-  return email;
+  // Fetch current state
+  const { data: current } = await supabase
+    .from("imported_emails")
+    .select("is_read")
+    .eq("id", id)
+    .single();
+
+  // Use is_read as star toggle placeholder (future: add is_starred column)
+  // For now, this is a no-op visually — kept for interface compatibility
+  return current;
 }
 
 // ─── Email ↔ Ticket Links ───────────────────────────────────
@@ -238,4 +189,148 @@ export function linkEmailToTicket(emailId, ticketNumber) {
  */
 export function getLinkedTicket(emailId) {
   return EMAIL_TICKET_LINKS.get(emailId) || null;
+}
+
+// ─── Helpers ────────────────────────────────────────────────
+
+/**
+ * Map database row to the email shape expected by the UI.
+ */
+function mapEmail(row) {
+  return {
+    id: row.id,
+    from_address: row.sender_email,
+    from_name: row.sender_name || row.sender_email?.split("@")[0] || "Unknown",
+    to_address: row.recipient || "support@feldrix.com",
+    subject: row.subject || "(No Subject)",
+    body_text: row.body_text || row.preview || "",
+    body_html: row.body_html || null,
+    folder: row.folder || "inbox",
+    is_read: row.is_read || false,
+    is_starred: false,
+    priority: "normal",
+    has_attachments: row.has_attachments || false,
+    received_at: row.received_at || row.imported_at,
+    customer_id: null, // Will be resolved via customer matching
+  };
+}
+
+
+// ─── Email Sending (SMTP via Edge Function) ─────────────────
+
+/**
+ * Send a reply to an email via the email-send Edge Function.
+ * Stores the sent email locally for immediate display.
+ *
+ * @param {object} params
+ * @param {string} params.to - Recipient email
+ * @param {string} params.subject - Email subject (pre-filled with Re: ...)
+ * @param {string} params.text - Reply body
+ * @param {string} [params.in_reply_to] - Message-ID of the original email
+ * @param {string} [params.references] - References header for threading
+ * @param {string} [params.original_email_id] - ID of the email being replied to
+ * @returns {object} Sent email record
+ */
+export async function sendEmailReply({ to, subject, text, in_reply_to, references, original_email_id }) {
+  // 1. Optimistic insert — store locally first
+  const { data: sentRecord, error: insertError } = await supabase
+    .from("sent_emails")
+    .insert([{
+      recipient: to,
+      subject,
+      body: text,
+      in_reply_to: in_reply_to || null,
+      references_header: references || null,
+      original_email_id: original_email_id || null,
+      sender_email: "support@feldrix.com",
+      sender_name: "Feldrix Support",
+      status: "pending",
+    }])
+    .select()
+    .single();
+
+  if (insertError) {
+    throw new Error("Failed to create send record.");
+  }
+
+  // 2. Invoke the Edge Function to actually send via SMTP
+  const { data, error } = await supabase.functions.invoke("email-send", {
+    body: {
+      to,
+      subject,
+      text,
+      in_reply_to,
+      references,
+      sent_email_id: sentRecord.id,
+    },
+  });
+
+  if (error || !data?.success) {
+    // Update local record to failed status
+    await supabase
+      .from("sent_emails")
+      .update({ status: "failed", smtp_response: data?.message || error?.message || "Unknown error" })
+      .eq("id", sentRecord.id);
+
+    throw new Error(data?.message || error?.message || "Unable to send email. Please try again.");
+  }
+
+  // 3. Update local record with success
+  await supabase
+    .from("sent_emails")
+    .update({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+      message_id: data.message_id || null,
+    })
+    .eq("id", sentRecord.id);
+
+  return { ...sentRecord, status: "sent", sent_at: new Date().toISOString(), message_id: data.message_id };
+}
+
+/**
+ * Get sent replies for a specific original email (for conversation display).
+ */
+export async function getSentReplies(originalEmailId) {
+  if (!originalEmailId) return [];
+
+  const { data, error } = await supabase
+    .from("sent_emails")
+    .select("*")
+    .eq("original_email_id", originalEmailId)
+    .order("created_at", { ascending: true });
+
+  if (error) return [];
+  return data || [];
+}
+
+/**
+ * Test SMTP connection by invoking the Edge Function with a test flag.
+ * Returns connection status for diagnostics.
+ */
+export async function testSmtpConnection() {
+  try {
+    const { data, error } = await supabase.functions.invoke("email-send", {
+      body: {
+        to: "test@feldrix.com",
+        subject: "__CONNECTION_TEST__",
+        text: "test",
+        _test: true,
+      },
+    });
+
+    // The Edge Function will fail with a validation error or SMTP error
+    // If it gets past authentication, the connection works
+    if (error) {
+      return { connected: false, message: error.message || "Connection failed." };
+    }
+
+    if (data?.success) {
+      return { connected: true, message: "SMTP connection successful." };
+    }
+
+    return { connected: false, message: data?.message || "Connection test failed." };
+  } catch (err) {
+    return { connected: false, message: err?.message || "Unable to reach SMTP server." };
+  }
 }
