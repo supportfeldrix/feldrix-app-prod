@@ -290,8 +290,43 @@ export async function getTicketCounts() {
 
 /**
  * Add a reply to a ticket.
+ * Writes to Supabase for real tickets, falls back to mock for demo tickets.
  */
 export async function addTicketReply(ticketId, content) {
+  // Try writing to Supabase first (for real farmer-created tickets)
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("ticket_messages")
+      .insert([{
+        ticket_id: ticketId,
+        sender_id: user?.user?.id || null,
+        sender_type: "agent",
+        content,
+      }])
+      .select()
+      .single();
+
+    if (!error && data) {
+      // Update ticket updated_at
+      await supabase
+        .from("support_tickets")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", ticketId);
+
+      return {
+        id: data.id,
+        sender_type: "agent",
+        sender_name: "Support Agent",
+        content: data.content,
+        created_at: data.created_at,
+      };
+    }
+  } catch {
+    // Fall through to mock
+  }
+
+  // Fallback: mock data for demo tickets
   if (!MOCK_MESSAGES[ticketId]) MOCK_MESSAGES[ticketId] = [];
   const msg = {
     id: `msg-${Date.now()}`,

@@ -8,6 +8,7 @@ import StatisticsCard from "../components/account/StatisticsCard";
 import SubscriptionCard from "../components/account/SubscriptionCard";
 import QuickActionsCard from "../components/account/QuickActionsCard";
 import ContactSupportCard from "../components/account/ContactSupportCard";
+import MySupportTickets from "../components/account/MySupportTickets";
 import EmailNotificationPreferences from "../components/account/EmailNotificationPreferences";
 import OnboardingTrigger from "../components/onboarding/OnboardingTrigger";
 
@@ -65,6 +66,8 @@ export default function Account() {
         </Grid>
 
         {/* Email Notification Preferences — full width */}
+        <MySupportTickets />
+
         <EmailNotificationPreferences />
 
         {/* Getting Started — onboarding trigger */}
