@@ -29,6 +29,8 @@ import { getHealthHistory } from "../services/healthService";
 import { getBreedingHistory } from "../services/breedingService";
 import StatusChangeDialog from "../components/livestock/StatusChangeDialog";
 import StatusBadge from "../components/livestock/StatusBadge";
+import LifecycleBadge from "../components/livestock/LifecycleBadge";
+import { getLifecycleStage } from "../services/livestockLifecycle";
 
 export default function AnimalProfile() {
   const { id } = useParams();
@@ -130,9 +132,16 @@ export default function AnimalProfile() {
     >
       <ProfileHeader animal={animal} />
 
-      {/* Status Badge + Change Button */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0 8px" }}>
+      {/* Status & Lifecycle */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0 8px", flexWrap: "wrap" }}>
         <StatusBadge status={animal.status || "Active"} size="medium" onClick={() => setShowStatusDialog(true)} />
+        <LifecycleBadge animal={animal} size="medium" />
+        {(() => {
+          const lc = getLifecycleStage(animal);
+          return lc.ageLabel && lc.ageLabel !== "Birth date not set" ? (
+            <span style={{ fontSize: "0.8rem", color: "#64748B" }}>{lc.ageLabel}</span>
+          ) : null;
+        })()}
         <button
           onClick={() => setShowStatusDialog(true)}
           style={{ border: "none", background: "none", color: "#3B82F6", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", padding: "4px 8px" }}

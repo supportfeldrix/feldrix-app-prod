@@ -16,6 +16,7 @@ export default function AnimalForm({
     gender: "Cow",
     weight: "",
     status: "Active",
+    date_of_birth: "",
     purchase_date: "",
     purchase_price: "",
     notes: "",
@@ -36,6 +37,7 @@ export default function AnimalForm({
         gender: animal.gender || "Cow",
         weight: animal.weight || "",
         status: animal.status || "Active",
+        date_of_birth: animal.date_of_birth || "",
         purchase_date: animal.purchase_date || "",
         purchase_price: animal.purchase_price || "",
         notes: animal.notes || "",
@@ -232,6 +234,16 @@ export default function AnimalForm({
           <option>Sick</option>
           <option>Sold</option>
         </select>
+
+        <input
+          style={inputStyle}
+          type="date"
+          name="date_of_birth"
+          placeholder="Date of Birth"
+          value={form.date_of_birth}
+          onChange={handleChange}
+          title="Date of Birth"
+        />
 
         <input
           style={inputStyle}

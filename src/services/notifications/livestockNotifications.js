@@ -2,11 +2,13 @@
  * FarmHand PRO — Notification Engine
  * Livestock Notification Provider
  *
- * Converts livestock health records into standardized notifications.
- * Evaluates treatment urgency based on scheduled dates and completion status.
+ * Converts livestock health records and lifecycle transitions
+ * into standardized notifications.
  *
  * @module livestockNotifications
  */
+
+import { getUpcomingTransitions } from "../livestockLifecycle";
 
 /**
  * Generates livestock notifications from health record data.
@@ -64,6 +66,27 @@ export function getLivestockNotifications(data = {}) {
           `"${treatmentName}"${animalTag ? ` for ${animalTag}` : ""} is due in ${daysUntil} day${daysUntil === 1 ? "" : "s"}.`
         ));
       }
+    }
+
+    // Lifecycle transition notifications
+    try {
+      const animals = data?.livestock?.animals || [];
+      const transitions = getUpcomingTransitions(animals, 7);
+      for (const t of transitions) {
+        notifications.push({
+          id: `lifecycle-transition-${t.animal.id}`,
+          type: "lifecycle_transition",
+          priority: t.daysUntil <= 2 ? "High" : "Medium",
+          title: "Lifecycle Transition",
+          message: `${t.tag} transitions from ${t.currentStage} to ${t.nextStage} in ${t.daysUntil} day${t.daysUntil !== 1 ? "s" : ""}.`,
+          module: "Livestock",
+          route: `/animals/${t.animal.id}`,
+          read: false,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } catch {
+      // Lifecycle calculation failed — non-blocking
     }
 
     return notifications;
