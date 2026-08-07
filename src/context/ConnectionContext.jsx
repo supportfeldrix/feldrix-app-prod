@@ -1,18 +1,17 @@
 /**
  * ============================================================
  * Feldrix — Connection Context
- * Version 1.0
+ * Version 1.1
  *
- * Provides connection status (online/offline/syncing) to the
- * entire application. Automatically triggers sync when
- * connectivity is restored.
+ * Provides connection status (online/offline/syncing).
+ * CRITICAL: This context must NEVER prevent the app from loading.
+ * All operations are wrapped in try/catch. If offline features
+ * fail to initialize, the app continues normally in online mode.
  * ============================================================
  */
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
-import { processQueue } from "../services/offline/syncEngine";
-import { getPendingCount } from "../services/offline/offlineDb";
 
 const ConnectionContext = createContext({
   isOnline: true,
@@ -22,17 +21,30 @@ const ConnectionContext = createContext({
 });
 
 export function ConnectionProvider({ children }) {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const wasOfflineRef = useRef(false);
+  const initRef = useRef(false);
+
+  // Safe initialization — never blocks render
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
+    try {
+      setIsOnline(navigator.onLine);
+    } catch {
+      setIsOnline(true);
+    }
+  }, []);
 
   // Track online/offline events
   useEffect(() => {
     function handleOnline() {
       setIsOnline(true);
       if (wasOfflineRef.current) {
-        toast.success("Connection restored. Synchronizing...");
+        try { toast.success("Connection restored. Synchronizing..."); } catch {}
         triggerSync();
       }
     }
@@ -40,39 +52,54 @@ export function ConnectionProvider({ children }) {
     function handleOffline() {
       setIsOnline(false);
       wasOfflineRef.current = true;
-      toast("You are offline. Changes will be saved locally.", { icon: "📡" });
+      try { toast("You are offline. Changes will be saved locally.", { icon: "📡" }); } catch {}
     }
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    try {
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+    } catch {
+      // Event listeners not available — continue without offline detection
+    }
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      try {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      } catch {}
     };
   }, []);
 
-  // Refresh pending count periodically
+  // Refresh pending count periodically — completely safe
   useEffect(() => {
     refreshPendingCount();
-    const interval = setInterval(refreshPendingCount, 10000);
+    const interval = setInterval(refreshPendingCount, 15000);
     return () => clearInterval(interval);
   }, []);
 
   async function refreshPendingCount() {
     try {
+      const { getPendingCount } = await import("../services/offline/offlineDb");
       const count = await getPendingCount();
       setPendingCount(count);
     } catch {
-      // IndexedDB may not be available
+      // IndexedDB unavailable or import failed — offline mode disabled, that's OK
+      setPendingCount(0);
     }
   }
 
   const triggerSync = useCallback(async () => {
-    if (isSyncing || !navigator.onLine) return;
+    if (isSyncing) return;
+
+    try {
+      if (!navigator.onLine) return;
+    } catch {
+      return;
+    }
 
     setIsSyncing(true);
     try {
+      const { processQueue } = await import("../services/offline/syncEngine");
       const result = await processQueue();
 
       if (result.synced > 0) {
@@ -84,8 +111,8 @@ export function ConnectionProvider({ children }) {
       }
 
       wasOfflineRef.current = false;
-    } catch (err) {
-      toast.error("Synchronization failed. Will retry automatically.");
+    } catch {
+      // Sync failed — silently continue, will retry next time
     } finally {
       setIsSyncing(false);
       refreshPendingCount();

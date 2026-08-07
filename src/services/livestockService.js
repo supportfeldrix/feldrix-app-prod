@@ -14,22 +14,23 @@ export async function getAnimals() {
 }
 
 export async function addAnimal(animal) {
+  // Offline capture: queue locally if no connection
+  if (!navigator.onLine) {
+    const queued = await offlineCapture({
+      action: "insert",
+      module: "Livestock",
+      table: "livestock",
+      payload: animal,
+    });
+    if (queued) return { ...animal, id: `offline-${Date.now()}`, _offline: true };
+    // If queue failed, fall through and try online
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("You must be logged in.");
-
-  // Offline capture: queue locally if no connection
-  if (!navigator.onLine) {
-    await offlineCapture({
-      action: "insert",
-      module: "Livestock",
-      table: "livestock",
-      payload: { ...animal, user_id: user.id },
-    });
-    return { ...animal, user_id: user.id, id: `offline-${Date.now()}`, _offline: true };
-  }
 
   const { data, error } = await supabase.from("livestock").insert([
     {

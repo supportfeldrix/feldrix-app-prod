@@ -15,6 +15,28 @@ export async function getManualTasks() {
 }
 
 export async function addManualTask(task) {
+  // Offline capture: queue locally if no connection
+  if (!navigator.onLine) {
+    const offlinePayload = {
+      title: task.title,
+      description: task.description,
+      module: task.module,
+      priority: task.priority,
+      assigned_to: task.assigned_to,
+      due_date: task.due_date,
+      status: "Pending",
+      completed: false,
+      source: "Manual",
+    };
+    const queued = await offlineCapture({
+      action: "insert",
+      module: "Planner",
+      table: "planner_tasks",
+      payload: offlinePayload,
+    });
+    if (queued) return { ...offlinePayload, id: `offline-${Date.now()}`, _offline: true };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -35,17 +57,6 @@ export async function addManualTask(task) {
     completed: false,
     source: "Manual",
   };
-
-  // Offline capture
-  if (!navigator.onLine) {
-    await offlineCapture({
-      action: "insert",
-      module: "Planner",
-      table: "planner_tasks",
-      payload,
-    });
-    return { ...payload, id: `offline-${Date.now()}`, _offline: true };
-  }
 
   const { data, error } = await supabase
     .from("planner_tasks")

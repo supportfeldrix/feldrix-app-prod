@@ -22,23 +22,23 @@ export async function getCrops() {
  * 🌱 Add new crop
  */
 export async function addCrop(crop) {
+  // Offline capture: queue locally if no connection
+  if (!navigator.onLine) {
+    const queued = await offlineCapture({
+      action: "insert",
+      module: "Crops",
+      table: "crops",
+      payload: crop,
+    });
+    if (queued) return { ...crop, id: `offline-${Date.now()}`, _offline: true };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
     throw new Error("User not logged in.");
-  }
-
-  // Offline capture
-  if (!navigator.onLine) {
-    await offlineCapture({
-      action: "insert",
-      module: "Crops",
-      table: "crops",
-      payload: { ...crop, user_id: user.id },
-    });
-    return { ...crop, user_id: user.id, id: `offline-${Date.now()}`, _offline: true };
   }
 
   const { data, error } = await supabase

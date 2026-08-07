@@ -1,10 +1,12 @@
 /**
  * ============================================================
  * Feldrix — Offline Database (IndexedDB)
- * Version 1.0
+ * Version 1.1
  *
  * Manages the offline sync queue using IndexedDB.
- * Stores pending operations when the app is offline.
+ * CRITICAL: All functions are fully safe — they never throw.
+ * If IndexedDB is unavailable (private browsing, mobile WebView),
+ * functions return safe defaults and the app continues normally.
  * ============================================================
  */
 
@@ -13,139 +15,213 @@ const DB_VERSION = 1;
 const STORE_NAME = "sync_queue";
 
 /**
+ * Check if IndexedDB is available in this environment.
+ */
+function isIndexedDBAvailable() {
+  try {
+    return typeof indexedDB !== "undefined" && indexedDB !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Open the IndexedDB database.
+ * Returns null if IndexedDB is unavailable.
  */
 function openDb() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+  if (!isIndexedDBAvailable()) return Promise.resolve(null);
 
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
-        store.createIndex("module", "module", { unique: false });
-        store.createIndex("status", "status", { unique: false });
-        store.createIndex("createdAt", "createdAt", { unique: false });
-      }
-    };
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+      request.onupgradeneeded = (event) => {
+        try {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            const store = db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+            store.createIndex("module", "module", { unique: false });
+            store.createIndex("status", "status", { unique: false });
+            store.createIndex("createdAt", "createdAt", { unique: false });
+          }
+        } catch {
+          // Schema creation failed — continue without offline support
+        }
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+      request.onblocked = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
   });
 }
 
 /**
  * Add an operation to the offline queue.
- *
- * @param {object} entry
- * @param {string} entry.action - "insert", "update", "delete"
- * @param {string} entry.module - "livestock", "health", "crops", "planner", "finance"
- * @param {string} entry.table - Supabase table name
- * @param {object} entry.payload - Data to send
- * @param {string} [entry.recordId] - For updates/deletes
+ * Returns false if IndexedDB is unavailable.
  */
 export async function addToQueue(entry) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
+  try {
+    const db = await openDb();
+    if (!db) return false;
 
-    const record = {
-      ...entry,
-      status: "pending",
-      retryCount: 0,
-      createdAt: new Date().toISOString(),
-    };
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
 
-    const request = store.add(record);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+        const record = {
+          ...entry,
+          status: "pending",
+          retryCount: 0,
+          createdAt: new Date().toISOString(),
+        };
+
+        const request = store.add(record);
+        request.onsuccess = () => resolve(true);
+        request.onerror = () => resolve(false);
+      } catch {
+        resolve(false);
+      }
+    });
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Get all pending items from the queue.
+ * Get all items from the queue.
  */
 export async function getPendingQueue() {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.getAll();
-    request.onsuccess = () => resolve(request.result || []);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await openDb();
+    if (!db) return [];
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => resolve([]);
+      } catch {
+        resolve([]);
+      }
+    });
+  } catch {
+    return [];
+  }
 }
 
 /**
  * Get the count of pending items.
  */
 export async function getPendingCount() {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const store = tx.objectStore(STORE_NAME);
-    const index = store.index("status");
-    const request = index.count(IDBKeyRange.only("pending"));
-    request.onsuccess = () => resolve(request.result || 0);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await openDb();
+    if (!db) return 0;
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const index = store.index("status");
+        const request = index.count(IDBKeyRange.only("pending"));
+        request.onsuccess = () => resolve(request.result || 0);
+        request.onerror = () => resolve(0);
+      } catch {
+        resolve(0);
+      }
+    });
+  } catch {
+    return 0;
+  }
 }
 
 /**
  * Update an item's status and retry count.
  */
 export async function updateQueueItem(id, updates) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    const getReq = store.get(id);
+  try {
+    const db = await openDb();
+    if (!db) return null;
 
-    getReq.onsuccess = () => {
-      const record = getReq.result;
-      if (!record) return resolve(null);
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const getReq = store.get(id);
 
-      const updated = { ...record, ...updates };
-      const putReq = store.put(updated);
-      putReq.onsuccess = () => resolve(updated);
-      putReq.onerror = () => reject(putReq.error);
-    };
+        getReq.onsuccess = () => {
+          const record = getReq.result;
+          if (!record) return resolve(null);
 
-    getReq.onerror = () => reject(getReq.error);
-  });
+          const updated = { ...record, ...updates };
+          const putReq = store.put(updated);
+          putReq.onsuccess = () => resolve(updated);
+          putReq.onerror = () => resolve(null);
+        };
+
+        getReq.onerror = () => resolve(null);
+      } catch {
+        resolve(null);
+      }
+    });
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Remove a synced item from the queue.
  */
 export async function removeFromQueue(id) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.delete(id);
-    request.onsuccess = () => resolve(true);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await openDb();
+    if (!db) return false;
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.delete(id);
+        request.onsuccess = () => resolve(true);
+        request.onerror = () => resolve(false);
+      } catch {
+        resolve(false);
+      }
+    });
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Clear all synced items from the queue.
  */
 export async function clearSyncedItems() {
-  const queue = await getPendingQueue();
-  const db = await openDb();
-  const tx = db.transaction(STORE_NAME, "readwrite");
-  const store = tx.objectStore(STORE_NAME);
+  try {
+    const queue = await getPendingQueue();
+    const db = await openDb();
+    if (!db) return false;
 
-  for (const item of queue) {
-    if (item.status === "synced") {
-      store.delete(item.id);
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+
+    for (const item of queue) {
+      if (item.status === "synced") {
+        store.delete(item.id);
+      }
     }
-  }
 
-  return new Promise((resolve) => {
-    tx.oncomplete = () => resolve(true);
-  });
+    return new Promise((resolve) => {
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch {
+    return false;
+  }
 }

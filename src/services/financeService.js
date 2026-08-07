@@ -36,6 +36,17 @@ export async function getAnimalFinance(animalId) {
 }
 
 export async function addFinanceRecord(record) {
+  // Offline capture: queue locally if no connection
+  if (!navigator.onLine) {
+    const queued = await offlineCapture({
+      action: "insert",
+      module: "Finance",
+      table: "finance_records",
+      payload: record,
+    });
+    if (queued) return { ...record, id: `offline-${Date.now()}`, _offline: true };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -49,17 +60,6 @@ export async function addFinanceRecord(record) {
 
   if (cleanRecord.applies_to !== "animal") {
     cleanRecord.animal_id = null;
-  }
-
-  // Offline capture
-  if (!navigator.onLine) {
-    await offlineCapture({
-      action: "insert",
-      module: "Finance",
-      table: "finance_records",
-      payload: cleanRecord,
-    });
-    return { ...cleanRecord, id: `offline-${Date.now()}`, _offline: true };
   }
 
   const { data, error } = await supabase

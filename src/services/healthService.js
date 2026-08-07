@@ -76,20 +76,20 @@ export async function getAnimals() {
  * Add health record
  */
 export async function addHealthRecord(record) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Offline capture
+  // Offline capture: queue locally if no connection
   if (!navigator.onLine) {
-    await offlineCapture({
+    const queued = await offlineCapture({
       action: "insert",
       module: "Health",
       table: "animal_health",
-      payload: { ...record, user_id: user.id },
+      payload: record,
     });
-    return { ...record, user_id: user.id, id: `offline-${Date.now()}`, _offline: true };
+    if (queued) return { ...record, id: `offline-${Date.now()}`, _offline: true };
   }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data, error } = await supabase
     .from("animal_health")
