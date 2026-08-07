@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import { Menu, Notifications } from "@mui/icons-material";
 import { useNotificationBadge } from "../../context/NotificationContext";
+import ConnectionIndicator from "../offline/ConnectionIndicator";
 
 /**
  * Top bar header.
@@ -84,6 +85,7 @@ export default function TopBar({ onNotificationClick, onMenuToggle, showMenuButt
 
       {/* Right Side */}
       <Stack direction="row" spacing={1} alignItems="center">
+        <ConnectionIndicator />
         <IconButton
           onClick={onNotificationClick}
           aria-label="Notifications"

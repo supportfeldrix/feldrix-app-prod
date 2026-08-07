@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { offlineCapture } from "./offline/offlineCapture";
 
 export async function getManualTasks() {
   const { data, error } = await supabase
@@ -34,6 +35,17 @@ export async function addManualTask(task) {
     completed: false,
     source: "Manual",
   };
+
+  // Offline capture
+  if (!navigator.onLine) {
+    await offlineCapture({
+      action: "insert",
+      module: "Planner",
+      table: "planner_tasks",
+      payload,
+    });
+    return { ...payload, id: `offline-${Date.now()}`, _offline: true };
+  }
 
   const { data, error } = await supabase
     .from("planner_tasks")

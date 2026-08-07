@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { offlineCapture } from "./offline/offlineCapture";
 
 /**
  * 🌾 Get all crops
@@ -27,6 +28,17 @@ export async function addCrop(crop) {
 
   if (!user) {
     throw new Error("User not logged in.");
+  }
+
+  // Offline capture
+  if (!navigator.onLine) {
+    await offlineCapture({
+      action: "insert",
+      module: "Crops",
+      table: "crops",
+      payload: { ...crop, user_id: user.id },
+    });
+    return { ...crop, user_id: user.id, id: `offline-${Date.now()}`, _offline: true };
   }
 
   const { data, error } = await supabase

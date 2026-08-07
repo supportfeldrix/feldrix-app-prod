@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { createHealthFinanceRecord } from "./autoFinanceService";
+import { offlineCapture } from "./offline/offlineCapture";
 
 /*
  * Get all health records (Health page)
@@ -78,6 +79,17 @@ export async function addHealthRecord(record) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Offline capture
+  if (!navigator.onLine) {
+    await offlineCapture({
+      action: "insert",
+      module: "Health",
+      table: "animal_health",
+      payload: { ...record, user_id: user.id },
+    });
+    return { ...record, user_id: user.id, id: `offline-${Date.now()}`, _offline: true };
+  }
 
   const { data, error } = await supabase
     .from("animal_health")
