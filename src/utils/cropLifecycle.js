@@ -15,43 +15,85 @@
  * ============================================================
  */
 
-// ─── Growing Periods (days) ─────────────────────────────────
+// ─── Growing Periods (days) — South African Commercial Defaults ──
 
 const GROWING_PERIODS = {
-  "Maize": 120,
-  "Wheat": 120,
-  "Soybeans": 110,
-  "Soybean": 110,
-  "Sunflower": 110,
-  "Potatoes": 90,
-  "Potato": 90,
-  "Tomatoes": 90,
-  "Tomato": 90,
-  "Onions": 120,
-  "Onion": 120,
-  "Lucerne": 45,
-  "Barley": 100,
-  "Sorghum": 110,
-  "Cotton": 150,
-  "Sugarcane": 270,
-  "Rice": 120,
-  "Canola": 130,
-  "Groundnuts": 120,
-  "Groundnut": 120,
-  "Beans": 80,
-  "Bean": 80,
-  "Peas": 70,
-  "Cabbage": 80,
-  "Carrots": 75,
-  "Carrot": 75,
-  "Lettuce": 60,
-  "Pumpkin": 100,
-  "Spinach": 45,
-  "Grapes": 180,
-  "Citrus": 270,
+  // ── Grain & Oilseed Crops ─────────────────────────────────
+  "Maize": 150,              // SA dryland maize: Oct plant → Mar harvest (140-160d)
+  "Mielies": 150,            // Afrikaans alias
+  "Wheat": 140,              // SA winter wheat: May plant → Nov harvest (130-150d)
+  "Soybeans": 130,           // SA summer: Nov plant → Apr harvest (120-140d)
+  "Soybean": 130,
+  "Sunflower": 120,          // SA Free State/NW: Nov plant → Mar harvest (110-130d)
+  "Sorghum": 130,            // SA dryland: Nov plant → Apr harvest (120-140d)
+  "Canola": 150,             // SA Western Cape winter: Apr plant → Oct harvest (140-160d)
+  "Barley": 120,             // SA Western Cape winter: May plant → Oct harvest (110-130d)
+  "Groundnuts": 140,         // SA Limpopo/NW: Nov plant → Apr harvest (130-150d)
+  "Groundnut": 140,
+  "Dry Beans": 100,          // SA summer: Nov plant → Feb harvest (90-110d)
+  "Beans": 100,
+  "Bean": 100,
+  "Cotton": 180,             // SA Limpopo: Oct plant → Apr harvest (170-190d)
+  "Rice": 150,               // SA KZN irrigated: Oct plant → Mar harvest
+
+  // ── Vegetables ────────────────────────────────────────────
+  "Potatoes": 110,           // SA Limpopo/Sandveld: 100-120d depending on cultivar
+  "Potato": 110,
+  "Tomatoes": 100,           // SA open-field: transplant → harvest (90-110d)
+  "Tomato": 100,
+  "Onions": 150,             // SA long-day cultivars: Apr plant → Sep harvest (140-160d)
+  "Onion": 150,
+  "Cabbage": 90,             // SA all-year production (80-100d)
+  "Carrots": 85,             // SA Ceres/Graaff-Reinet (75-95d)
+  "Carrot": 85,
+  "Lettuce": 55,             // SA intensive: 50-60d
+  "Pumpkin": 110,            // SA summer: Nov plant → Feb harvest (100-120d)
+  "Butternut": 100,          // SA summer (90-110d)
+  "Spinach": 40,             // SA quick crop (35-45d)
+  "Sweet Potato": 140,       // SA Limpopo: Oct plant → Mar harvest (130-150d)
+  "Peppers": 90,             // SA open-field (80-100d)
+  "Pepper": 90,
+  "Beetroot": 70,            // SA (60-80d)
+  "Peas": 75,                // SA winter: May plant → Aug harvest (65-85d)
+  "Green Beans": 60,         // SA fresh market (55-65d)
+  "Watermelon": 90,          // SA Limpopo summer (80-100d)
+
+  // ── Pastures & Fodder ─────────────────────────────────────
+  "Lucerne": 35,             // SA irrigated: cut every 28-42 days
+  "Eragrostis": 120,         // SA hay crop: Oct plant → Feb first cut
+  "Teff": 60,                // SA quick summer grass (50-70d per cut)
+
+  // ── Perennial Crops (planting to first commercial harvest) ─
+  "Sugarcane": 420,          // SA KZN: plant → first harvest 14-18 months (ratoon 12m)
+  "Citrus": 1095,            // SA: 3 years to first commercial fruit
+  "Grapes": 1095,            // SA Western Cape: 3 years to commercial harvest
+  "Table Grapes": 1095,
+  "Wine Grapes": 1095,
+  "Avocados": 1460,          // SA Limpopo/Mpumalanga: 4 years to first fruit
+  "Avocado": 1460,
+  "Macadamias": 1825,        // SA: 5 years to first commercial harvest
+  "Macadamia": 1825,
+  "Mangoes": 1460,           // SA Limpopo: 4 years to first fruit
+  "Mango": 1460,
+  "Pecan Nuts": 2190,        // SA: 6 years to first commercial crop
+  "Pecan": 2190,
+  "Blueberries": 730,        // SA: 2 years to full production
+  "Blueberry": 730,
+  "Olives": 1460,            // SA: 4 years to first harvest
+  "Olive": 1460,
+  "Litchis": 1825,           // SA Limpopo: 5 years
+  "Litchi": 1825,
+  "Bananas": 365,            // SA KZN/Mpumalanga: 12 months plant → bunch
+  "Banana": 365,
+  "Pineapple": 540,          // SA KZN: 18 months to first fruit
+
+  // ── Other ─────────────────────────────────────────────────
+  "Tobacco": 120,            // SA Limpopo: Nov plant → Mar harvest
+  "Hemp": 110,               // SA trial crops (100-120d)
+  "Rooibos": 540,            // SA Cederberg: 18 months to first harvest
 };
 
-const DEFAULT_GROWING_DAYS = 120;
+const DEFAULT_GROWING_DAYS = 130; // SA average for summer grain crops
 
 // ─── Lifecycle Stages ───────────────────────────────────────
 
