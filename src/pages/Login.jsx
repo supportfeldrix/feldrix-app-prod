@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { supabase } from "../services/supabase";
@@ -14,6 +14,24 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // Check for existing cached session — allows offline startup
+  useEffect(() => {
+    async function checkExistingSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          navigate("/dashboard", { replace: true });
+          return;
+        }
+      } catch {
+        // getSession failed (shouldn't happen — it reads from localStorage)
+      }
+      setCheckingSession(false);
+    }
+    checkExistingSession();
+  }, [navigate]);
 
   // -----------------------------------
   // Dynamic Background & Greeting
@@ -40,6 +58,9 @@ export default function Login() {
     setLoading(true);
 
     try {
+      if (!navigator.onLine) {
+        throw new Error("You are offline. Please connect to the internet to sign in.");
+      }
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -54,6 +75,14 @@ export default function Login() {
   };
 
   // ─── MOBILE LAYOUT ───────────────────────────────────────────
+  if (checkingSession) {
+    return (
+      <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "#ffffff" }}>
+        <Box component="img" src="/branding/feldrix-logo-green.png" alt="Feldrix" sx={{ width: 140, opacity: 0.6 }} />
+      </Box>
+    );
+  }
+
   if (isMobile) {
     return (
       <Box
