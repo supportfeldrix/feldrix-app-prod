@@ -1,32 +1,33 @@
-import Button from "../ui/Button";
-import Input from "../ui/Input";
-import Select from "../ui/Select";
-import { useEffect, useState } from "react";
-import { addAnimal, updateAnimal } from "../../services/livestockService";
+/**
+ * Feldrix — Add / Edit Animal Form
+ * Responsive MUI layout with lifecycle preview.
+ */
 
-export default function AnimalForm({
-  refreshAnimals,
-  animal = null,
-  onSaved,
-}) {
+import { useEffect, useState } from "react";
+import {
+  Box, Button, Card, CardContent, Chip, Divider, Grid,
+  MenuItem, Stack, TextField, Typography,
+} from "@mui/material";
+import SaveIcon from "@mui/icons-material/Save";
+import { addAnimal, updateAnimal } from "../../services/livestockService";
+import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
+import { LIVESTOCK_STATUSES } from "../../constants/livestockStatus";
+
+export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
   const [form, setForm] = useState({
     tag: "",
     animal_type: "Cattle",
     breed: "",
-    gender: "Cow",
-    weight: "",
-    status: "Active",
+    gender: "Female",
     date_of_birth: "",
     purchase_date: "",
+    weight: "",
     purchase_price: "",
+    status: "Active",
     notes: "",
   });
 
   const [saving, setSaving] = useState(false);
-
-  const inputStyle={width:"100%",padding:"12px 14px",fontSize:"15px",border:"1px solid #d0d7de",borderRadius:8,background:"#fff",minHeight:"46px",boxSizing:"border-box"};
-  const selectStyle={...inputStyle,cursor:"pointer"};
-  const textareaStyle={width:"100%",marginTop:18,padding:"14px",fontSize:"15px",border:"1px solid #d0d7de",borderRadius:8,boxSizing:"border-box",resize:"vertical"};
 
   useEffect(() => {
     if (animal) {
@@ -34,12 +35,12 @@ export default function AnimalForm({
         tag: animal.tag || "",
         animal_type: animal.animal_type || "Cattle",
         breed: animal.breed || "",
-        gender: animal.gender || "Cow",
-        weight: animal.weight || "",
-        status: animal.status || "Active",
+        gender: normalizeGender(animal.gender),
         date_of_birth: animal.date_of_birth || "",
         purchase_date: animal.purchase_date || "",
+        weight: animal.weight || "",
         purchase_price: animal.purchase_price || "",
+        status: animal.status || "Active",
         notes: animal.notes || "",
       });
     }
@@ -47,44 +48,7 @@ export default function AnimalForm({
 
   function handleChange(e) {
     const { name, value } = e.target;
-
-    if (name === "animal_type") {
-      let defaultGender = "Cow";
-
-      switch (value) {
-        case "Sheep":
-          defaultGender = "Ewe";
-          break;
-
-        case "Goats":
-          defaultGender = "Doe";
-          break;
-
-        case "Pigs":
-          defaultGender = "Sow";
-          break;
-
-        case "Poultry":
-          defaultGender = "Hen";
-          break;
-
-        default:
-          defaultGender = "Cow";
-      }
-
-      setForm({
-        ...form,
-        animal_type: value,
-        gender: defaultGender,
-      });
-
-      return;
-    }
-
-    setForm({
-      ...form,
-      [name]: value,
-    });
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSubmit(e) {
@@ -94,14 +58,12 @@ export default function AnimalForm({
       alert("Tag Number is required.");
       return;
     }
-
     if (!form.breed.trim()) {
       alert("Breed is required.");
       return;
     }
 
     setSaving(true);
-
     try {
       if (animal) {
         await updateAnimal(animal.id, form);
@@ -110,190 +72,238 @@ export default function AnimalForm({
       }
 
       setForm({
-        tag: "",
-        animal_type: "Cattle",
-        breed: "",
-        gender: "Cow",
-        weight: "",
-        status: "Active",
-        purchase_date: "",
-        purchase_price: "",
-        notes: "",
+        tag: "", animal_type: "Cattle", breed: "", gender: "Female",
+        date_of_birth: "", purchase_date: "", weight: "",
+        purchase_price: "", status: "Active", notes: "",
       });
 
-      if (refreshAnimals) {
-        await refreshAnimals();
-      }
-
-      if (onSaved) {
-        onSaved();
-      }
+      if (refreshAnimals) await refreshAnimals();
+      if (onSaved) onSaved();
     } catch (err) {
       console.error(err);
       alert(err.message);
     }
-
     setSaving(false);
   }
 
-  const genderOptions =
-    form.animal_type === "Cattle"
-      ? ["Cow", "Bull", "Heifer", "Calf"]
-      : form.animal_type === "Sheep"
-      ? ["Ewe", "Ram", "Lamb"]
-      : form.animal_type === "Goats"
-      ? ["Doe", "Buck", "Kid"]
-      : form.animal_type === "Pigs"
-      ? ["Sow", "Boar", "Piglet"]
-      : ["Hen", "Rooster", "Chick"];
+  // Lifecycle preview (computed from current form state)
+  const lifecyclePreview = getLifecycleStage({
+    animal_type: form.animal_type,
+    gender: form.gender,
+    date_of_birth: form.date_of_birth,
+  });
+
+  const stageColor = lifecyclePreview.stage ? getStageColor(lifecyclePreview.stage) : null;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{
-        background: "#fff",
-        padding: 25,
-        borderRadius: 12,
-        marginBottom: 25,
-        boxShadow: "0 5px 15px rgba(0,0,0,.08)",
-      }}
-    >
-      <h2 style={{ marginTop: 0 }}>
-        {animal ? "Edit Animal" : "Add Animal"}
-      </h2>
+    <Card elevation={2} sx={{ borderRadius: 3, mb: 3 }}>
+      <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
+        <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>
+          {animal ? "Edit Animal" : "Add Animal"}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          {animal ? "Update this animal's details below." : "Register a new animal in your herd."}
+        </Typography>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
-          gap: 18,
-        }}
-      >
-        <input
-          style={inputStyle}
-          name="tag"
-          placeholder="Tag Number"
-          value={form.tag}
-          onChange={handleChange}
-        />
+        <Box component="form" onSubmit={handleSubmit}>
+          <Grid container spacing={2.5}>
+            {/* Row 1: Tag + Species + Breed */}
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                fullWidth
+                required
+                label="Tag Number"
+                name="tag"
+                value={form.tag}
+                onChange={handleChange}
+                size="small"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                select
+                fullWidth
+                label="Species"
+                name="animal_type"
+                value={form.animal_type}
+                onChange={handleChange}
+                size="small"
+              >
+                <MenuItem value="Cattle">🐄 Cattle</MenuItem>
+                <MenuItem value="Sheep">🐑 Sheep</MenuItem>
+                <MenuItem value="Goats">🐐 Goats</MenuItem>
+                <MenuItem value="Pigs">🐖 Pigs</MenuItem>
+                <MenuItem value="Poultry">🐔 Poultry</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                fullWidth
+                required
+                label="Breed"
+                name="breed"
+                value={form.breed}
+                onChange={handleChange}
+                size="small"
+              />
+            </Grid>
 
-        <select
-          style={selectStyle}
-          name="animal_type"
-          value={form.animal_type}
-          onChange={handleChange}
-        >
-          <option value="Cattle">🐄 Cattle</option>
-          <option value="Sheep">🐑 Sheep</option>
-          <option value="Goats">🐐 Goats</option>
-          <option value="Pigs">🐖 Pigs</option>
-          <option value="Poultry">🐔 Poultry</option>
-        </select>
+            {/* Row 2: Gender + DOB */}
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                select
+                fullWidth
+                label="Gender"
+                name="gender"
+                value={form.gender}
+                onChange={handleChange}
+                size="small"
+              >
+                <MenuItem value="Female">Female</MenuItem>
+                <MenuItem value="Male">Male</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Date of Birth"
+                name="date_of_birth"
+                value={form.date_of_birth}
+                onChange={handleChange}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                helperText={form.date_of_birth ? "Used for automatic lifecycle tracking." : "Required for automatic lifecycle tracking."}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Purchase Date"
+                name="purchase_date"
+                value={form.purchase_date}
+                onChange={handleChange}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
 
-        <input
-          style={inputStyle}
-          name="breed"
-          placeholder="Breed"
-          value={form.breed}
-          onChange={handleChange}
-        />
+            {/* Row 3: Weight + Price + Status */}
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Weight (kg)"
+                name="weight"
+                value={form.weight}
+                onChange={handleChange}
+                size="small"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Purchase Price (R)"
+                name="purchase_price"
+                value={form.purchase_price}
+                onChange={handleChange}
+                size="small"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <TextField
+                select
+                fullWidth
+                label="Status"
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                size="small"
+              >
+                {LIVESTOCK_STATUSES.map((s) => (
+                  <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
 
-        <select
-          style={selectStyle}
-          name="gender"
-          value={form.gender}
-          onChange={handleChange}
-        >
-          {genderOptions.map((gender) => (
-            <option
-              key={gender}
-              value={gender}
-            >
-              {gender}
-            </option>
-          ))}
-        </select>
+            {/* Notes */}
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Notes"
+                name="notes"
+                value={form.notes}
+                onChange={handleChange}
+                size="small"
+              />
+            </Grid>
+          </Grid>
 
-        <input
-          style={inputStyle}
-          type="number"
-          name="weight"
-          placeholder="Weight (kg)"
-          value={form.weight}
-          onChange={handleChange}
-        />
+          {/* Lifecycle Preview */}
+          {form.date_of_birth && form.animal_type && lifecyclePreview.stage && (
+            <>
+              <Divider sx={{ my: 2.5 }} />
+              <Box sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50", border: "1px solid", borderColor: "divider" }}>
+                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.5, mb: 1.5, display: "block" }}>
+                  Lifecycle Preview
+                </Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Stage</Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip label={lifecyclePreview.stage} size="small" sx={{ fontWeight: 700, bgcolor: stageColor?.bg, color: stageColor?.color }} />
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Age</Typography>
+                    <Typography variant="body2" fontWeight={600}>{lifecyclePreview.ageLabel}</Typography>
+                  </Box>
+                  {lifecyclePreview.nextStage && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Next Stage</Typography>
+                      <Typography variant="body2" fontWeight={600}>{lifecyclePreview.nextStage}</Typography>
+                    </Box>
+                  )}
+                  {lifecyclePreview.nextStageDate && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Estimated Transition</Typography>
+                      <Typography variant="body2" fontWeight={600}>
+                        {new Date(lifecyclePreview.nextStageDate).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}
+                      </Typography>
+                    </Box>
+                  )}
+                </Stack>
+              </Box>
+            </>
+          )}
 
-        <select
-          style={selectStyle}
-          name="status"
-          value={form.status}
-          onChange={handleChange}
-        >
-          <option>Healthy</option>
-          <option>Pregnant</option>
-          <option>Sick</option>
-          <option>Sold</option>
-        </select>
-
-        <input
-          style={inputStyle}
-          type="date"
-          name="date_of_birth"
-          placeholder="Date of Birth"
-          value={form.date_of_birth}
-          onChange={handleChange}
-          title="Date of Birth"
-        />
-
-        <input
-          style={inputStyle}
-          type="date"
-          name="purchase_date"
-          value={form.purchase_date}
-          onChange={handleChange}
-        />
-
-        <input
-          style={inputStyle}
-          type="number"
-          name="purchase_price"
-          placeholder="Purchase Price"
-          value={form.purchase_price}
-          onChange={handleChange}
-        />
-      </div>
-
-      <textarea
-        name="notes"
-        rows="4"
-        placeholder="Notes..."
-        value={form.notes}
-        onChange={handleChange}
-        style={textareaStyle}
-      />
-
-      <button
-        disabled={saving}
-        type="submit"
-        style={{
-          marginTop: 20,
-          padding: "14px 36px",
-          fontSize: "15px",
-          fontWeight: "600",
-          background: "#2E7D32",
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          cursor: saving ? "not-allowed" : "pointer",
-          opacity: saving ? 0.7 : 1,
-        }}
-      >
-        {saving
-          ? "Saving..."
-          : animal
-          ? "Update Animal"
-          : "Save Animal"}
-      </button>
-    </form>
+          {/* Submit */}
+          <Button
+            type="submit"
+            variant="contained"
+            color="success"
+            disabled={saving}
+            startIcon={<SaveIcon />}
+            sx={{ mt: 3, px: 4, py: 1.2, fontWeight: 700, borderRadius: 2, textTransform: "none" }}
+          >
+            {saving ? "Saving..." : animal ? "Update Animal" : "Save Animal"}
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
   );
+}
+
+// ─── Helpers ────────────────────────────────────────────────
+
+function normalizeGender(gender) {
+  if (!gender) return "Female";
+  const lower = gender.toLowerCase();
+  const maleTerms = ["bull", "ram", "buck", "boar", "rooster", "male", "steer", "ox"];
+  if (maleTerms.some((t) => lower.includes(t))) return "Male";
+  return "Female";
 }

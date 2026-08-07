@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Grid, Stack } from "@mui/material";
+import { Chip, Grid, Stack } from "@mui/material";
 import GrassIcon from "@mui/icons-material/Grass";
 import AddIcon from "@mui/icons-material/Add";
 import AgricultureIcon from "@mui/icons-material/Agriculture";
@@ -27,6 +27,7 @@ import ViewToggle from "../../components/livestock/ViewToggle";
 import { getCrops } from "../../services/cropService";
 import { getWeatherSummary } from "../../services/weatherService";
 import { generateCropAnalytics } from "../../utils/cropAnalytics";
+import { getCropLifecycle, getCropLifecycleDistribution, getHarvestReadyCrops } from "../../utils/cropLifecycle";
 
 export default function CropPage() {
   const [crops, setCrops] = useState([]);
@@ -35,6 +36,7 @@ export default function CropPage() {
   const [selectedCrop, setSelectedCrop] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState("table");
+  const [lifecycleFilter, setLifecycleFilter] = useState("all");
 
   async function loadCrops() {
     setLoading(true);
@@ -67,6 +69,11 @@ export default function CropPage() {
   const harvested = crops.filter((c) => c.status === "Harvested").length;
   const totalArea = crops.reduce((sum, c) => sum + Number(c.area || 0), 0);
 
+  // Lifecycle-aware stats
+  const lifecycleDist = getCropLifecycleDistribution(crops);
+  const harvestReady = getHarvestReadyCrops(crops).length;
+  const flowering = lifecycleDist["Flowering"] || 0;
+
   if (loading) {
     return (
       <PremiumPageLayout
@@ -89,28 +96,28 @@ export default function CropPage() {
         {/* KPI Cards */}
         <PremiumKPIGrid gap={3.5}>
           <PremiumStatCard
-            label="Total Crops"
-            value={totalCrops}
-            subtitle="Registered"
+            label="Growing Fields"
+            value={growing}
+            subtitle="Active growth"
             icon={<GrassIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(46,125,50,0.12)"
             iconColor="#2E7D32"
           />
           <PremiumStatCard
-            label="Growing"
-            value={growing}
-            subtitle="Active growth"
+            label="Flowering"
+            value={flowering}
+            subtitle="In bloom"
             icon={<GrassIcon sx={{ fontSize: 28 }} />}
-            iconBg="rgba(67,160,71,0.12)"
-            iconColor="#43A047"
+            iconBg="rgba(202,138,4,0.12)"
+            iconColor="#CA8A04"
           />
           <PremiumStatCard
-            label="Harvested"
-            value={harvested}
-            subtitle="Completed"
-            icon={<AgricultureIcon sx={{ fontSize: 28 }} />}
-            iconBg="rgba(251,140,0,0.12)"
-            iconColor="#FB8C00"
+            label="Harvest Ready"
+            value={harvestReady}
+            subtitle="Ready to harvest"
+            icon={<CheckCircleIcon sx={{ fontSize: 28 }} />}
+            iconBg="rgba(180,83,9,0.12)"
+            iconColor="#B45309"
           />
           <PremiumStatCard
             label="Total Area"
@@ -163,8 +170,22 @@ export default function CropPage() {
             }
             viewToggle={<ViewToggle view={view} setView={setView} />}
           />
+          {/* Lifecycle Filter */}
+          {(() => {
+            const dist = getCropLifecycleDistribution(crops);
+            const stages = Object.keys(dist).filter((s) => s !== "Unknown");
+            if (stages.length === 0) return null;
+            return (
+              <Stack direction="row" spacing={0.75} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+                <Chip label="All Stages" size="small" variant={lifecycleFilter === "all" ? "filled" : "outlined"} color={lifecycleFilter === "all" ? "primary" : "default"} onClick={() => setLifecycleFilter("all")} sx={{ fontWeight: 600, cursor: "pointer", fontSize: "0.7rem" }} />
+                {stages.map((stage) => (
+                  <Chip key={stage} label={`${stage} (${dist[stage]})`} size="small" variant={lifecycleFilter === stage ? "filled" : "outlined"} onClick={() => setLifecycleFilter(stage)} sx={{ fontWeight: 600, cursor: "pointer", fontSize: "0.7rem", ...(lifecycleFilter === stage ? { bgcolor: "#DCFCE7", color: "#15803D" } : {}) }} />
+                ))}
+              </Stack>
+            );
+          })()}
           <CropTable
-            crops={crops}
+            crops={lifecycleFilter === "all" ? crops : crops.filter((c) => getCropLifecycle(c).lifecycleStage === lifecycleFilter)}
             onEdit={(crop) => { setSelectedCrop(crop); setShowForm(true); }}
             refreshCrops={loadCrops}
           />

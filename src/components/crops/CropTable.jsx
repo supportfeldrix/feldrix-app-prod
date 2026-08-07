@@ -24,6 +24,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
 import { deleteCrop } from "../../services/cropService";
 import { radius, transitions } from "../../design/tokens";
+import { getCropLifecycle, getCropStageColor } from "../../utils/cropLifecycle";
 
 function getStatusColor(status) {
   switch (status) {
@@ -58,7 +59,8 @@ export default function CropTable({ crops = [], onEdit, refreshCrops }) {
       (c.variety || "").toLowerCase().includes(term) ||
       (c.field_name || "").toLowerCase().includes(term) ||
       (c.status || "").toLowerCase().includes(term) ||
-      (c.growth_stage || "").toLowerCase().includes(term)
+      (c.growth_stage || "").toLowerCase().includes(term) ||
+      (getCropLifecycle(c).lifecycleStage || "").toLowerCase().includes(term)
     );
   });
 
@@ -128,11 +130,11 @@ export default function CropTable({ crops = [], onEdit, refreshCrops }) {
           <TableHead>
             <TableRow>
               <TableCell sx={headerCell}>Crop</TableCell>
-              <TableCell sx={headerCell}>Variety</TableCell>
               <TableCell sx={headerCell}>Field</TableCell>
-              <TableCell sx={headerCell}>Growth Stage</TableCell>
+              <TableCell sx={headerCell}>Lifecycle</TableCell>
+              <TableCell sx={headerCell}>Age</TableCell>
+              <TableCell sx={headerCell}>Harvest</TableCell>
               <TableCell sx={headerCell}>Area</TableCell>
-              <TableCell sx={headerCell}>Yield</TableCell>
               <TableCell sx={headerCell}>Status</TableCell>
               <TableCell sx={headerCell} align="right">Actions</TableCell>
             </TableRow>
@@ -146,7 +148,10 @@ export default function CropTable({ crops = [], onEdit, refreshCrops }) {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((crop, index) => (
+              filtered.map((crop, index) => {
+                const lc = getCropLifecycle(crop);
+                const stageColor = lc.lifecycleStage ? getCropStageColor(lc.lifecycleStage) : null;
+                return (
                 <TableRow
                   key={crop.id}
                   hover
@@ -167,12 +172,7 @@ export default function CropTable({ crops = [], onEdit, refreshCrops }) {
                     <Typography variant="body2" fontWeight={700} color="text.primary">
                       {crop.crop_name || "\u2014"}
                     </Typography>
-                  </TableCell>
-
-                  <TableCell sx={dataCell}>
-                    <Typography variant="body2" color="text.secondary">
-                      {crop.variety || "\u2014"}
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary">{crop.variety || ""}</Typography>
                   </TableCell>
 
                   <TableCell sx={dataCell}>
@@ -182,27 +182,32 @@ export default function CropTable({ crops = [], onEdit, refreshCrops }) {
                   </TableCell>
 
                   <TableCell sx={dataCell}>
-                    {crop.growth_stage ? (
-                      <Chip
-                        label={crop.growth_stage}
-                        size="small"
-                        color={getGrowthStageColor(crop.growth_stage)}
-                        sx={{ fontWeight: 600, fontSize: "0.7rem", height: 24 }}
-                      />
+                    {stageColor ? (
+                      <Chip label={lc.lifecycleStage} size="small" sx={{ fontWeight: 700, fontSize: "0.65rem", height: 22, bgcolor: stageColor.bg, color: stageColor.color }} />
                     ) : (
-                      <Typography variant="caption" color="text.disabled">{"—"}</Typography>
+                      <Typography variant="caption" color="text.disabled">—</Typography>
+                    )}
+                  </TableCell>
+
+                  <TableCell sx={dataCell}>
+                    <Typography variant="body2" color="text.secondary">
+                      {lc.ageLabel !== "No planting date" ? lc.ageLabel : "—"}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell sx={dataCell}>
+                    {lc.daysRemaining != null ? (
+                      <Typography variant="body2" color={lc.daysRemaining <= 7 ? "success.main" : "text.secondary"} fontWeight={lc.daysRemaining <= 7 ? 700 : 400}>
+                        {lc.daysRemaining === 0 ? "Ready!" : `${lc.daysRemaining}d`}
+                      </Typography>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">—</Typography>
                     )}
                   </TableCell>
 
                   <TableCell sx={dataCell}>
                     <Typography variant="body2" color="text.primary">
                       {crop.area ? `${crop.area} ${crop.area_unit || "ha"}` : "\u2014"}
-                    </Typography>
-                  </TableCell>
-
-                  <TableCell sx={dataCell}>
-                    <Typography variant="body2" color="text.primary">
-                      {crop.expected_yield ? `${crop.expected_yield} ${crop.yield_unit || "t"}` : "\u2014"}
                     </Typography>
                   </TableCell>
 
@@ -247,7 +252,7 @@ export default function CropTable({ crops = [], onEdit, refreshCrops }) {
                     </Stack>
                   </TableCell>
                 </TableRow>
-              ))
+              );})
             )}
           </TableBody>
         </Table>
