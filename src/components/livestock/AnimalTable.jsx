@@ -25,6 +25,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
 import { deleteAnimal } from "../../services/livestockService";
 import { radius, transitions } from "../../design/tokens";
+import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
 
 function getStatusColor(status) {
   switch (status) {
@@ -53,12 +54,14 @@ export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
 
   const filtered = animals.filter((animal) => {
     const term = search.toLowerCase();
+    const lifecycle = getLifecycleStage(animal);
     return (
       (animal.tag || "").toLowerCase().includes(term) ||
       (animal.animal_type || "Cattle").toLowerCase().includes(term) ||
       (animal.breed || "").toLowerCase().includes(term) ||
       (animal.gender || "").toLowerCase().includes(term) ||
-      (animal.status || "").toLowerCase().includes(term)
+      (animal.status || "").toLowerCase().includes(term) ||
+      (lifecycle.stage || "").toLowerCase().includes(term)
     );
   });
 
@@ -135,6 +138,8 @@ export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
               <TableCell sx={headerCell}>Species</TableCell>
               <TableCell sx={headerCell}>Breed</TableCell>
               <TableCell sx={headerCell}>Gender</TableCell>
+              <TableCell sx={headerCell}>Lifecycle</TableCell>
+              <TableCell sx={headerCell}>Age</TableCell>
               <TableCell sx={headerCell}>Weight</TableCell>
               <TableCell sx={headerCell}>Status</TableCell>
               <TableCell sx={headerCell} align="right">Actions</TableCell>
@@ -144,12 +149,15 @@ export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} sx={{ py: 6, textAlign: "center" }}>
+                <TableCell colSpan={9} sx={{ py: 6, textAlign: "center" }}>
                   <Typography color="text.secondary">No animals match your search.</Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((animal, index) => (
+              filtered.map((animal, index) => {
+                const lifecycle = getLifecycleStage(animal);
+                const stageColor = lifecycle.stage ? getStageColor(lifecycle.stage) : null;
+                return (
                 <TableRow
                   key={animal.id}
                   hover
@@ -189,6 +197,20 @@ export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
 
                   <TableCell sx={dataCell}>
                     <Typography variant="body2" color="text.secondary">{animal.gender}</Typography>
+                  </TableCell>
+
+                  <TableCell sx={dataCell}>
+                    {lifecycle.stage ? (
+                      <Chip label={lifecycle.stage} size="small" sx={{ fontWeight: 700, fontSize: "0.68rem", height: 24, bgcolor: stageColor.bg, color: stageColor.color }} />
+                    ) : (
+                      <Typography variant="body2" color="text.disabled">—</Typography>
+                    )}
+                  </TableCell>
+
+                  <TableCell sx={dataCell}>
+                    <Typography variant="body2" color="text.secondary">
+                      {lifecycle.ageLabel !== "Birth date not set" ? lifecycle.ageLabel : "—"}
+                    </Typography>
                   </TableCell>
 
                   <TableCell sx={dataCell}>
@@ -238,7 +260,7 @@ export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
                     </Stack>
                   </TableCell>
                 </TableRow>
-              ))
+              );})
             )}
           </TableBody>
         </Table>

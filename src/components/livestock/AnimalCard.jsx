@@ -16,6 +16,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
 import { radius, transitions, elevation } from "../../design/tokens";
+import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
 
 function getStatusColor(status) {
   switch (status) {
@@ -59,17 +60,25 @@ export default function AnimalCard({ animal, onEdit, onDelete }) {
     >
       <CardContent sx={{ p: 2.5 }}>
         <Stack spacing={2}>
-          {/* Header: Avatar + Status */}
+          {/* Header: Avatar + Status + Lifecycle */}
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box sx={{ fontSize: 44, lineHeight: 1 }}>
               {getSpeciesIcon(animal.animal_type)}
             </Box>
-            <Chip
-              label={animal.status || "Unknown"}
-              size="small"
-              color={getStatusColor(animal.status)}
-              sx={{ fontWeight: 700, fontSize: "0.7rem", height: 24 }}
-            />
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              {(() => {
+                const lc = getLifecycleStage(animal);
+                if (!lc.stage) return null;
+                const sc = getStageColor(lc.stage);
+                return <Chip label={lc.stage} size="small" sx={{ fontWeight: 700, fontSize: "0.6rem", height: 22, bgcolor: sc.bg, color: sc.color }} />;
+              })()}
+              <Chip
+                label={animal.status || "Unknown"}
+                size="small"
+                color={getStatusColor(animal.status)}
+                sx={{ fontWeight: 700, fontSize: "0.7rem", height: 24 }}
+              />
+            </Stack>
           </Stack>
 
           {/* Name + ID */}

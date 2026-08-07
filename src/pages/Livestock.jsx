@@ -30,6 +30,7 @@ import { getHealthRecords } from "../services/healthService";
 import { getBreedingRecords } from "../services/breedingService";
 import { generateLivestockAnalytics } from "../utils/livestockAnalytics";
 import { LIVESTOCK_STATUSES, ACTIVE_STATUSES } from "../constants/livestockStatus";
+import { getLifecycleStage, getLifecycleDistribution } from "../services/livestockLifecycle";
 
 export default function Livestock() {
   const [animals, setAnimals] = useState([]);
@@ -40,6 +41,7 @@ export default function Livestock() {
   const [view, setView] = useState("table");
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState("active");
+  const [lifecycleFilter, setLifecycleFilter] = useState("all");
 
   const [selectedAnimal, setSelectedAnimal] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -167,7 +169,7 @@ export default function Livestock() {
           description={`${animals.length} animals registered.`}
         >
           {/* Status Filter */}
-          <Stack direction="row" spacing={0.75} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+          <Stack direction="row" spacing={0.75} sx={{ mb: 1.5 }} flexWrap="wrap" useFlexGap>
             <Chip
               label="Active Herd"
               size="small"
@@ -200,6 +202,21 @@ export default function Livestock() {
             />
           </Stack>
 
+          {/* Lifecycle Filter */}
+          {(() => {
+            const dist = getLifecycleDistribution(animals);
+            const stages = Object.keys(dist).filter((s) => s !== "Unknown");
+            if (stages.length === 0) return null;
+            return (
+              <Stack direction="row" spacing={0.75} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+                <Chip label="All Stages" size="small" variant={lifecycleFilter === "all" ? "filled" : "outlined"} color={lifecycleFilter === "all" ? "primary" : "default"} onClick={() => setLifecycleFilter("all")} sx={{ fontWeight: 600, cursor: "pointer", fontSize: "0.7rem" }} />
+                {stages.map((stage) => (
+                  <Chip key={stage} label={`${stage} (${dist[stage]})`} size="small" variant={lifecycleFilter === stage ? "filled" : "outlined"} onClick={() => setLifecycleFilter(stage)} sx={{ fontWeight: 600, cursor: "pointer", fontSize: "0.7rem", ...(lifecycleFilter === stage ? { bgcolor: "#DBEAFE", color: "#1D4ED8" } : {}) }} />
+                ))}
+              </Stack>
+            );
+          })()}
+
           <PremiumWorkspaceToolbar
             primaryAction={
               <PremiumActionButton
@@ -215,9 +232,15 @@ export default function Livestock() {
           <LivestockView
             view={view}
             animals={
-              statusFilter === "all" ? animals
-              : statusFilter === "active" ? animals.filter((a) => ACTIVE_STATUSES.includes(a.status || "Active"))
-              : animals.filter((a) => a.status === statusFilter)
+              (() => {
+                let filtered = statusFilter === "all" ? animals
+                  : statusFilter === "active" ? animals.filter((a) => ACTIVE_STATUSES.includes(a.status || "Active"))
+                  : animals.filter((a) => a.status === statusFilter);
+                if (lifecycleFilter !== "all") {
+                  filtered = filtered.filter((a) => getLifecycleStage(a).stage === lifecycleFilter);
+                }
+                return filtered;
+              })()
             }
             onEdit={handleEdit}
             refreshAnimals={loadAnimals}

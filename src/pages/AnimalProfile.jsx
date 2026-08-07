@@ -133,15 +133,9 @@ export default function AnimalProfile() {
       <ProfileHeader animal={animal} />
 
       {/* Status & Lifecycle */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0 8px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 8px", flexWrap: "wrap" }}>
         <StatusBadge status={animal.status || "Active"} size="medium" onClick={() => setShowStatusDialog(true)} />
         <LifecycleBadge animal={animal} size="medium" />
-        {(() => {
-          const lc = getLifecycleStage(animal);
-          return lc.ageLabel && lc.ageLabel !== "Birth date not set" ? (
-            <span style={{ fontSize: "0.8rem", color: "#64748B" }}>{lc.ageLabel}</span>
-          ) : null;
-        })()}
         <button
           onClick={() => setShowStatusDialog(true)}
           style={{ border: "none", background: "none", color: "#3B82F6", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", padding: "4px 8px" }}
