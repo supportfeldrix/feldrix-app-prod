@@ -59,9 +59,22 @@ export async function updateAnimal(id, updates) {
 }
 
 export async function deleteAnimal(id) {
+  // Soft-delete: archive instead of permanently removing
   const { error } = await supabase
     .from("livestock")
-    .delete()
+    .update({ status: "Archived" })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
+/**
+ * Change an animal's lifecycle status.
+ */
+export async function changeAnimalStatus(id, newStatus) {
+  const { error } = await supabase
+    .from("livestock")
+    .update({ status: newStatus })
     .eq("id", id);
 
   if (error) throw error;

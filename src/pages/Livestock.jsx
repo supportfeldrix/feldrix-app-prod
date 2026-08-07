@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Grid, Stack } from "@mui/material";
+import { Chip, Grid, Stack } from "@mui/material";
 import PetsIcon from "@mui/icons-material/Pets";
 import AddIcon from "@mui/icons-material/Add";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -29,6 +29,7 @@ import { getAnimals } from "../services/livestockService";
 import { getHealthRecords } from "../services/healthService";
 import { getBreedingRecords } from "../services/breedingService";
 import { generateLivestockAnalytics } from "../utils/livestockAnalytics";
+import { LIVESTOCK_STATUSES, ACTIVE_STATUSES } from "../constants/livestockStatus";
 
 export default function Livestock() {
   const [animals, setAnimals] = useState([]);
@@ -38,6 +39,7 @@ export default function Livestock() {
 
   const [view, setView] = useState("table");
   const [showForm, setShowForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("active");
 
   const [selectedAnimal, setSelectedAnimal] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -164,6 +166,40 @@ export default function Livestock() {
           title="Herd Registry"
           description={`${animals.length} animals registered.`}
         >
+          {/* Status Filter */}
+          <Stack direction="row" spacing={0.75} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
+            <Chip
+              label="Active Herd"
+              size="small"
+              variant={statusFilter === "active" ? "filled" : "outlined"}
+              color={statusFilter === "active" ? "success" : "default"}
+              onClick={() => setStatusFilter("active")}
+              sx={{ fontWeight: 600, cursor: "pointer" }}
+            />
+            {LIVESTOCK_STATUSES.map((s) => (
+              <Chip
+                key={s.value}
+                label={s.label}
+                size="small"
+                variant={statusFilter === s.value ? "filled" : "outlined"}
+                onClick={() => setStatusFilter(s.value)}
+                sx={{
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  ...(statusFilter === s.value ? { bgcolor: s.bg, color: s.color, borderColor: s.color } : {}),
+                }}
+              />
+            ))}
+            <Chip
+              label="All"
+              size="small"
+              variant={statusFilter === "all" ? "filled" : "outlined"}
+              color={statusFilter === "all" ? "primary" : "default"}
+              onClick={() => setStatusFilter("all")}
+              sx={{ fontWeight: 600, cursor: "pointer" }}
+            />
+          </Stack>
+
           <PremiumWorkspaceToolbar
             primaryAction={
               <PremiumActionButton
@@ -178,7 +214,11 @@ export default function Livestock() {
           />
           <LivestockView
             view={view}
-            animals={animals}
+            animals={
+              statusFilter === "all" ? animals
+              : statusFilter === "active" ? animals.filter((a) => ACTIVE_STATUSES.includes(a.status || "Active"))
+              : animals.filter((a) => a.status === statusFilter)
+            }
             onEdit={handleEdit}
             refreshAnimals={loadAnimals}
           />

@@ -27,6 +27,8 @@ import { getAnimals } from "../services/livestockService";
 import { getWeightHistory } from "../services/weightService";
 import { getHealthHistory } from "../services/healthService";
 import { getBreedingHistory } from "../services/breedingService";
+import StatusChangeDialog from "../components/livestock/StatusChangeDialog";
+import StatusBadge from "../components/livestock/StatusBadge";
 
 export default function AnimalProfile() {
   const { id } = useParams();
@@ -41,6 +43,7 @@ export default function AnimalProfile() {
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showHealthModal, setShowHealthModal] = useState(false);
   const [showBreedingModal, setShowBreedingModal] = useState(false);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
 
   // Determine initial tab from navigation state or default to "weight"
   const sectionFromState = location.state?.section;
@@ -126,6 +129,17 @@ export default function AnimalProfile() {
       subtitle={`Viewing ${animal.tag}`}
     >
       <ProfileHeader animal={animal} />
+
+      {/* Status Badge + Change Button */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "12px 0 8px" }}>
+        <StatusBadge status={animal.status || "Active"} size="medium" onClick={() => setShowStatusDialog(true)} />
+        <button
+          onClick={() => setShowStatusDialog(true)}
+          style={{ border: "none", background: "none", color: "#3B82F6", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", padding: "4px 8px" }}
+        >
+          Change Status
+        </button>
+      </div>
 
       <AnimalInfo animal={animal} />
 
@@ -221,6 +235,13 @@ export default function AnimalProfile() {
           await loadBreedingHistory(animal.id);
           setShowBreedingModal(false);
         }}
+      />
+
+      <StatusChangeDialog
+        open={showStatusDialog}
+        onClose={() => setShowStatusDialog(false)}
+        animal={animal}
+        onStatusChanged={loadAnimal}
       />
     </PageContainer>
   );
