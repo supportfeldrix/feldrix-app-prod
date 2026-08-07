@@ -5,6 +5,7 @@ import {
   Chip,
   IconButton,
   InputAdornment,
+  LinearProgress,
   Stack,
   Table,
   TableBody,
@@ -183,7 +184,13 @@ export default function CropTable({ crops = [], onEdit, refreshCrops }) {
 
                   <TableCell sx={dataCell}>
                     {stageColor ? (
-                      <Chip label={lc.lifecycleStage} size="small" sx={{ fontWeight: 700, fontSize: "0.65rem", height: 22, bgcolor: stageColor.bg, color: stageColor.color }} />
+                      <Stack spacing={0.5}>
+                        <Chip label={lc.lifecycleStage} size="small" sx={{ fontWeight: 700, fontSize: "0.6rem", height: 20, bgcolor: stageColor.bg, color: stageColor.color, alignSelf: "flex-start" }} />
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                          <LinearProgress variant="determinate" value={lc.progressPercent} sx={{ flex: 1, height: 4, borderRadius: 2, bgcolor: `${stageColor.color}15`, "& .MuiLinearProgress-bar": { bgcolor: stageColor.color, borderRadius: 2 } }} />
+                          <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: stageColor.color, minWidth: 26 }}>{lc.progressPercent}%</Typography>
+                        </Box>
+                      </Stack>
                     ) : (
                       <Typography variant="caption" color="text.disabled">—</Typography>
                     )}

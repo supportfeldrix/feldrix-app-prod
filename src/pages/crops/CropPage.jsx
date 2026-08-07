@@ -27,7 +27,7 @@ import ViewToggle from "../../components/livestock/ViewToggle";
 import { getCrops } from "../../services/cropService";
 import { getWeatherSummary } from "../../services/weatherService";
 import { generateCropAnalytics } from "../../utils/cropAnalytics";
-import { getCropLifecycle, getCropLifecycleDistribution, getHarvestReadyCrops } from "../../utils/cropLifecycle";
+import { getCropLifecycle, getCropLifecycleDistribution, getHarvestReadyCrops, getCropStageColor } from "../../utils/cropLifecycle";
 
 export default function CropPage() {
   const [crops, setCrops] = useState([]);
@@ -178,9 +178,12 @@ export default function CropPage() {
             return (
               <Stack direction="row" spacing={0.75} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
                 <Chip label="All Stages" size="small" variant={lifecycleFilter === "all" ? "filled" : "outlined"} color={lifecycleFilter === "all" ? "primary" : "default"} onClick={() => setLifecycleFilter("all")} sx={{ fontWeight: 600, cursor: "pointer", fontSize: "0.7rem" }} />
-                {stages.map((stage) => (
-                  <Chip key={stage} label={`${stage} (${dist[stage]})`} size="small" variant={lifecycleFilter === stage ? "filled" : "outlined"} onClick={() => setLifecycleFilter(stage)} sx={{ fontWeight: 600, cursor: "pointer", fontSize: "0.7rem", ...(lifecycleFilter === stage ? { bgcolor: "#DCFCE7", color: "#15803D" } : {}) }} />
-                ))}
+                {stages.map((stage) => {
+                  const sc = getCropStageColor(stage);
+                  return (
+                    <Chip key={stage} label={`${stage} (${dist[stage]})`} size="small" variant={lifecycleFilter === stage ? "filled" : "outlined"} onClick={() => setLifecycleFilter(stage)} sx={{ fontWeight: 600, cursor: "pointer", fontSize: "0.7rem", ...(lifecycleFilter === stage ? { bgcolor: sc.bg, color: sc.color, borderColor: sc.color } : {}) }} />
+                  );
+                })}
               </Stack>
             );
           })()}
