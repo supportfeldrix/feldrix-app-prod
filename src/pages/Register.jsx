@@ -47,6 +47,12 @@ export default function Register() {
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
+        options: {
+          data: {
+            full_name: form.fullName,
+            farm_name: form.farmName,
+          },
+        },
       });
 
       if (error) throw error;
@@ -54,32 +60,10 @@ export default function Register() {
       const user = data.user;
       if (!user) throw new Error("Unable to create account.");
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert(
-          {
-            id: user.id,
-            full_name: form.fullName,
-            email: form.email,
-            farm_name: form.farmName,
-            farm_type: "Mixed Farming",
-            province: "",
-            country: "South Africa",
-            farm_size: 0,
-            preferred_units: "Metric",
-            weather_alerts: true,
-            ai_recommendations: true,
-            weekly_summary: true,
-            email_notifications: true,
-            sms_notifications: false,
-          },
-          { onConflict: "id" }
-        );
-
-      if (profileError) {
-        console.error("PROFILE INSERT FAILED", profileError);
-        throw profileError;
-      }
+      // Profile is created automatically by the database trigger (handle_new_user).
+      // The trigger fires on auth.users INSERT and creates the profiles row server-side.
+      // We pass full_name and farm_name via user_metadata so the trigger can access them,
+      // and we update the profile with full details after the user signs in (when session exists).
 
       alert("Account created successfully! Please sign in.");
       navigate("/login");
