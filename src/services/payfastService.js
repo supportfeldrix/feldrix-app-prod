@@ -166,7 +166,7 @@ export function createUpgradePayment({
   subscriptionId,
 }) {
   return createPaymentPayload({
-    amount: 99,
+    amount: 99, // Legacy fallback — actual amount comes from paymentService.js via edge function
     itemName: "FarmHand PRO Subscription",
     itemDescription: "FarmHand PRO Monthly Subscription",
     customer,

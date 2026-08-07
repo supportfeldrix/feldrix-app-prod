@@ -1,6 +1,7 @@
 import { Button, Chip, Container, Divider, Paper, Stack, Typography } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useNavigate } from "react-router-dom";
+import { PLANS } from "../constants/pricing";
 
 export default function PaymentCancelled() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function PaymentCancelled() {
             </Typography>
 
             <Typography>
-              <strong>Amount:</strong> R99.00
+              <strong>Amount:</strong> R{PLANS.pro.price}.00
             </Typography>
 
             <Typography>

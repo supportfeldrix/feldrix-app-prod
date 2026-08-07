@@ -16,6 +16,7 @@
  */
 
 import { supabase } from "../supabaseClient";
+import { getUpgradePrice } from "../constants/pricing";
 
 /**
  * Creates and submits a PayFast payment via the server-side edge function.
@@ -29,7 +30,7 @@ export async function startUpgradePayment({ customer, subscriptionId }) {
   // Call the Supabase edge function to get a signed payload
   const { data, error } = await supabase.functions.invoke("bright-service", {
     body: {
-      amount: 99,
+      amount: getUpgradePrice(),
       itemName: "Feldrix PRO Subscription",
       itemDescription: "Feldrix PRO Monthly Subscription",
       customer: {

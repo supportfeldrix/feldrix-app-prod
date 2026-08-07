@@ -16,6 +16,7 @@ import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import { getSubscription } from "../services/subscriptionService";
 import { supabase } from "../supabaseClient";
 import { getCurrentUser } from "../services/profileService";
+import { PLANS } from "../constants/pricing";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
@@ -172,7 +173,7 @@ export default function PaymentSuccess() {
                 </Typography>
 
                 <Typography>
-                  <strong>Amount:</strong> R99.00
+                  <strong>Amount:</strong> R{PLANS.pro.price}.00
                 </Typography>
 
                 <Typography>
