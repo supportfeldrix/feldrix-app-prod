@@ -47,6 +47,10 @@ const pwaConfig = isAdmin ? [] : [
       'branding/feldrix-farmer-icon.svg',
       'icons/farmer/apple-touch-icon.png',
       'icons/farmer/favicon-32x32.png',
+      'icons/farmer/icon-192x192.png',
+      'icons/farmer/icon-512x512.png',
+      'branding/feldrix-logo-green.png',
+      'branding/feldrix-logo-white.png',
     ],
     manifest: {
       name: 'Feldrix',
@@ -75,6 +79,8 @@ const pwaConfig = isAdmin ? [] : [
       globIgnores: ['**/branding/login/**', '**/branding/report-cover.png'],
       navigateFallback: '/index.html',
       navigateFallbackDenylist: [/^\/api/, /^\/functions/],
+      skipWaiting: true,
+      clientsClaim: true,
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
