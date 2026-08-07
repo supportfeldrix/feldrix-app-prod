@@ -172,7 +172,7 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
                 value={form.date_of_birth}
                 onChange={handleChange}
                 size="small"
-                InputLabelProps={{ shrink: true }}
+                slotProps={{ inputLabel: { shrink: true } }}
                 helperText={form.date_of_birth ? "Used for automatic lifecycle tracking." : "Required for automatic lifecycle tracking."}
               />
             </Grid>
@@ -185,7 +185,7 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
                 value={form.purchase_date}
                 onChange={handleChange}
                 size="small"
-                InputLabelProps={{ shrink: true }}
+                slotProps={{ inputLabel: { shrink: true } }}
               />
             </Grid>
 
