@@ -70,9 +70,11 @@ const pwaConfig = isAdmin ? [] : [
       ],
     },
     workbox: {
-      globPatterns: ['**/*.{js,css,html,ico,svg,woff,woff2}'],
+      globPatterns: ['**/*.{js,css,html,ico,svg,png,woff,woff2}'],
       maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       globIgnores: ['**/branding/login/**', '**/branding/report-cover.png'],
+      navigateFallback: '/index.html',
+      navigateFallbackDenylist: [/^\/api/, /^\/functions/],
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
