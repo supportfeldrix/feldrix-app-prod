@@ -83,7 +83,26 @@ async function verifySignature(
     return false;
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // FORENSIC LOGGING — SIGNATURE INVESTIGATION
+  // ═══════════════════════════════════════════════════════════════
+
+  console.log("══════ SIGNATURE FORENSICS ══════");
+  console.log("Received signature:", receivedSignature);
+  console.log("Passphrase present:", !!passphrase);
+  console.log("Passphrase length:", passphrase ? passphrase.length : 0);
+  console.log("Passphrase first 3 chars:", passphrase ? passphrase.substring(0, 3) + "..." : "NULL");
+  console.log("");
+  console.log("── ALL RECEIVED FIELDS ──");
+  for (const [key, value] of Object.entries(data)) {
+    console.log(`  ${key} = "${value}"`);
+  }
+  console.log("");
+
   // Build param string from all fields except signature, in received order
+  // PayFast docs: "The parameter string is created by concatenating all
+  // of the parameters sent by PayFast in the order received, URL-encoding
+  // the values, joined with &"
   let paramString = "";
   for (const [key, value] of Object.entries(data)) {
     if (key === "signature") continue;
@@ -100,9 +119,46 @@ async function verifySignature(
   // Remove trailing ampersand
   paramString = paramString.slice(0, -1);
 
+  console.log("── CANONICAL STRING (for MD5) ──");
+  console.log(paramString);
+  console.log("");
+
   const expectedSignature = await generateMd5(paramString);
 
-  return expectedSignature === receivedSignature.toLowerCase();
+  console.log("── COMPARISON ──");
+  console.log("Received :", receivedSignature.toLowerCase());
+  console.log("Calculated:", expectedSignature);
+  console.log("Match:", expectedSignature === receivedSignature.toLowerCase());
+  console.log("══════════════════════════════════");
+
+  // ═══════════════════════════════════════════════════════════════
+  // ADDITIONAL CHECK: Try WITHOUT URL-encoding (some PayFast
+  // implementations use raw values without urlencode)
+  // ═══════════════════════════════════════════════════════════════
+  let rawParamString = "";
+  for (const [key, value] of Object.entries(data)) {
+    if (key === "signature") continue;
+    if (value !== undefined && value !== null && value !== "") {
+      rawParamString += `${key}=${String(value).trim()}&`;
+    }
+  }
+  if (passphrase && passphrase.trim() !== "") {
+    rawParamString += `passphrase=${passphrase.trim()}&`;
+  }
+  rawParamString = rawParamString.slice(0, -1);
+
+  const rawSignature = await generateMd5(rawParamString);
+  console.log("── ALT CHECK (no urlencode) ──");
+  console.log("Raw canonical:", rawParamString);
+  console.log("Raw MD5:", rawSignature);
+  console.log("Raw match:", rawSignature === receivedSignature.toLowerCase());
+  console.log("══════════════════════════════════");
+
+  // Return true if either method matches
+  if (expectedSignature === receivedSignature.toLowerCase()) return true;
+  if (rawSignature === receivedSignature.toLowerCase()) return true;
+
+  return false;
 }
 
 /**

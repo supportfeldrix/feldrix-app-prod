@@ -8,6 +8,7 @@ import MachineTabs from "../components/Machinery/MachineTabs";
 import ServiceHistory from "../components/Machinery/ServiceHistory";
 import ServiceEntryModal from "../components/Machinery/ServiceEntryModal";
 import MaintenancePlan from "../components/Machinery/MaintenancePlan";
+import PhotoSection from "../components/photos/PhotoSection";
 import MaintenanceSummary from "../components/Machinery/MaintenanceSummary";
 import RunningCosts from "../components/Machinery/RunningCosts";
 import MachineNotes from "../components/Machinery/MachineNotes";
@@ -190,6 +191,8 @@ export default function MachineProfile() {
         onSave={handleSaveService}
         machine={machine}
       />
+
+      <PhotoSection module="machinery" recordId={String(machine.id)} title="Machine Photos" />
 
     </Box>
   );

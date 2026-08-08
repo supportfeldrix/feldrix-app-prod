@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 import {
   Box,
@@ -17,6 +18,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
 import { radius, transitions, elevation } from "../../design/tokens";
 import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
+import { getCoverPhoto, generateSignedUrl } from "../../services/photoService";
 
 function getStatusColor(status) {
   switch (status) {
@@ -42,6 +44,22 @@ function getSpeciesIcon(type) {
 
 export default function AnimalCard({ animal, onEdit, onDelete }) {
   const navigate = useNavigate();
+  const [coverUrl, setCoverUrl] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCover() {
+      try {
+        const cover = await getCoverPhoto("livestock", String(animal.id));
+        if (cover && !cancelled) {
+          const url = await generateSignedUrl(cover.storage_bucket, cover.thumbnail_path || cover.storage_path);
+          if (!cancelled) setCoverUrl(url);
+        }
+      } catch {}
+    }
+    loadCover();
+    return () => { cancelled = true; };
+  }, [animal.id]);
 
   return (
     <Card
@@ -60,11 +78,17 @@ export default function AnimalCard({ animal, onEdit, onDelete }) {
     >
       <CardContent sx={{ p: 2.5 }}>
         <Stack spacing={2}>
-          {/* Header: Avatar + Status + Lifecycle */}
+          {/* Header: Cover Photo / Avatar + Status + Lifecycle */}
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Box sx={{ fontSize: 44, lineHeight: 1 }}>
-              {getSpeciesIcon(animal.animal_type)}
-            </Box>
+            {coverUrl ? (
+              <Box sx={{ width: 48, height: 48, borderRadius: 2, overflow: "hidden" }}>
+                <Box component="img" src={coverUrl} alt="" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </Box>
+            ) : (
+              <Box sx={{ fontSize: 44, lineHeight: 1 }}>
+                {getSpeciesIcon(animal.animal_type)}
+              </Box>
+            )}
             <Stack direction="row" spacing={0.5} alignItems="center">
               {(() => {
                 const lc = getLifecycleStage(animal);

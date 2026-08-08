@@ -25,6 +25,7 @@ import {
   sendReply,
   markTicketRead,
 } from "../../services/supportTicketService";
+import PhotoSection from "../photos/PhotoSection";
 
 const STATUS_CONFIG = {
   open: { label: "Open", color: "#3B82F6", icon: <Circle sx={{ fontSize: 8 }} /> },
@@ -218,6 +219,11 @@ export default function MySupportTickets() {
               </Typography>
             </Box>
           )}
+
+          {/* Photo Attachments */}
+          <Box sx={{ px: 3, py: 2, borderTop: "1px solid", borderColor: "divider" }}>
+            <PhotoSection module="support" recordId={selectedTicket.id} title="Attachments" />
+          </Box>
         </CardContent>
       </Card>
     );

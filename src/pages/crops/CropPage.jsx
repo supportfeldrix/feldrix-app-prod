@@ -28,6 +28,7 @@ import { getCrops } from "../../services/cropService";
 import { getWeatherSummary } from "../../services/weatherService";
 import { generateCropAnalytics } from "../../utils/cropAnalytics";
 import { getCropLifecycle, getCropLifecycleDistribution, getHarvestReadyCrops, getCropStageColor } from "../../utils/cropLifecycle";
+import PhotoSection from "../../components/photos/PhotoSection";
 
 export default function CropPage() {
   const [crops, setCrops] = useState([]);
@@ -151,6 +152,11 @@ export default function CropPage() {
             refreshCrops={loadCrops}
             onSaved={() => { setSelectedCrop(null); setShowForm(false); }}
           />
+        )}
+
+        {/* Photo Gallery for selected crop */}
+        {selectedCrop && selectedCrop.id && (
+          <PhotoSection module="crops" recordId={String(selectedCrop.id)} title="Crop Photos" />
         )}
 
         {/* Crop Records */}

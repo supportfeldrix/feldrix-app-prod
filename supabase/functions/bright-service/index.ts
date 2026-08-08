@@ -270,6 +270,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Append signature to payload (matches SDK: $data['signature'] = $signature)
     payload.signature = signature;
 
+    // =====================================================================
+    // DIAGNOSTIC: Log the EXACT payload being returned to the frontend.
+    // The frontend submits this as an HTML form POST to PayFast.
+    // This proves what PayFast receives.
+    // =====================================================================
+    console.log("========== OUTGOING PAYFAST PAYLOAD ==========");
+    console.log("merchant_id:", payload.merchant_id);
+    console.log("return_url:", payload.return_url);
+    console.log("cancel_url:", payload.cancel_url);
+    console.log("notify_url:", payload.notify_url);
+    console.log("notify_url length:", (payload.notify_url || "").length);
+    console.log("notify_url is empty:", payload.notify_url === "");
+    console.log("m_payment_id:", payload.m_payment_id);
+    console.log("custom_str1:", payload.custom_str1);
+    console.log("item_name:", payload.item_name);
+    console.log("amount:", payload.amount);
+    console.log("signature:", payload.signature);
+    console.log("payfastUrl:", payfastUrl);
+    console.log("Total payload keys:", Object.keys(payload).length);
+    console.log("All payload keys:", Object.keys(payload).join(", "));
+    console.log("================================================");
+
     // Return signed payload
     return jsonResponse({
       success: true,

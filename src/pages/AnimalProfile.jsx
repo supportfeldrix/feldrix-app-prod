@@ -31,6 +31,7 @@ import StatusChangeDialog from "../components/livestock/StatusChangeDialog";
 import StatusBadge from "../components/livestock/StatusBadge";
 import LifecycleBadge from "../components/livestock/LifecycleBadge";
 import { getLifecycleStage } from "../services/livestockLifecycle";
+import PhotoSection from "../components/photos/PhotoSection";
 
 export default function AnimalProfile() {
   const { id } = useParams();
@@ -246,6 +247,9 @@ export default function AnimalProfile() {
         animal={animal}
         onStatusChanged={loadAnimal}
       />
+
+      {/* Photo Gallery */}
+      <PhotoSection module="livestock" recordId={animal.id} title="Animal Photos" />
     </PageContainer>
   );
 }

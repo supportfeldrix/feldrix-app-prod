@@ -40,7 +40,7 @@ export default function PaymentSuccess() {
         if (
           sub &&
           sub.plan?.toLowerCase() === "pro" &&
-          sub.status === "Active" &&
+          (sub.status === "Active" || sub.status === "active") &&
           sub.payment_provider === "PayFast"
         ) {
           setSubscription(sub);
@@ -60,7 +60,8 @@ export default function PaymentSuccess() {
         if (!cancelled) {
           setTimeout(pollSubscription, interval);
         }
-      } catch {
+      } catch (err) {
+        console.error("Poll subscription error:", err);
         attempts++;
 
         if (attempts >= maxAttempts) {
@@ -82,7 +83,13 @@ export default function PaymentSuccess() {
   async function activateSubscriptionFallback(currentSub) {
     try {
       const user = await getCurrentUser();
-      if (!user || !currentSub) {
+      if (!user) {
+        setVerifying(false);
+        return;
+      }
+
+      // If no subscription at all, can't activate
+      if (!currentSub || !currentSub.id) {
         setVerifying(false);
         return;
       }
@@ -97,7 +104,7 @@ export default function PaymentSuccess() {
           plan: "Pro",
           status: "Active",
           billing_cycle: "Monthly",
-          price: 99,
+          price: PLANS.pro.price,
           payment_provider: "PayFast",
           payment_reference: "payfast-return-" + Date.now(),
           renewal_date: nextRenewal.toISOString(),

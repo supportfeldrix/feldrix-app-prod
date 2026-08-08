@@ -63,6 +63,21 @@ export async function startUpgradePayment({ customer, subscriptionId }) {
     throw new Error("Invalid response from payment service: missing URL or payload");
   }
 
+  // DIAGNOSTIC: Log the exact payload being submitted to PayFast
+  console.log("========== PAYFAST FORM SUBMISSION ==========");
+  console.log("URL:", payfastUrl);
+  console.log("notify_url:", payload.notify_url);
+  console.log("notify_url empty:", !payload.notify_url);
+  console.log("merchant_id:", payload.merchant_id);
+  console.log("m_payment_id:", payload.m_payment_id);
+  console.log("custom_str1:", payload.custom_str1);
+  console.log("amount:", payload.amount);
+  console.log("item_name:", payload.item_name);
+  console.log("return_url:", payload.return_url);
+  console.log("cancel_url:", payload.cancel_url);
+  console.log("All keys:", Object.keys(payload).join(", "));
+  console.log("=============================================");
+
   // Build and submit the HTML form to PayFast
   submitForm(payfastUrl, payload);
 
