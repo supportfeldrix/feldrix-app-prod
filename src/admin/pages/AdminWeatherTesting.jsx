@@ -48,6 +48,11 @@ import {
   getTestAlertTypes,
 } from "../services/pushTestService";
 
+import {
+  isPushSupported,
+  getPermissionStatus,
+} from "../../services/pushNotificationService";
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -64,22 +69,34 @@ export default function AdminWeatherTesting() {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    try {
-      const [device, vapid, log, statData] = await Promise.all([
-        getDeviceStatus(),
-        Promise.resolve(getVapidStatus()),
-        getAdminNotificationLog(50),
-        getNotificationStats(),
-      ]);
-      setDeviceStatus(device);
-      setVapidStatus(vapid);
-      setNotifLog(log);
-      setStats(statData);
-    } catch (err) {
-      console.error("[AdminWeatherTesting] Load failed:", err);
-    } finally {
-      setLoading(false);
-    }
+
+    // Load each section independently — one failure must NOT block the entire page
+    let device = null;
+    let vapid = null;
+    let log = [];
+    let statData = { total: 0, sent: 0, opened: 0, dismissed: 0 };
+
+    try { device = await getDeviceStatus(); } catch (err) { console.warn("[AdminWeatherTesting] Device status failed:", err); }
+    try { vapid = getVapidStatus(); } catch (err) { console.warn("[AdminWeatherTesting] VAPID status failed:", err); }
+    try { log = await getAdminNotificationLog(50); } catch (err) { console.warn("[AdminWeatherTesting] Log fetch failed:", err); }
+    try { statData = await getNotificationStats(); } catch (err) { console.warn("[AdminWeatherTesting] Stats fetch failed:", err); }
+
+    setDeviceStatus(device || {
+      pushSupported: isPushSupported(),
+      permissionStatus: getPermissionStatus(),
+      subscriptionActive: false,
+      deviceName: "Unknown",
+      browser: "Unknown",
+      platform: "Unknown",
+      serviceWorkerActive: false,
+      lastPush: null,
+      subscriptionCount: 0,
+      registeredDevices: [],
+    });
+    setVapidStatus(vapid || { configured: false, publicKeyPresent: false, publicKeyPreview: "NOT SET", message: "Could not determine VAPID status." });
+    setNotifLog(log);
+    setStats(statData);
+    setLoading(false);
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);

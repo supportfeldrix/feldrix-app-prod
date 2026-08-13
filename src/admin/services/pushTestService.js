@@ -194,18 +194,27 @@ export function sendTestNotification(alertType, farmName = "") {
  */
 export async function triggerEdgeFunctionTest(alertType = null) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    let userId = null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id || null;
+    } catch {
+      // Auth might not be available in admin context
+    }
 
     const body = {
       type: "test",
       alertType: alertType || null,
-      userId: user?.id || null,
+      userId,
     };
 
     const { data, error } = await supabase.functions.invoke("weather-push", { body });
 
     if (error) {
-      return { success: false, message: `Edge Function error: ${error.message}` };
+      const message = error.message?.includes("not found") || error.message?.includes("404")
+        ? "Edge Function not deployed. Run: supabase functions deploy weather-push"
+        : `Edge Function error: ${error.message}`;
+      return { success: false, message };
     }
 
     if (data?.sent > 0) {
@@ -216,7 +225,7 @@ export async function triggerEdgeFunctionTest(alertType = null) {
       return { success: true, message: "Edge Function executed. No subscriptions found to push to.", data };
     }
   } catch (err) {
-    return { success: false, message: `Failed to invoke Edge Function: ${err.message}` };
+    return { success: false, message: `Failed to invoke Edge Function: ${err.message || "Network error"}` };
   }
 }
 
@@ -226,6 +235,7 @@ export async function triggerEdgeFunctionTest(alertType = null) {
 
 /**
  * Get complete device registration status for the current user.
+ * Gracefully handles missing tables (migration not yet run).
  */
 export async function getDeviceStatus() {
   const status = {
@@ -238,13 +248,17 @@ export async function getDeviceStatus() {
     serviceWorkerActive: false,
     lastPush: null,
     subscriptionCount: 0,
+    registeredDevices: [],
+    error: null,
   };
 
   // Check service worker
-  if ("serviceWorker" in navigator) {
-    const reg = await navigator.serviceWorker.getRegistration("/sw-weather.js");
-    status.serviceWorkerActive = !!reg?.active;
-  }
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration("/sw-weather.js");
+      status.serviceWorkerActive = !!reg?.active;
+    }
+  } catch { /* non-blocking */ }
 
   // Check subscription in browser
   if (isPushSupported() && navigator.serviceWorker) {
@@ -255,32 +269,45 @@ export async function getDeviceStatus() {
     } catch { /* unavailable */ }
   }
 
-  // Check Supabase for user's subscriptions
+  // Check Supabase for user's subscriptions (table may not exist yet)
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: subs } = await supabase
-        .from("push_subscriptions")
-        .select("id, device_name, browser, platform, last_seen, created_at")
-        .eq("user_id", user.id)
-        .order("last_seen", { ascending: false });
+      // Query push_subscriptions — may 404 if table doesn't exist
+      try {
+        const { data: subs, error: subsError } = await supabase
+          .from("push_subscriptions")
+          .select("id, device_name, browser, platform, last_seen, created_at")
+          .eq("user_id", user.id)
+          .order("last_seen", { ascending: false });
 
-      status.subscriptionCount = subs?.length || 0;
-      status.registeredDevices = subs || [];
+        if (!subsError && subs) {
+          status.subscriptionCount = subs.length;
+          status.registeredDevices = subs;
+        }
+      } catch {
+        // Table doesn't exist yet — that's OK
+      }
 
-      // Last push from history
-      const { data: lastPush } = await supabase
-        .from("notification_history")
-        .select("sent_at, title, status")
-        .eq("user_id", user.id)
-        .order("sent_at", { ascending: false })
-        .limit(1);
+      // Query notification_history — may 404 if table doesn't exist
+      try {
+        const { data: lastPush, error: histError } = await supabase
+          .from("notification_history")
+          .select("sent_at, title, status")
+          .eq("user_id", user.id)
+          .order("sent_at", { ascending: false })
+          .limit(1);
 
-      if (lastPush && lastPush.length > 0) {
-        status.lastPush = lastPush[0];
+        if (!histError && lastPush && lastPush.length > 0) {
+          status.lastPush = lastPush[0];
+        }
+      } catch {
+        // Table doesn't exist yet — that's OK
       }
     }
-  } catch { /* non-blocking */ }
+  } catch (err) {
+    status.error = "Could not fetch user data.";
+  }
 
   return status;
 }
@@ -311,6 +338,7 @@ export function getVapidStatus() {
 
 /**
  * Check if the weather-push Edge Function is reachable and responding.
+ * Returns offline status if the function is not deployed yet.
  */
 export async function checkEdgeFunctionHealth() {
   try {
@@ -323,9 +351,13 @@ export async function checkEdgeFunctionHealth() {
     const responseTime = Date.now() - startTime;
 
     if (error) {
+      // Edge Function not deployed or unreachable
+      const message = error.message?.includes("not found") || error.message?.includes("404")
+        ? "Edge Function not deployed yet. Run: supabase functions deploy weather-push"
+        : `Edge Function error: ${error.message}`;
       return {
         online: false,
-        message: `Edge Function error: ${error.message}`,
+        message,
         responseTime: null,
         lastRun: null,
       };
@@ -337,11 +369,13 @@ export async function checkEdgeFunctionHealth() {
       responseTime,
       data,
       lastRun: data?.timestamp || null,
+      version: data?.version || "unknown",
+      vapidConfigured: data?.vapidConfigured || false,
     };
   } catch (err) {
     return {
       online: false,
-      message: `Cannot reach Edge Function: ${err.message}`,
+      message: `Cannot reach Edge Function: ${err.message || "Network error"}`,
       responseTime: null,
       lastRun: null,
     };
@@ -354,6 +388,7 @@ export async function checkEdgeFunctionHealth() {
 
 /**
  * Get notification history for all users (admin view).
+ * Returns empty array if table doesn't exist yet (migration not run).
  * @param {number} limit - Max entries to return
  */
 export async function getAdminNotificationLog(limit = 50) {
@@ -378,6 +413,11 @@ export async function getAdminNotificationLog(limit = 50) {
       .limit(limit);
 
     if (error) {
+      // Table doesn't exist (404) or permission denied (400/406)
+      if (error.code === "42P01" || error.message?.includes("does not exist") || error.code === "PGRST116") {
+        console.info("[PushTest] notification_history table not created yet. Run the migration.");
+        return [];
+      }
       console.error("[PushTest] Failed to fetch log:", error.message);
       return [];
     }
@@ -390,6 +430,7 @@ export async function getAdminNotificationLog(limit = 50) {
 
 /**
  * Get notification stats summary.
+ * Returns zero counts if table doesn't exist yet.
  */
 export async function getNotificationStats() {
   try {
