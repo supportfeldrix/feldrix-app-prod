@@ -94,7 +94,7 @@ function HeroHeader({ greeting, summary, farmName, farmRegion }) {
             letterSpacing: "0.01em",
           }}
         >
-          {farmName}{farmName && farmRegion ? " \u2022 " : ""}{farmRegion}
+          {farmName}{farmName && farmRegion ? " • " : ""}{farmRegion}
         </div>
       )}
       <div
@@ -170,7 +170,7 @@ function WeatherPanel({ weather, weatherText, riskBadge }) {
           )}
           <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4, fontWeight: 400 }}>
             {weather.current?.humidity ? `Humidity ${weather.current.humidity}%` : ""}
-            {weather.current?.humidity && weather.current?.windSpeed ? " \u2022 " : ""}
+            {weather.current?.humidity && weather.current?.windSpeed ? " • " : ""}
             {weather.current?.windSpeed ? `Wind ${weather.current.windSpeed} km/h` : ""}
           </div>
           {riskBadge && riskBadge.level !== "LOW" && (

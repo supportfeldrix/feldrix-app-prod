@@ -438,7 +438,7 @@ function TaskRow({ task, accent, navigate }) {
             {task.title || task.task || "Untitled Task"}
           </Typography>
           <Typography variant="caption" color="text.disabled" noWrap>
-            {task.module || task.category || ""}{task.due_date ? ` \u2022 ${new Date(task.due_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}` : ""}
+            {task.module || task.category || ""}{task.due_date ? ` • ${new Date(task.due_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}` : ""}
           </Typography>
         </Stack>
 

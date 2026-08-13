@@ -1,47 +1,80 @@
 /**
  * Feldrix — Push Notification Service
- * Version 1.1 — Farm Weather Intelligence Platform
+ * Version 1.2 — Weather Push Notification Platform
  *
- * Provides Web Push API integration for critical weather alerts.
- * Sends native device notifications for:
- *   - Freeze Warning
- *   - Storm Warning
- *   - Flood Warning
- *   - Heatwave Warning
- *   - Lightning Alert
- *   - Hail Warning
- *   - High Wind Warning
+ * Production-ready push notification system using ONLY:
+ *   - Browser Push API (Notification + Service Worker)
+ *   - Supabase (subscription storage + notification history)
+ *   - Existing Weather Intelligence Engine
  *
- * Example push:
- *   🚨 Freeze Expected Tonight
- *   Protect vulnerable livestock before 21:00.
- *   Tap to view preparation checklist.
+ * NO third-party services: No Firebase, OneSignal, Pusher, AWS SNS.
  *
- * Architecture:
- *   1. Request notification permission on first login
- *   2. Register service worker for background notifications
- *   3. Weather Intelligence Engine marks notifications as pushEligible
- *   4. This service dispatches them as native push notifications
- *   5. Clicking notification opens the Weather Intelligence page
+ * Responsibilities:
+ *   1. Request browser notification permission
+ *   2. Register push subscription (stored in Supabase)
+ *   3. Send browser push notifications for critical weather
+ *   4. Handle notification click → deep link to Weather page
+ *   5. Prevent duplicate notifications (cooldown logic)
+ *   6. Track notification history (sent/opened/dismissed)
+ *   7. Respect per-alert-type user settings
  *
- * Requirements:
- *   - HTTPS (required for Push API)
- *   - Service Worker registered (vite-plugin-pwa handles this)
- *   - User grants notification permission
+ * Device Support:
+ *   - Desktop browsers (Chrome, Edge, Firefox, Safari 16+)
+ *   - Android Browser & installed PWA
+ *   - iPhone Browser & installed PWA (iOS 16.4+)
+ *   - Smart watches receive notifications via paired phone OS
  */
+
+import { supabase } from "../supabaseClient";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const PUSH_STORAGE_KEY = "feldrix_push_settings";
-const SENT_NOTIFICATIONS_KEY = "feldrix_push_sent";
-const MAX_SENT_HISTORY = 50;
-const COOLDOWN_MS = 60 * 60 * 1000; // Don't resend same alert type within 1 hour
+const PERMISSION_STORAGE_KEY = "feldrix_push_permission_state";
+const SETTINGS_STORAGE_KEY = "feldrix_push_settings";
+const COOLDOWN_STORAGE_KEY = "feldrix_push_cooldowns";
+const HISTORY_STORAGE_KEY = "feldrix_push_history";
 
-// App icon for notifications
-const NOTIFICATION_ICON = "/Branding/app-icon-1024.png";
-const NOTIFICATION_BADGE = "/Branding/app-icon-1024.png";
+// Cooldown: don't resend same alert type within this period
+const COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+// Maximum history entries stored locally
+const MAX_LOCAL_HISTORY = 100;
+
+// App branding
+const APP_ICON = "/Branding/app-icon-192.png";
+const APP_BADGE = "/Branding/app-icon-192.png";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEFAULT NOTIFICATION SETTINGS — Per alert type
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const DEFAULT_SETTINGS = {
+  // Critical weather
+  freeze: true,
+  frost: true,
+  storm: true,
+  heavy_rain: true,
+  lightning: true,
+  heatwave: true,
+  wind: true,
+  fire_danger: true,
+  flood: true,
+  hail: true,
+
+  // Farm-specific
+  livestock_alerts: true,
+  crop_alerts: true,
+  machinery_alerts: false,
+
+  // Scheduled
+  morning_brief: true,
+  morning_brief_time: "07:00",
+
+  // Global
+  enabled: true,
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PERMISSION MANAGEMENT
@@ -49,13 +82,9 @@ const NOTIFICATION_BADGE = "/Branding/app-icon-1024.png";
 
 /**
  * Check if the browser supports push notifications.
- * @returns {boolean}
  */
 export function isPushSupported() {
-  return (
-    "Notification" in window &&
-    "serviceWorker" in navigator
-  );
+  return "Notification" in window && "serviceWorker" in navigator;
 }
 
 /**
@@ -68,29 +97,86 @@ export function getPermissionStatus() {
 }
 
 /**
+ * Check if permission has been requested before (regardless of outcome).
+ * Used to avoid re-prompting the farmer.
+ */
+export function hasPermissionBeenRequested() {
+  try {
+    const state = JSON.parse(localStorage.getItem(PERMISSION_STORAGE_KEY) || "{}");
+    return state.requested === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if the user chose "Remind Me Later" and how long ago.
+ * Returns true if we should show the prompt again (after 7 days).
+ */
+export function shouldShowPermissionPrompt() {
+  if (!isPushSupported()) return false;
+  if (Notification.permission === "granted") return false;
+  if (Notification.permission === "denied") return false;
+
+  try {
+    const state = JSON.parse(localStorage.getItem(PERMISSION_STORAGE_KEY) || "{}");
+
+    // Never asked before
+    if (!state.requested) return true;
+
+    // Was dismissed with "remind later" — show again after 7 days
+    if (state.remindLater) {
+      const elapsed = Date.now() - (state.remindLaterAt || 0);
+      return elapsed > 7 * 24 * 60 * 60 * 1000;
+    }
+
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Record that the user chose "Remind Me Later".
+ */
+export function setRemindLater() {
+  try {
+    localStorage.setItem(PERMISSION_STORAGE_KEY, JSON.stringify({
+      requested: true,
+      remindLater: true,
+      remindLaterAt: Date.now(),
+    }));
+  } catch { /* unavailable */ }
+}
+
+/**
  * Request notification permission from the user.
- * Shows the browser's native permission dialog.
+ * Records the decision so we don't re-prompt.
  *
  * @returns {Promise<"granted" | "denied" | "default">}
  */
 export async function requestPermission() {
-  if (!isPushSupported()) {
-    console.warn("[Push] Notifications not supported in this browser.");
-    return "unsupported";
-  }
+  if (!isPushSupported()) return "unsupported";
 
   if (Notification.permission === "granted") {
+    recordPermissionState("granted");
     return "granted";
   }
 
   if (Notification.permission === "denied") {
-    console.warn("[Push] Notifications previously denied by user.");
+    recordPermissionState("denied");
     return "denied";
   }
 
   try {
     const result = await Notification.requestPermission();
-    savePushSettings({ permissionRequested: true, permissionResult: result, requestedAt: new Date().toISOString() });
+    recordPermissionState(result);
+
+    // If granted, register the subscription
+    if (result === "granted") {
+      await registerSubscription();
+    }
+
     return result;
   } catch (err) {
     console.error("[Push] Permission request failed:", err);
@@ -98,85 +184,174 @@ export async function requestPermission() {
   }
 }
 
-/**
- * Check if push notifications are enabled (permission granted + user hasn't disabled).
- * @returns {boolean}
- */
-export function isPushEnabled() {
-  if (!isPushSupported()) return false;
-  if (Notification.permission !== "granted") return false;
-
-  const settings = getPushSettings();
-  return settings.enabled !== false; // Default to enabled if not explicitly disabled
-}
-
-/**
- * Enable or disable push notifications (user preference toggle).
- * @param {boolean} enabled
- */
-export function setPushEnabled(enabled) {
-  const settings = getPushSettings();
-  settings.enabled = enabled;
-  savePushSettings(settings);
+function recordPermissionState(result) {
+  try {
+    localStorage.setItem(PERMISSION_STORAGE_KEY, JSON.stringify({
+      requested: true,
+      result,
+      remindLater: false,
+      grantedAt: result === "granted" ? Date.now() : undefined,
+      deniedAt: result === "denied" ? Date.now() : undefined,
+    }));
+  } catch { /* unavailable */ }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// NOTIFICATION DISPATCH
+// SUBSCRIPTION MANAGEMENT — Stored in Supabase
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Send a push notification for a critical weather alert.
- * Respects cooldown period to avoid spamming the same alert.
- *
- * @param {object} notification - Weather notification object (from weatherNotifications.js)
- * @param {string} notification.title - Alert title
- * @param {string} notification.message - Alert body
- * @param {string} notification.icon - Emoji icon
- * @param {string} notification.alertType - Alert type identifier (for cooldown tracking)
- * @param {boolean} notification.pushEligible - Must be true
- * @returns {boolean} Whether the notification was actually sent
+ * Register the push subscription in Supabase.
+ * Stores device info so the Edge Function can send targeted notifications.
  */
-export function sendPushNotification(notification) {
-  if (!isPushEnabled()) return false;
-  if (!notification.pushEligible) return false;
-
-  // Check cooldown — don't resend same type within 1 hour
-  const alertType = notification.alertType || notification.type || "unknown";
-  if (isInCooldown(alertType)) return false;
+export async function registerSubscription() {
+  if (!isPushSupported()) return null;
+  if (Notification.permission !== "granted") return null;
 
   try {
-    const title = `\uD83D\uDEA8 ${notification.title}`;
+    const registration = await navigator.serviceWorker.ready;
+
+    // Get or create push subscription
+    let subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      // Generate VAPID public key from env (required for push subscription)
+      const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        console.warn("[Push] VITE_VAPID_PUBLIC_KEY not set. Push subscription requires VAPID keys.");
+        // Fallback: use local-only notifications (no server push)
+        return null;
+      }
+
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      });
+    }
+
+    // Store in Supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return subscription;
+
+    const subscriptionData = {
+      user_id: user.id,
+      subscription_json: JSON.stringify(subscription.toJSON()),
+      device_name: getDeviceName(),
+      browser: getBrowserName(),
+      platform: getPlatformName(),
+      last_seen: new Date().toISOString(),
+    };
+
+    // Upsert — update if same user+endpoint exists, insert otherwise
+    const endpoint = subscription.endpoint;
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .upsert(
+        { ...subscriptionData, endpoint },
+        { onConflict: "user_id,endpoint" }
+      );
+
+    if (error) {
+      console.error("[Push] Failed to save subscription:", error.message);
+    } else {
+      console.info("[Push] Subscription registered successfully.");
+    }
+
+    return subscription;
+  } catch (err) {
+    console.error("[Push] Subscription registration failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Unregister push subscription (when user disables notifications).
+ */
+export async function unregisterSubscription() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+
+    if (subscription) {
+      await subscription.unsubscribe();
+
+      // Remove from Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("push_subscriptions")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("endpoint", subscription.endpoint);
+      }
+    }
+  } catch (err) {
+    console.error("[Push] Unsubscribe failed:", err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATION DISPATCH — Client-side (immediate)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Send a local push notification for a weather alert.
+ * Used when the app is open and detects critical weather.
+ * The Supabase Edge Function handles background push when the app is closed.
+ *
+ * @param {object} alert - Weather alert from Intelligence Engine
+ * @returns {boolean} Whether notification was sent
+ */
+export function sendWeatherNotification(alert) {
+  if (!canSendNotification(alert)) return false;
+
+  const settings = getSettings();
+  if (!settings.enabled) return false;
+
+  // Check per-type setting
+  if (!isAlertTypeEnabled(alert.type || alert.alertType, settings)) return false;
+
+  // Check cooldown
+  if (isInCooldown(alert.type || alert.alertType)) return false;
+
+  try {
+    const { title, body, tag } = formatNotification(alert);
+
     const options = {
-      body: formatPushBody(notification),
-      icon: NOTIFICATION_ICON,
-      badge: NOTIFICATION_BADGE,
-      tag: `feldrix-weather-${alertType}`, // Replaces existing notification of same tag
+      body,
+      icon: APP_ICON,
+      badge: APP_BADGE,
+      tag, // Replaces existing notification of same type
       renotify: true,
-      requireInteraction: true, // Don't auto-dismiss critical alerts
-      vibrate: [200, 100, 200, 100, 200], // Vibration pattern for urgency
+      requireInteraction: alert.priority === "Critical",
+      vibrate: alert.priority === "Critical" ? [200, 100, 200, 100, 200] : [200, 100, 200],
       data: {
-        url: "/weather",
-        alertType,
+        url: "/weather#alerts",
+        alertType: alert.type || alert.alertType,
+        alertId: alert.id,
         timestamp: Date.now(),
+        farmName: alert.farmName || "",
       },
       actions: [
-        { action: "view", title: "View Checklist" },
+        { action: "view", title: "View Details" },
         { action: "dismiss", title: "Dismiss" },
       ],
     };
 
-    // Try Service Worker notification first (works in background)
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    // Use Service Worker for background support
+    if (navigator.serviceWorker?.controller) {
       navigator.serviceWorker.ready.then((registration) => {
         registration.showNotification(title, options);
       });
     } else {
-      // Fallback to basic Notification API (only works when tab is open)
+      // Fallback to Notification API (foreground only)
       new Notification(title, options);
     }
 
-    // Record that we sent this alert type
-    recordSentNotification(alertType);
+    // Record cooldown and history
+    recordCooldown(alert.type || alert.alertType);
+    recordNotificationSent(alert);
+
     return true;
   } catch (err) {
     console.error("[Push] Failed to send notification:", err);
@@ -185,23 +360,368 @@ export function sendPushNotification(notification) {
 }
 
 /**
- * Process an array of weather notifications and send push for eligible ones.
- * Called by WeatherContext after each refresh.
+ * Process an array of weather notifications from the Intelligence Engine.
+ * Sends push for Critical and High priority alerts that are enabled.
  *
- * @param {Array} notifications - Array of notification objects from the intelligence engine
- * @returns {number} Number of notifications actually sent
+ * @param {Array} notifications - From generateWeatherNotifications()
+ * @param {object} context - { farmName }
+ * @returns {number} Number of notifications sent
  */
-export function processWeatherPushNotifications(notifications) {
-  if (!isPushEnabled()) return 0;
-  if (!Array.isArray(notifications)) return 0;
+export function processWeatherAlerts(notifications, context = {}) {
+  if (!Array.isArray(notifications) || notifications.length === 0) return 0;
+  if (Notification.permission !== "granted") return 0;
+
+  const settings = getSettings();
+  if (!settings.enabled) return 0;
 
   let sent = 0;
+
   for (const notification of notifications) {
-    if (notification.pushEligible && sendPushNotification(notification)) {
+    // Only push Critical and High priority
+    if (notification.priority !== "Critical" && notification.priority !== "High") continue;
+
+    const enriched = { ...notification, farmName: context.farmName || "" };
+    if (sendWeatherNotification(enriched)) {
       sent++;
     }
   }
+
   return sent;
+}
+
+/**
+ * Send the Morning Farm Brief notification.
+ * Called by the scheduled check or manually from settings.
+ *
+ * @param {object} briefData - { riskLevel, temperature, condition, recommendations }
+ */
+export function sendMorningBrief(briefData) {
+  const settings = getSettings();
+  if (!settings.enabled || !settings.morning_brief) return false;
+
+  if (Notification.permission !== "granted") return false;
+  if (isInCooldown("morning_brief")) return false;
+
+  const title = "☀️ Good Morning — Farm Brief";
+  const body = [
+    `Today's Risk: ${briefData.riskLevel || "LOW"}`,
+    `Weather: ${briefData.temperature || "—"}°C, ${briefData.condition || "Clear"}`,
+    briefData.recommendations?.[0] || "No severe weather expected.",
+  ].join("\n");
+
+  try {
+    const options = {
+      body,
+      icon: APP_ICON,
+      badge: APP_BADGE,
+      tag: "feldrix-morning-brief",
+      renotify: false,
+      data: { url: "/weather", alertType: "morning_brief", timestamp: Date.now() },
+      actions: [
+        { action: "view", title: "Open Dashboard" },
+        { action: "dismiss", title: "Dismiss" },
+      ],
+    };
+
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, options));
+    } else {
+      new Notification(title, options);
+    }
+
+    recordCooldown("morning_brief");
+    recordNotificationSent({ type: "morning_brief", title, priority: "Info", message: body });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATION FORMATTING — Smart, farm-aware messages
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function formatNotification(alert) {
+  const type = alert.type || alert.alertType || "weather";
+  const farmName = alert.farmName || "";
+  const farmPrefix = farmName ? `${farmName} — ` : "";
+
+  // Priority-based emoji prefix
+  const priorityEmoji = alert.priority === "Critical" ? "🚨" : "⚠️";
+
+  const title = `${priorityEmoji} ${alert.title || "Weather Alert"}`;
+
+  // Build rich body with farm context
+  const bodyParts = [];
+
+  if (farmName) bodyParts.push(`Farm: ${farmName}`);
+
+  // Add specific details based on alert type
+  if (alert.details?.expectedMin != null) {
+    bodyParts.push(`Expected: ${alert.details.expectedMin}°C`);
+  }
+  if (alert.details?.expectedMax != null) {
+    bodyParts.push(`Expected: ${alert.details.expectedMax}°C`);
+  }
+  if (alert.details?.expectedRainfall != null) {
+    bodyParts.push(`Rainfall: ${alert.details.expectedRainfall}mm`);
+  }
+  if (alert.details?.expectedWind != null) {
+    bodyParts.push(`Wind: ${alert.details.expectedWind} km/h`);
+  }
+
+  // First recommendation
+  if (alert.advice && alert.advice.length > 0) {
+    bodyParts.push(`\n${alert.advice[0]}`);
+  } else if (alert.message) {
+    bodyParts.push(alert.message);
+  }
+
+  const body = bodyParts.join("\n") || alert.message || "Tap to view details.";
+  const tag = `feldrix-${type.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+
+  return { title, body, tag };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COOLDOWN LOGIC — Prevent duplicate notifications
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function isInCooldown(alertType) {
+  try {
+    const cooldowns = JSON.parse(localStorage.getItem(COOLDOWN_STORAGE_KEY) || "{}");
+    const lastSent = cooldowns[alertType];
+    if (!lastSent) return false;
+    return Date.now() - lastSent < COOLDOWN_MS;
+  } catch {
+    return false;
+  }
+}
+
+function recordCooldown(alertType) {
+  try {
+    const cooldowns = JSON.parse(localStorage.getItem(COOLDOWN_STORAGE_KEY) || "{}");
+    cooldowns[alertType] = Date.now();
+
+    // Clean old entries (older than 24h)
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    for (const key of Object.keys(cooldowns)) {
+      if (cooldowns[key] < cutoff) delete cooldowns[key];
+    }
+
+    localStorage.setItem(COOLDOWN_STORAGE_KEY, JSON.stringify(cooldowns));
+  } catch { /* unavailable */ }
+}
+
+/**
+ * Clear all cooldowns (e.g., for testing or when farmer explicitly requests).
+ */
+export function clearCooldowns() {
+  try {
+    localStorage.removeItem(COOLDOWN_STORAGE_KEY);
+  } catch { /* unavailable */ }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATION SETTINGS — Per alert type
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get notification settings (merged with defaults).
+ */
+export function getSettings() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || "{}");
+    return { ...DEFAULT_SETTINGS, ...stored };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+/**
+ * Save notification settings.
+ * @param {object} settings - Partial settings to merge
+ */
+export function saveSettings(settings) {
+  try {
+    const current = getSettings();
+    const merged = { ...current, ...settings };
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(merged));
+
+    // Sync to Supabase for Edge Function access
+    syncSettingsToSupabase(merged);
+
+    return merged;
+  } catch {
+    return getSettings();
+  }
+}
+
+/**
+ * Check if a specific alert type is enabled in settings.
+ */
+function isAlertTypeEnabled(alertType, settings) {
+  const typeMap = {
+    FREEZE: "freeze",
+    FROST: "frost",
+    STORM: "storm",
+    HEAVY_RAIN: "heavy_rain",
+    LIGHTNING: "lightning",
+    HEATWAVE: "heatwave",
+    HIGH_WIND: "wind",
+    FLOOD: "flood",
+    HAIL: "hail",
+    FIRE_DANGER: "fire_danger",
+    // Mapped alert types from intelligence engine
+    weather_freeze: "freeze",
+    weather_frost: "frost",
+    weather_storm: "storm",
+    weather_heavy_rain: "heavy_rain",
+    weather_lightning: "lightning",
+    weather_heatwave: "heatwave",
+    weather_high_wind: "wind",
+    weather_flood: "flood",
+    weather_hail: "hail",
+  };
+
+  const settingKey = typeMap[alertType] || typeMap[alertType?.toUpperCase()];
+  if (!settingKey) return true; // Unknown types default to enabled
+  return settings[settingKey] !== false;
+}
+
+/**
+ * Sync settings to Supabase so Edge Function can respect preferences.
+ */
+async function syncSettingsToSupabase(settings) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase
+      .from("push_subscriptions")
+      .update({ notification_settings: settings, last_seen: new Date().toISOString() })
+      .eq("user_id", user.id);
+  } catch {
+    // Non-blocking — local settings still work
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NOTIFICATION HISTORY — Stored locally + synced to Supabase
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Record that a notification was sent.
+ */
+function recordNotificationSent(alert) {
+  const entry = {
+    id: `${alert.type || alert.alertType}-${Date.now()}`,
+    alertType: alert.type || alert.alertType,
+    title: alert.title || "Weather Alert",
+    message: alert.message || "",
+    priority: alert.priority || "High",
+    status: "sent",
+    sentAt: new Date().toISOString(),
+    openedAt: null,
+    dismissedAt: null,
+  };
+
+  // Store locally
+  const history = getLocalHistory();
+  history.unshift(entry);
+  while (history.length > MAX_LOCAL_HISTORY) history.pop();
+  saveLocalHistory(history);
+
+  // Store in Supabase (non-blocking)
+  storeHistoryInSupabase(entry);
+}
+
+/**
+ * Record that a notification was opened (clicked).
+ */
+export function recordNotificationOpened(alertType) {
+  const history = getLocalHistory();
+  const entry = history.find((h) => h.alertType === alertType && h.status === "sent");
+  if (entry) {
+    entry.status = "opened";
+    entry.openedAt = new Date().toISOString();
+    saveLocalHistory(history);
+    updateHistoryInSupabase(entry.id, "opened");
+  }
+}
+
+/**
+ * Record that a notification was dismissed.
+ */
+export function recordNotificationDismissed(alertType) {
+  const history = getLocalHistory();
+  const entry = history.find((h) => h.alertType === alertType && h.status === "sent");
+  if (entry) {
+    entry.status = "dismissed";
+    entry.dismissedAt = new Date().toISOString();
+    saveLocalHistory(history);
+    updateHistoryInSupabase(entry.id, "dismissed");
+  }
+}
+
+/**
+ * Get notification history (local).
+ */
+export function getNotificationHistory() {
+  return getLocalHistory();
+}
+
+function getLocalHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalHistory(history) {
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+  } catch { /* unavailable */ }
+}
+
+async function storeHistoryInSupabase(entry) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from("notification_history").insert({
+      user_id: user.id,
+      notification_id: entry.id,
+      alert_type: entry.alertType,
+      title: entry.title,
+      message: entry.message,
+      priority: entry.priority,
+      status: entry.status,
+      sent_at: entry.sentAt,
+    });
+  } catch {
+    // Non-blocking
+  }
+}
+
+async function updateHistoryInSupabase(notificationId, status) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const updateData = { status };
+    if (status === "opened") updateData.opened_at = new Date().toISOString();
+    if (status === "dismissed") updateData.dismissed_at = new Date().toISOString();
+
+    await supabase
+      .from("notification_history")
+      .update(updateData)
+      .eq("notification_id", notificationId)
+      .eq("user_id", user.id);
+  } catch {
+    // Non-blocking
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -209,135 +729,12 @@ export function processWeatherPushNotifications(notifications) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Register the service worker for push notifications.
- * vite-plugin-pwa typically handles this, but we ensure it's ready.
+ * Initialize the push notification system.
+ * Call once on app startup.
  *
- * @returns {Promise<ServiceWorkerRegistration|null>}
- */
-export async function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) {
-    console.warn("[Push] Service Worker not supported.");
-    return null;
-  }
-
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    console.info("[Push] Service Worker ready for push notifications.");
-    return registration;
-  } catch (err) {
-    console.error("[Push] Service Worker registration failed:", err);
-    return null;
-  }
-}
-
-/**
- * Set up the notification click handler for the service worker.
- * Navigates to /weather when a weather notification is clicked.
- */
-export function setupNotificationClickHandler() {
-  if (!("serviceWorker" in navigator)) return;
-
-  navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data?.type === "NOTIFICATION_CLICK") {
-      const url = event.data.url || "/weather";
-      window.location.href = url;
-    }
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Format the push notification body text.
- * Adds the first recommendation as an actionable line.
- */
-function formatPushBody(notification) {
-  let body = notification.message || "";
-
-  // Add first advice item if available
-  if (notification.advice && notification.advice.length > 0) {
-    body += `\n${notification.advice[0]}`;
-  }
-
-  body += "\nTap to view preparation checklist.";
-  return body;
-}
-
-/**
- * Check if an alert type is in cooldown period.
- * @param {string} alertType
- * @returns {boolean}
- */
-function isInCooldown(alertType) {
-  const sent = getSentNotifications();
-  const lastSent = sent.find((s) => s.alertType === alertType);
-
-  if (!lastSent) return false;
-  return Date.now() - lastSent.timestamp < COOLDOWN_MS;
-}
-
-/**
- * Record a sent notification for cooldown tracking.
- * @param {string} alertType
- */
-function recordSentNotification(alertType) {
-  const sent = getSentNotifications();
-  sent.push({ alertType, timestamp: Date.now() });
-
-  // Keep only recent entries
-  while (sent.length > MAX_SENT_HISTORY) {
-    sent.shift();
-  }
-
-  try {
-    localStorage.setItem(SENT_NOTIFICATIONS_KEY, JSON.stringify(sent));
-  } catch { /* unavailable */ }
-}
-
-/**
- * Get the history of sent push notifications.
- * @returns {Array}
- */
-function getSentNotifications() {
-  try {
-    return JSON.parse(localStorage.getItem(SENT_NOTIFICATIONS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SETTINGS PERSISTENCE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function getPushSettings() {
-  try {
-    return JSON.parse(localStorage.getItem(PUSH_STORAGE_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function savePushSettings(settings) {
-  try {
-    const current = getPushSettings();
-    localStorage.setItem(PUSH_STORAGE_KEY, JSON.stringify({ ...current, ...settings }));
-  } catch { /* unavailable */ }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// INITIALIZATION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Initialize push notification system.
- * Call this once on app startup (e.g., in App.jsx or WeatherContext).
- *
- * - Registers service worker
- * - Sets up click handlers
- * - Does NOT request permission (that should be user-initiated)
+ * - Ensures service worker is ready
+ * - Sets up message listener for notification clicks
+ * - Re-registers subscription if permission was previously granted
  */
 export async function initializePushNotifications() {
   if (!isPushSupported()) {
@@ -345,8 +742,101 @@ export async function initializePushNotifications() {
     return;
   }
 
-  await registerServiceWorker();
+  // Set up click handler (service worker sends message on notification click)
   setupNotificationClickHandler();
 
+  // If permission was previously granted, ensure subscription is active
+  if (Notification.permission === "granted") {
+    await registerSubscription();
+  }
+
   console.info("[Push] Push notification system initialized. Permission:", Notification.permission);
+}
+
+/**
+ * Listen for messages from the service worker (notification clicks).
+ */
+function setupNotificationClickHandler() {
+  if (!("serviceWorker" in navigator)) return;
+
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    const data = event.data;
+
+    if (data?.type === "NOTIFICATION_CLICK") {
+      // Record as opened
+      if (data.alertType) {
+        recordNotificationOpened(data.alertType);
+      }
+
+      // Navigate to the weather page with alert section
+      const url = data.url || "/weather#alerts";
+      if (window.location.pathname !== "/weather") {
+        window.location.href = url;
+      } else {
+        // Already on weather page — scroll to alerts
+        const el = document.getElementById("weather-alerts");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    if (data?.type === "NOTIFICATION_DISMISS") {
+      if (data.alertType) {
+        recordNotificationDismissed(data.alertType);
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILITY HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function canSendNotification(alert) {
+  if (!isPushSupported()) return false;
+  if (Notification.permission !== "granted") return false;
+  if (!alert) return false;
+  return true;
+}
+
+/**
+ * Convert a URL-safe base64 string to a Uint8Array (for VAPID key).
+ */
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+function getDeviceName() {
+  const ua = navigator.userAgent;
+  if (/iPhone/.test(ua)) return "iPhone";
+  if (/iPad/.test(ua)) return "iPad";
+  if (/Android/.test(ua)) return "Android";
+  if (/Mac/.test(ua)) return "Mac";
+  if (/Windows/.test(ua)) return "Windows PC";
+  if (/Linux/.test(ua)) return "Linux";
+  return "Unknown Device";
+}
+
+function getBrowserName() {
+  const ua = navigator.userAgent;
+  if (/Edg/.test(ua)) return "Edge";
+  if (/Chrome/.test(ua)) return "Chrome";
+  if (/Firefox/.test(ua)) return "Firefox";
+  if (/Safari/.test(ua)) return "Safari";
+  return "Unknown";
+}
+
+function getPlatformName() {
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) return "iOS";
+  if (/Android/.test(navigator.userAgent)) return "Android";
+  if (/Win/.test(navigator.platform)) return "Windows";
+  if (/Mac/.test(navigator.platform)) return "macOS";
+  if (/Linux/.test(navigator.platform)) return "Linux";
+  return "Unknown";
 }

@@ -160,7 +160,7 @@ export default function FinancialHealthScore({ analytics }) {
         <Stack direction="row" spacing={0.75} alignItems="flex-start">
           <InfoOutlinedIcon sx={{ fontSize: 14, color: "text.disabled", mt: 0.2 }} />
           <Typography variant="caption" color="text.disabled" sx={{ lineHeight: 1.5 }}>
-            Based on: {SCORE_FACTORS.join(" \u2022 ")}
+            Based on: {SCORE_FACTORS.join(" • ")}
           </Typography>
         </Stack>
       </CardContent>

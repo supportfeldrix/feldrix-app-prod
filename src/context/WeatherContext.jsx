@@ -29,7 +29,7 @@ import {
   generateEarlyWarnings,
   generateWeatherNotifications,
 } from "../services/weatherIntelligenceService";
-import { initializePushNotifications, processWeatherPushNotifications } from "../services/pushNotificationService";
+import { initializePushNotifications, processWeatherAlerts } from "../services/pushNotificationService";
 import { getCurrentUser, getProfile } from "../services/profileService";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -226,7 +226,7 @@ export function WeatherProvider({ children }) {
         setNotifications(notifsResult);
 
         // Dispatch push notifications for critical weather alerts
-        processWeatherPushNotifications(notifsResult);
+        processWeatherAlerts(notifsResult, { farmName });
       } else {
         // Using cached/offline data or truly unavailable
         setIsOffline(true);

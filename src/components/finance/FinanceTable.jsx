@@ -28,7 +28,7 @@ function getAppliesToLabel(record) {
   const scope = record.applies_to || (record.animal_id ? "animal" : "farm");
   if (scope === "farm") return "Entire Farm";
   if (scope === "livestock") return "Livestock";
-  if (scope === "animal") return record.animal?.tag ? `Animal \u2022 ${record.animal.tag}` : "Deleted Animal";
+  if (scope === "animal") return record.animal?.tag ? `Animal • ${record.animal.tag}` : "Deleted Animal";
   return "Entire Farm";
 }
 

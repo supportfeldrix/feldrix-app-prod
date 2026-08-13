@@ -7,6 +7,7 @@ import { NotificationProvider } from "../../context/NotificationContext";
 import { OnboardingProvider } from "../../context/OnboardingContext";
 import { ConnectionProvider } from "../../context/ConnectionContext";
 import { WeatherProvider } from "../../context/WeatherContext";
+import NotificationPermissionPrompt from "../weather/NotificationPermissionPrompt";
 import OnboardingOverlay from "../onboarding/OnboardingOverlay";
 
 const SIDEBAR_WIDTH = 280;
@@ -80,6 +81,7 @@ export default function MainLayout() {
                 WebkitOverflowScrolling: "touch",
               }}
             >
+              <NotificationPermissionPrompt />
               <Outlet />
             </Box>
           </Box>

@@ -106,7 +106,7 @@ export default function WeatherSummary({ weather: legacyWeather }) {
                 <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ mt: 0.5 }}>
                   {weather.current?.condition}
                   {weather.current?.feelsLike != null && weather.current.feelsLike !== weather.current.temperature && (
-                    <> \u2022 Feels {weather.current.feelsLike}°</>
+                    <> • Feels {weather.current.feelsLike}°</>
                   )}
                 </Typography>
               </Box>

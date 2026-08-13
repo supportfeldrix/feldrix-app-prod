@@ -61,6 +61,7 @@ import { useWeather } from "../context/WeatherContext";
 import { getWeatherHistory, getWeatherHistorySummary } from "../services/weatherService";
 import WeatherChecklist from "../components/weather/WeatherChecklist";
 import EarlyWarningCountdown from "../components/weather/EarlyWarningCountdown";
+import WeatherNotificationSettings from "../components/weather/WeatherNotificationSettings";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SUB-COMPONENTS
@@ -395,7 +396,7 @@ function RecommendationsPanel({ recommendations }) {
                 }}
               >
                 <Typography sx={{ fontSize: 18, lineHeight: 1.4, flexShrink: 0 }}>
-                  {item.icon || "\u2022"}
+                  {item.icon || "•"}
                 </Typography>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="body2" fontWeight={600} color="text.primary">
@@ -492,7 +493,7 @@ function AlertsPanel({ alerts }) {
                   <Stack spacing={0.5} sx={{ mt: 0.75 }}>
                     {alert.advice.slice(0, 5).map((a, i) => (
                       <Typography key={i} variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-                        \u2022 {a}
+                        • {a}
                       </Typography>
                     ))}
                   </Stack>
@@ -867,6 +868,11 @@ export default function Weather() {
         {/* WEATHER HISTORY */}
         <PremiumDashboardSection title="Weather History" description="Historical weather data for your farm">
           <WeatherHistoryPanel />
+        </PremiumDashboardSection>
+
+        {/* NOTIFICATION SETTINGS */}
+        <PremiumDashboardSection title="Notification Settings" description="Control which weather alerts notify you">
+          <WeatherNotificationSettings />
         </PremiumDashboardSection>
 
         {/* POWERED BY ATTRIBUTION */}
