@@ -87,16 +87,42 @@ const PUSH_OPTIONS = {
   topic: "feldrix-weather", // allows replacement of existing notification
 };
 
+// ─── CORS — Approved origins only (no wildcard) ─────────────────────────────
+
+const ALLOWED_ORIGINS = [
+  "https://app.feldrix.com",
+  "https://admin.feldrix.com",
+  "http://localhost:5173",
+  "http://localhost:5174",
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : "";
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, x-client-info, apikey",
+  };
+}
+
 // ─── Main Handler ───────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   const startTime = Date.now();
+  const corsHeaders = getCorsHeaders(req);
+
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
 
   try {
     // Verify authorization
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse({ error: "Unauthorized" }, 401);
+      return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
     }
 
     // Parse request body
@@ -124,7 +150,7 @@ Deno.serve(async (req: Request) => {
         supabaseConfigured: !!(SUPABASE_URL && SUPABASE_SERVICE_KEY),
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-      });
+      }, 200, corsHeaders);
     }
 
     // Verify VAPID configuration
@@ -132,18 +158,18 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({
         success: false,
         error: "VAPID keys not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY secrets.",
-      }, 500);
+      }, 500, corsHeaders);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     // ─── TEST PUSH (Admin) ────────────────────────────────────────
     if (requestType === "test") {
-      return await handleTestPush(supabase, testAlertType, testUserId, startTime);
+      return await handleTestPush(supabase, testAlertType, testUserId, startTime, corsHeaders);
     }
 
     // ─── WEATHER CHECK / MORNING BRIEF ────────────────────────────
-    return await handleWeatherPush(supabase, requestType, startTime);
+    return await handleWeatherPush(supabase, requestType, startTime, corsHeaders);
 
   } catch (err) {
     console.error("[weather-push] Fatal error:", err);
@@ -151,7 +177,7 @@ Deno.serve(async (req: Request) => {
       success: false,
       error: String(err),
       responseTime: Date.now() - startTime,
-    }, 500);
+    }, 500, corsHeaders);
   }
 });
 
@@ -159,7 +185,7 @@ Deno.serve(async (req: Request) => {
 // HANDLER: Weather Check / Morning Brief
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function handleWeatherPush(supabase: any, requestType: string, startTime: number) {
+async function handleWeatherPush(supabase: any, requestType: string, startTime: number, corsHeaders: Record<string, string>) {
   // Get all users with active push subscriptions (seen in last 30 days)
   const { data: subscriptions, error: subError } = await supabase
     .from("push_subscriptions")
@@ -172,7 +198,7 @@ async function handleWeatherPush(supabase: any, requestType: string, startTime: 
       message: "No active subscriptions found.",
       processed: 0,
       responseTime: Date.now() - startTime,
-    });
+    }, 200, corsHeaders);
   }
 
   // Group subscriptions by user_id
@@ -261,14 +287,14 @@ async function handleWeatherPush(supabase: any, requestType: string, startTime: 
     errors: errors.slice(0, 10),
     timestamp: new Date().toISOString(),
     responseTime: Date.now() - startTime,
-  });
+  }, 200, corsHeaders);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HANDLER: Admin Test Push
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function handleTestPush(supabase: any, alertType: string | null, userId: string | null, startTime: number) {
+async function handleTestPush(supabase: any, alertType: string | null, userId: string | null, startTime: number, corsHeaders: Record<string, string>) {
   // Get target subscriptions
   let query = supabase.from("push_subscriptions").select("user_id, endpoint, subscription_json, device_name");
   if (userId) {
@@ -280,7 +306,7 @@ async function handleTestPush(supabase: any, alertType: string | null, userId: s
 
   const { data: subs, error } = await query;
   if (error || !subs || subs.length === 0) {
-    return jsonResponse({ success: false, message: "No subscriptions found for test.", responseTime: Date.now() - startTime });
+    return jsonResponse({ success: false, message: "No subscriptions found for test.", responseTime: Date.now() - startTime }, 200, corsHeaders);
   }
 
   const testAlert: Alert = {
@@ -336,7 +362,7 @@ async function handleTestPush(supabase: any, alertType: string | null, userId: s
     ...results,
     timestamp: new Date().toISOString(),
     responseTime: Date.now() - startTime,
-  });
+  }, 200, corsHeaders);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -399,30 +425,74 @@ async function sendPushNotification(subscription: PushSubscription, alert: Alert
   // Send using web-push library
   // This handles: VAPID JWT signing, ECDH key agreement, AES-128-GCM encryption,
   // proper headers (Authorization, Content-Encoding, TTL, Urgency, Topic)
-  const options = {
+  const options: any = {
     TTL: PUSH_OPTIONS.TTL,
     urgency: alert.priority === "Critical" ? "high" : "normal",
-    topic: `feldrix-${alert.type.toLowerCase()}`,
   };
+
+  // Only set topic for non-Apple push endpoints.
+  // Apple's APNs Web Push rejects topic values that don't match the web push ID.
+  // The payload 'tag' field handles notification replacement on the client side.
+  const isApple = subscription.endpoint.includes("web.push.apple.com")
+    || subscription.endpoint.includes("push.apple.com");
+  if (!isApple) {
+    options.topic = `feldrix-${alert.type.toLowerCase()}`;
+  }
 
   try {
     await webpush.sendNotification(subscription, payload, options);
   } catch (err: any) {
-    // web-push throws WebPushError with statusCode
+    // web-push throws WebPushError with statusCode and body
     const statusCode = err?.statusCode || err?.status;
-    const errBody = err?.body || "";
+    const errBody = err?.body || err?.message || "";
+    const errHeaders = err?.headers || {};
+
+    // Log full error details for debugging
+    console.error(`[weather-push] Push failed for ${subscription.endpoint.substring(0, 60)}...`, {
+      statusCode,
+      body: errBody,
+      alertType: alert.type,
+      payloadSize: payload.length,
+      topic: options.topic || "(none)",
+    });
 
     if (statusCode === 410 || statusCode === 404) {
       throw new Error(`410: Subscription expired`);
     }
 
     if (statusCode === 413) {
-      throw new Error(`413: Payload too large`);
+      throw new Error(`413: Payload too large (${payload.length} bytes)`);
     }
 
     if (statusCode === 429) {
-      // Rate limited — don't retry immediately
       throw new Error(`429: Rate limited by push service`);
+    }
+
+    // 400 Bad Request — likely invalid payload or header.
+    // Retry with a minimal safe payload (matches the working TEST format).
+    if (statusCode === 400) {
+      console.warn(`[weather-push] 400 error for ${alert.type}. Retrying with safe payload. Response: ${errBody}`);
+      try {
+        const safePayload = JSON.stringify({
+          title: alert.title,
+          body: alert.body.replace(/\n/g, " "),
+          icon: "/Branding/app-icon-192.png",
+          badge: "/Branding/app-icon-192.png",
+          tag: "feldrix-weather-alert",
+          data: {
+            url: "/weather#alerts",
+            alertType: alert.type,
+          },
+        });
+        const safeOptions: any = {
+          TTL: PUSH_OPTIONS.TTL,
+          urgency: "high",
+        };
+        await webpush.sendNotification(subscription, safePayload, safeOptions);
+        return; // Safe payload succeeded
+      } catch (retryErr: any) {
+        throw new Error(`400: Push service rejected payload. Original: ${errBody}. Retry also failed: ${retryErr?.body || retryErr?.message || ""}`);
+      }
     }
 
     if (statusCode >= 500) {
@@ -430,13 +500,13 @@ async function sendPushNotification(subscription: PushSubscription, alert: Alert
       try {
         await delay(1000);
         await webpush.sendNotification(subscription, payload, options);
-        return; // Retry succeeded
+        return;
       } catch {
         throw new Error(`${statusCode}: Push service error after retry: ${errBody}`);
       }
     }
 
-    throw new Error(`Push failed (${statusCode || "unknown"}): ${err.message || errBody}`);
+    throw new Error(`Push failed (${statusCode || "unknown"}): ${errBody}`);
   }
 }
 
@@ -786,10 +856,10 @@ function buildBody(farmName: string, detail: string, recommendation: string): st
   return parts.join("\n");
 }
 
-function jsonResponse(data: any, status = 200): Response {
+function jsonResponse(data: any, status = 200, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...extraHeaders },
   });
 }
 
