@@ -114,24 +114,24 @@ export function generateWeatherRisk(weather) {
   const maxTemp = getMaxTemperature(current, forecast, hourly);
 
   if (minTemp <= THRESHOLDS.FREEZE) {
-    factors.push({ type: "freeze", severity: "extreme", message: `Freezing: ${minTemp}\u00B0C expected`, score: 4 });
+    factors.push({ type: "freeze", severity: "extreme", message: `Freezing: ${minTemp}°C expected`, score: 4 });
     maxScore = Math.max(maxScore, 4);
   } else if (minTemp <= THRESHOLDS.FROST) {
-    factors.push({ type: "frost", severity: "high", message: `Frost risk: ${minTemp}\u00B0C expected`, score: 3 });
+    factors.push({ type: "frost", severity: "high", message: `Frost risk: ${minTemp}°C expected`, score: 3 });
     maxScore = Math.max(maxScore, 3);
   } else if (minTemp <= THRESHOLDS.COLD) {
-    factors.push({ type: "cold", severity: "moderate", message: `Cold: ${minTemp}\u00B0C expected`, score: 2 });
+    factors.push({ type: "cold", severity: "moderate", message: `Cold: ${minTemp}°C expected`, score: 2 });
     maxScore = Math.max(maxScore, 2);
   }
 
   if (maxTemp >= THRESHOLDS.EXTREME_HEAT) {
-    factors.push({ type: "extreme_heat", severity: "extreme", message: `Extreme heat: ${maxTemp}\u00B0C`, score: 4 });
+    factors.push({ type: "extreme_heat", severity: "extreme", message: `Extreme heat: ${maxTemp}°C`, score: 4 });
     maxScore = Math.max(maxScore, 4);
   } else if (maxTemp >= THRESHOLDS.HEATWAVE) {
-    factors.push({ type: "heatwave", severity: "high", message: `Heatwave: ${maxTemp}\u00B0C`, score: 3 });
+    factors.push({ type: "heatwave", severity: "high", message: `Heatwave: ${maxTemp}°C`, score: 3 });
     maxScore = Math.max(maxScore, 3);
   } else if (maxTemp >= THRESHOLDS.HOT) {
-    factors.push({ type: "hot", severity: "moderate", message: `Hot conditions: ${maxTemp}\u00B0C`, score: 2 });
+    factors.push({ type: "hot", severity: "moderate", message: `Hot conditions: ${maxTemp}°C`, score: 2 });
     maxScore = Math.max(maxScore, 2);
   }
 
@@ -247,7 +247,7 @@ export function generateWeatherAlerts(weather) {
       type: "FREEZE",
       priority: "Critical",
       title: "Freeze Warning",
-      message: `Temperature expected to drop to ${minTemp}\u00B0C. Protect livestock and crops immediately.`,
+      message: `Temperature expected to drop to ${minTemp}°C. Protect livestock and crops immediately.`,
       icon: "\u2744\uFE0F",
       color: "#3B82F6",
       advice: [
@@ -273,7 +273,7 @@ export function generateWeatherAlerts(weather) {
       type: "FROST",
       priority: "High",
       title: "Frost Advisory",
-      message: `Temperature expected to drop to ${minTemp}\u00B0C. Frost damage risk for crops.`,
+      message: `Temperature expected to drop to ${minTemp}°C. Frost damage risk for crops.`,
       icon: "\uD83C\uDF28\uFE0F",
       color: "#60A5FA",
       advice: [
@@ -297,7 +297,7 @@ export function generateWeatherAlerts(weather) {
       type: "HEATWAVE",
       priority: maxTemp >= THRESHOLDS.EXTREME_HEAT ? "Critical" : "High",
       title: maxTemp >= THRESHOLDS.EXTREME_HEAT ? "Extreme Heat Warning" : "Heatwave Warning",
-      message: `Temperature expected to reach ${maxTemp}\u00B0C. Heat stress risk for livestock.`,
+      message: `Temperature expected to reach ${maxTemp}°C. Heat stress risk for livestock.`,
       icon: "\uD83D\uDD25",
       color: "#EF4444",
       advice: [
@@ -622,9 +622,9 @@ export function generateWeatherInsight(weather) {
   if (alerts.length > 0) {
     const top = alerts[0];
     switch (top.type) {
-      case "FREEZE": return `Freeze warning: ${top.details.expectedMin}\u00B0C expected. Protect livestock and crops.`;
-      case "FROST": return `Frost risk tonight: ${top.details.expectedMin}\u00B0C. Protect seedlings.`;
-      case "HEATWAVE": return `Heatwave: ${top.details.expectedMax}\u00B0C expected. Ensure livestock have water and shade.`;
+      case "FREEZE": return `Freeze warning: ${top.details.expectedMin}°C expected. Protect livestock and crops.`;
+      case "FROST": return `Frost risk tonight: ${top.details.expectedMin}°C. Protect seedlings.`;
+      case "HEATWAVE": return `Heatwave: ${top.details.expectedMax}°C expected. Ensure livestock have water and shade.`;
       case "HEAVY_RAIN": return `Heavy rain: ${top.details.expectedRainfall}mm expected. Delay field work.`;
       case "FLOOD": return `Flood risk: ${top.details.expectedRainfall}mm. Move livestock from low areas.`;
       case "HIGH_WIND": return `Strong wind: ${top.details.expectedWind} km/h. Postpone spraying.`;

@@ -111,8 +111,8 @@ export default function WeatherChecklist({ checklists = [] }) {
                     <Typography variant="subtitle2" fontWeight={700} color="text.primary">
                       {checklist.title}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {completedCount}/{totalCount} completed
+                    <Typography variant="caption" color={isComplete ? "success.main" : "text.secondary"} fontWeight={isComplete ? 600 : 400}>
+                      {isComplete ? "All preparations complete!" : `${completedCount} of ${totalCount} complete`}
                     </Typography>
                   </Box>
                 </Stack>

@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useLocation as useRouterLocation } from "react-router-dom";
 import {
   Box,
   Card,
@@ -57,6 +58,7 @@ import {
 } from "../design";
 
 import { useWeather } from "../context/WeatherContext";
+import { getWeatherHistory, getWeatherHistorySummary } from "../services/weatherService";
 import WeatherChecklist from "../components/weather/WeatherChecklist";
 import EarlyWarningCountdown from "../components/weather/EarlyWarningCountdown";
 
@@ -130,14 +132,14 @@ function CurrentConditions({ weather }) {
   if (!current || !current.updatedAt) return null;
 
   const details = [
-    { icon: <Thermostat sx={{ fontSize: 18 }} />, label: "Feels Like", value: current.feelsLike != null ? `${current.feelsLike}\u00B0C` : "—" },
+    { icon: <Thermostat sx={{ fontSize: 18 }} />, label: "Feels Like", value: current.feelsLike != null ? `${current.feelsLike}°C` : "—" },
     { icon: <Air sx={{ fontSize: 18 }} />, label: "Wind", value: current.windSpeed != null ? `${current.windSpeed} km/h ${current.windDirection || ""}` : "—" },
     { icon: <Opacity sx={{ fontSize: 18 }} />, label: "Humidity", value: current.humidity != null ? `${current.humidity}%` : "—" },
     { icon: <WaterDrop sx={{ fontSize: 18 }} />, label: "Rainfall", value: current.rainfall != null ? `${current.rainfall} mm` : "0 mm" },
     { icon: <Speed sx={{ fontSize: 18 }} />, label: "Pressure", value: current.pressure ? `${current.pressure} hPa` : "—" },
     { icon: <Visibility sx={{ fontSize: 18 }} />, label: "Visibility", value: current.visibility ? `${current.visibility} km` : "—" },
     { icon: <WbSunny sx={{ fontSize: 18 }} />, label: "UV Index", value: current.uvIndex != null ? `${current.uvIndex}` : "—" },
-    { icon: <DeviceThermostat sx={{ fontSize: 18 }} />, label: "Dew Point", value: current.dewPoint != null ? `${current.dewPoint}\u00B0C` : "—" },
+    { icon: <DeviceThermostat sx={{ fontSize: 18 }} />, label: "Dew Point", value: current.dewPoint != null ? `${current.dewPoint}°C` : "—" },
   ];
 
   return (
@@ -147,7 +149,7 @@ function CurrentConditions({ weather }) {
           <Typography sx={{ fontSize: 56, lineHeight: 1 }}>{current.icon}</Typography>
           <Box>
             <Typography variant="h3" fontWeight={800} color="text.primary" sx={{ lineHeight: 1 }}>
-              {current.temperature}\u00B0C
+              {current.temperature}°C
             </Typography>
             <Typography variant="body1" color="text.secondary" fontWeight={500} sx={{ mt: 0.5 }}>
               {current.condition} {current.description && current.description !== current.condition ? `\u2014 ${current.description}` : ""}
@@ -236,7 +238,7 @@ function HourlyForecast({ hourly }) {
                 </Typography>
                 <Typography sx={{ fontSize: 22, my: 0.5 }}>{hour.icon}</Typography>
                 <Typography sx={{ fontSize: "0.85rem", fontWeight: 700 }}>
-                  {hour.temperature}\u00B0
+                  {hour.temperature}°
                 </Typography>
                 {hour.pop != null && hour.pop > 0 && (
                   <Typography sx={{ fontSize: "0.6rem", opacity: 0.7, mt: 0.5 }}>
@@ -300,7 +302,7 @@ function DailyForecast({ forecast }) {
                   </Typography>
                 )}
                 <Typography sx={{ fontSize: "0.82rem", fontWeight: 700, width: 40, textAlign: "right" }}>
-                  {day.temperatureMax}\u00B0
+                  {day.temperatureMax}°
                 </Typography>
                 <Box sx={{ width: 60, mx: 1.5 }}>
                   <LinearProgress
@@ -318,7 +320,7 @@ function DailyForecast({ forecast }) {
                   />
                 </Box>
                 <Typography sx={{ fontSize: "0.82rem", fontWeight: 500, width: 40, color: "text.secondary" }}>
-                  {day.temperatureMin}\u00B0
+                  {day.temperatureMin}°
                 </Typography>
               </Stack>
             );
@@ -505,6 +507,115 @@ function AlertsPanel({ alerts }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// WEATHER HISTORY PANEL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function WeatherHistoryPanel() {
+  const history = getWeatherHistory();
+  const summary = getWeatherHistorySummary();
+
+  if (!history || history.length < 2) {
+    return (
+      <Card elevation={0} sx={{ borderRadius: radius.card, border: "1px solid", borderColor: "divider" }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>Weather History</Typography>
+          <Typography variant="body2" color="text.secondary">
+            History will appear once weather data has been collected over time. Check back after 24 hours.
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Split history into last 24h and 7d
+  const now = Date.now();
+  const last24h = history.filter((h) => now - new Date(h.timestamp).getTime() < 24 * 60 * 60 * 1000);
+  const last24hSummary = summarizeEntries(last24h);
+
+  const confidenceColor = summary.periodDays >= 5 ? "success.main" : summary.periodDays >= 2 ? "warning.main" : "text.disabled";
+
+  return (
+    <Card elevation={0} sx={{ borderRadius: radius.card, border: "1px solid", borderColor: "divider" }}>
+      <CardContent sx={{ p: 2.5 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" fontWeight={700}>Weather History</Typography>
+          <Typography variant="caption" color={confidenceColor} fontWeight={600}>
+            {summary.entries} readings over {summary.periodDays} day{summary.periodDays !== 1 ? "s" : ""}
+          </Typography>
+        </Stack>
+
+        <Grid container spacing={2}>
+          {/* Last 24 Hours */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "rgba(0,0,0,0.01)" }}>
+              <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.6rem" }}>
+                Last 24 Hours
+              </Typography>
+              {last24h.length > 0 ? (
+                <Stack spacing={1} sx={{ mt: 1.5 }}>
+                  <HistoryRow label="Temperature" value={`${last24hSummary.minTemp}° – ${last24hSummary.maxTemp}°`} icon="🌡️" />
+                  <HistoryRow label="Rainfall" value={`${last24hSummary.totalRainfall} mm`} icon="🌧️" />
+                  <HistoryRow label="Wind" value={`Avg ${last24hSummary.avgWind} km/h`} icon="💨" />
+                  <HistoryRow label="Humidity" value={`Avg ${last24hSummary.avgHumidity}%`} icon="💧" />
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>No data yet for last 24h</Typography>
+              )}
+            </Box>
+          </Grid>
+
+          {/* All-Time (up to 7 days) */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "rgba(0,0,0,0.01)" }}>
+              <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.6rem" }}>
+                Last {summary.periodDays} Day{summary.periodDays !== 1 ? "s" : ""}
+              </Typography>
+              <Stack spacing={1} sx={{ mt: 1.5 }}>
+                <HistoryRow label="Temperature" value={`${summary.minTemp ?? "—"}° – ${summary.maxTemp ?? "—"}°`} icon="🌡️" />
+                <HistoryRow label="Total Rainfall" value={`${summary.totalRainfall} mm`} icon="🌧️" />
+                <HistoryRow label="Avg Wind" value={`${summary.avgWind ?? "—"} km/h`} icon="💨" />
+                <HistoryRow label="Avg Humidity" value={`${summary.avgHumidity ?? "—"}%`} icon="💧" />
+                <HistoryRow label="Avg Temperature" value={`${summary.avgTemp ?? "—"}°C`} icon="📊" />
+              </Stack>
+            </Box>
+          </Grid>
+        </Grid>
+      </CardContent>
+    </Card>
+  );
+}
+
+function HistoryRow({ label, value, icon }) {
+  return (
+    <Stack direction="row" alignItems="center" justifyContent="space-between">
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Typography sx={{ fontSize: 14 }}>{icon}</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.78rem" }}>{label}</Typography>
+      </Stack>
+      <Typography variant="body2" fontWeight={700} color="text.primary" sx={{ fontSize: "0.82rem" }}>{value}</Typography>
+    </Stack>
+  );
+}
+
+function summarizeEntries(entries) {
+  if (!entries || entries.length === 0) {
+    return { minTemp: "—", maxTemp: "—", totalRainfall: 0, avgWind: "—", avgHumidity: "—" };
+  }
+  const temps = entries.filter((e) => e.temperature != null).map((e) => e.temperature);
+  const winds = entries.filter((e) => e.windSpeed != null).map((e) => e.windSpeed);
+  const humidities = entries.filter((e) => e.humidity != null).map((e) => e.humidity);
+  const rainfall = entries.reduce((sum, e) => sum + (e.rainfall || 0), 0);
+
+  return {
+    minTemp: temps.length > 0 ? Math.min(...temps) : "—",
+    maxTemp: temps.length > 0 ? Math.max(...temps) : "—",
+    totalRainfall: Math.round(rainfall * 10) / 10,
+    avgWind: winds.length > 0 ? Math.round(winds.reduce((a, b) => a + b, 0) / winds.length) : "—",
+    avgHumidity: humidities.length > 0 ? Math.round(humidities.reduce((a, b) => a + b, 0) / humidities.length) : "—",
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -520,8 +631,26 @@ export default function Weather() {
     checklists,
     earlyWarnings,
     location,
+    farmName,
     forceRefresh,
+    refreshStatus,
+    lastUpdated,
+    nextRefresh,
+    provider,
+    isOffline,
+    confidence,
   } = useWeather();
+
+  // Deep-link scrolling — scroll to alerts section when navigated from notification
+  const routerLocation = useRouterLocation();
+  useEffect(() => {
+    if (routerLocation.hash === "#alerts" || routerLocation.search?.includes("section=alerts")) {
+      setTimeout(() => {
+        const el = document.getElementById("weather-alerts");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [routerLocation]);
 
   // Handle first load
   if (loading && !weather) {
@@ -547,30 +676,157 @@ export default function Weather() {
 
   return (
     <PremiumPageLayout
-      title="Weather Intelligence"
-      subtitle={insight || "Farm weather intelligence for today"}
+      title=""
+      subtitle=""
     >
       <Stack spacing={spacing.sectionGap}>
 
-        {/* HEADER ACTIONS */}
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <LocationOn sx={{ fontSize: 16, color: "text.disabled" }} />
-            <Typography variant="body2" color="text.secondary">
-              {weather.locationName || location || "Default Location"}
+        {/* PAGE HEADER — Farm Name, Location, Risk, Provider, Timestamps */}
+        <Box>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+            <Box>
+              {farmName && (
+                <Typography variant="caption" color="text.disabled" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0.8, fontSize: "0.65rem" }}>
+                  {farmName}
+                </Typography>
+              )}
+              <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ lineHeight: 1.2 }}>
+                Weather Intelligence
+              </Typography>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5 }}>
+                <LocationOn sx={{ fontSize: 14, color: "text.disabled" }} />
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                  {weather.locationName || location || "No location set"}
+                </Typography>
+                {risk && (
+                  <Chip
+                    label={`${risk.emoji} ${risk.label}`}
+                    size="small"
+                    sx={{
+                      ml: 1,
+                      fontWeight: 700,
+                      fontSize: "0.65rem",
+                      height: 22,
+                      bgcolor: `${risk.color}15`,
+                      color: risk.color,
+                      border: `1px solid ${risk.color}30`,
+                    }}
+                  />
+                )}
+              </Stack>
+            </Box>
+            <Tooltip title="Refresh weather data">
+              <IconButton onClick={forceRefresh} size="small" disabled={loading}>
+                <Refresh sx={{ fontSize: 22, animation: loading ? "spin 1s linear infinite" : "none" }} />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+          {insight && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, maxWidth: 600 }}>
+              {insight}
             </Typography>
-            {weather.lastUpdated && (
-              <Typography variant="caption" color="text.disabled">
-                \u2022 Updated {new Date(weather.lastUpdated).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
+          )}
+        </Box>
+
+        {/* REFRESH STATUS BANNER */}
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ minHeight: 20 }}>
+          {refreshStatus === "refreshing" && (
+            <Typography variant="caption" color="info.main" fontWeight={600}>Refreshing...</Typography>
+          )}
+          {refreshStatus === "success" && (
+            <Typography variant="caption" color="success.main" fontWeight={600}>Weather Updated Successfully</Typography>
+          )}
+          {refreshStatus === "error" && (
+            <Typography variant="caption" color="error.main" fontWeight={600}>Refresh failed — using last known data</Typography>
+          )}
+          {isOffline && refreshStatus === "idle" && (
+            <Chip label="Using Last Known Forecast" size="small" color="warning" variant="outlined" sx={{ fontSize: "0.65rem", height: 22 }} />
+          )}
+        </Stack>
+
+        {/* STATUS BAR — Provider, Updated, Next Refresh, Confidence */}
+        <Card elevation={0} sx={{ borderRadius: radius.card, border: "1px solid", borderColor: "divider", bgcolor: "rgba(0,0,0,0.01)" }}>
+          <CardContent sx={{ py: 1.5, px: 2.5, "&:last-child": { pb: 1.5 } }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+              <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
+                {/* Provider */}
+                <Box>
+                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Weather Provider
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: "0.78rem" }}>
+                    {provider}
+                  </Typography>
+                </Box>
+                {/* Last Updated */}
+                <Box>
+                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Last Updated
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: "0.78rem" }}>
+                    {lastUpdated ? new Date(lastUpdated).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                  </Typography>
+                </Box>
+                {/* Next Refresh */}
+                <Box>
+                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Next Refresh
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: "0.78rem" }}>
+                    {nextRefresh ? new Date(nextRefresh).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                  </Typography>
+                </Box>
+              </Stack>
+              {/* Forecast Confidence */}
+              <Chip
+                label={`Confidence: ${confidence?.level || "—"}`}
+                size="small"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "0.65rem",
+                  height: 24,
+                  bgcolor:
+                    confidence?.level === "High" ? "rgba(34,197,94,0.1)"
+                      : confidence?.level === "Medium" ? "rgba(234,179,8,0.1)"
+                        : "rgba(239,68,68,0.1)",
+                  color:
+                    confidence?.level === "High" ? "success.main"
+                      : confidence?.level === "Medium" ? "warning.main"
+                        : "error.main",
+                  border: "1px solid",
+                  borderColor:
+                    confidence?.level === "High" ? "success.light"
+                      : confidence?.level === "Medium" ? "warning.light"
+                        : "error.light",
+                }}
+              />
+            </Stack>
+            {confidence?.reason && (
+              <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block", fontSize: "0.65rem" }}>
+                {confidence.reason}
               </Typography>
             )}
-          </Stack>
-          <Tooltip title="Refresh weather data">
-            <IconButton onClick={forceRefresh} size="small" disabled={loading}>
-              <Refresh sx={{ fontSize: 20, animation: loading ? "spin 1s linear infinite" : "none" }} />
-            </IconButton>
-          </Tooltip>
-        </Stack>
+          </CardContent>
+        </Card>
+
+        {/* OFFLINE WARNING */}
+        {isOffline && (
+          <Card elevation={0} sx={{ borderRadius: radius.card, border: "1px solid", borderColor: "warning.light", bgcolor: "rgba(234,179,8,0.04)" }}>
+            <CardContent sx={{ py: 1.5, px: 2.5, "&:last-child": { pb: 1.5 } }}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography sx={{ fontSize: 16 }}>⚠️</Typography>
+                <Box>
+                  <Typography variant="body2" fontWeight={700} color="warning.dark">
+                    Unable to refresh weather
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Using cached forecast. Last successful update: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" }) : "Unknown"}
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
 
         {/* RISK SCORE BANNER */}
         <RiskBanner risk={risk} />
@@ -584,7 +840,9 @@ export default function Weather() {
 
         {/* ACTIVE ALERTS */}
         {alerts.length > 0 && (
-          <AlertsPanel alerts={alerts} />
+          <Box id="weather-alerts">
+            <AlertsPanel alerts={alerts} />
+          </Box>
         )}
 
         {/* CURRENT CONDITIONS */}
@@ -605,6 +863,18 @@ export default function Weather() {
             <WeatherChecklist checklists={checklists} />
           </PremiumDashboardSection>
         )}
+
+        {/* WEATHER HISTORY */}
+        <PremiumDashboardSection title="Weather History" description="Historical weather data for your farm">
+          <WeatherHistoryPanel />
+        </PremiumDashboardSection>
+
+        {/* POWERED BY ATTRIBUTION */}
+        <Stack direction="row" justifyContent="center" sx={{ pt: 2, pb: 1 }}>
+          <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.65rem" }}>
+            Powered by {provider} • Architecture supports SAWS, WeatherAPI, Tomorrow.io
+          </Typography>
+        </Stack>
 
       </Stack>
 

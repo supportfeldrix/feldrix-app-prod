@@ -101,12 +101,12 @@ export default function WeatherSummary({ weather: legacyWeather }) {
               </Typography>
               <Box>
                 <Typography variant="h4" fontWeight={800} color="text.primary" sx={{ lineHeight: 1 }}>
-                  {weather.current?.temperature}\u00B0C
+                  {weather.current?.temperature}°C
                 </Typography>
                 <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ mt: 0.5 }}>
                   {weather.current?.condition}
                   {weather.current?.feelsLike != null && weather.current.feelsLike !== weather.current.temperature && (
-                    <> \u2022 Feels {weather.current.feelsLike}\u00B0</>
+                    <> \u2022 Feels {weather.current.feelsLike}°</>
                   )}
                 </Typography>
               </Box>
@@ -238,7 +238,7 @@ export default function WeatherSummary({ weather: legacyWeather }) {
                   </Typography>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5 }}>
                     <Typography variant="body2" color="text.primary">
-                      {weather.forecast[0]?.icon} {weather.forecast[0]?.temperatureMax ?? weather.forecast[0]?.temperature}\u00B0 / {weather.forecast[0]?.temperatureMin ?? "—"}\u00B0
+                      {weather.forecast[0]?.icon} {weather.forecast[0]?.temperatureMax ?? weather.forecast[0]?.temperature}° / {weather.forecast[0]?.temperatureMin ?? "—"}°
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {weather.forecast[0]?.condition}

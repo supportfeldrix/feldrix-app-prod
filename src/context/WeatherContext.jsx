@@ -30,6 +30,7 @@ import {
   generateWeatherNotifications,
 } from "../services/weatherIntelligenceService";
 import { initializePushNotifications, processWeatherPushNotifications } from "../services/pushNotificationService";
+import { getCurrentUser, getProfile } from "../services/profileService";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -69,6 +70,35 @@ const WeatherContext = createContext({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate forecast confidence based on data freshness and provider availability.
+ */
+function calculateConfidence(weather) {
+  if (!weather?.available) {
+    return { level: "Low", reason: "Weather data unavailable" };
+  }
+
+  const updatedAt = weather.current?.updatedAt || weather.lastUpdated;
+  if (!updatedAt) {
+    return { level: "Medium", reason: "Update time unknown" };
+  }
+
+  const ageMs = Date.now() - new Date(updatedAt).getTime();
+  const ageMinutes = Math.round(ageMs / 60000);
+
+  if (ageMinutes <= 30) {
+    return { level: "High", reason: `Last updated ${ageMinutes} minutes ago` };
+  }
+  if (ageMinutes <= 90) {
+    return { level: "Medium", reason: `Last updated ${ageMinutes} minutes ago` };
+  }
+  return { level: "Low", reason: `Data is ${Math.round(ageMinutes / 60)} hours old` };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // PROVIDER
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -99,6 +129,18 @@ export function WeatherProvider({ children }) {
   const intervalRef = useRef(null);
   const lastRefreshRef = useRef(0);
   const userNameRef = useRef("");
+
+  // Farm info (loaded from profile for display)
+  const [farmName, setFarmName] = useState("");
+  const [locationLoaded, setLocationLoaded] = useState(false);
+
+  // Refresh status & metadata (BUG 3-4-5-6-7)
+  const [refreshStatus, setRefreshStatus] = useState("idle"); // "idle" | "refreshing" | "success" | "offline" | "error"
+  const [lastUpdated, setLastUpdated] = useState(null); // ISO timestamp
+  const [nextRefresh, setNextRefresh] = useState(null); // ISO timestamp
+  const [provider, setProvider] = useState("OpenWeatherMap"); // Current weather provider name
+  const [isOffline, setIsOffline] = useState(false); // Using cached data
+  const [confidence, setConfidence] = useState({ level: "High", reason: "" }); // Forecast confidence
 
   /**
    * Set weather location and persist to localStorage.
@@ -139,6 +181,7 @@ export function WeatherProvider({ children }) {
     try {
       setLoading(true);
       setError(null);
+      setRefreshStatus("refreshing");
 
       // Fetch complete weather data
       const weatherData = await getWeatherForIntelligence(location || undefined);
@@ -149,8 +192,21 @@ export function WeatherProvider({ children }) {
         recordWeatherHistory(weatherData.current);
       }
 
-      // Run Intelligence Engine
+      // Update metadata
+      const updateTime = new Date().toISOString();
+      setLastUpdated(updateTime);
+      setNextRefresh(new Date(Date.now() + REFRESH_INTERVAL_MS).toISOString());
+      setProvider(weatherData?.source === "openweathermap-onecall" ? "OpenWeatherMap (OneCall)" : weatherData?.source === "openweathermap" ? "OpenWeatherMap" : "OpenWeatherMap");
+
+      // Determine if using cached/offline data
       if (weatherData?.available) {
+        setIsOffline(false);
+        setRefreshStatus("success");
+
+        // Calculate forecast confidence
+        setConfidence(calculateConfidence(weatherData));
+
+        // Run Intelligence Engine
         const riskResult = generateWeatherRisk(weatherData);
         const alertsResult = generateWeatherAlerts(weatherData);
         const recsResult = generateWeatherRecommendations(weatherData);
@@ -172,6 +228,11 @@ export function WeatherProvider({ children }) {
         // Dispatch push notifications for critical weather alerts
         processWeatherPushNotifications(notifsResult);
       } else {
+        // Using cached/offline data or truly unavailable
+        setIsOffline(true);
+        setRefreshStatus("offline");
+        setConfidence({ level: "Low", reason: "Weather data unavailable" });
+
         // Clear intelligence when weather unavailable
         setRisk(null);
         setAlerts([]);
@@ -184,9 +245,18 @@ export function WeatherProvider({ children }) {
       }
 
       lastRefreshRef.current = now;
+
+      // Auto-clear "success" status after 5 seconds
+      setTimeout(() => setRefreshStatus((prev) => prev === "success" ? "idle" : prev), 5000);
     } catch (err) {
       console.error("[WeatherContext] Refresh failed:", err);
       setError(err.message || "Failed to load weather data");
+      setRefreshStatus("error");
+      setIsOffline(true);
+      setConfidence({ level: "Low", reason: "Refresh failed — using cached forecast" });
+
+      // Auto-clear error status after 8 seconds
+      setTimeout(() => setRefreshStatus((prev) => prev === "error" ? "idle" : prev), 8000);
     } finally {
       setLoading(false);
     }
@@ -202,11 +272,45 @@ export function WeatherProvider({ children }) {
   }, [refresh]);
 
   // ─── Initial load ───────────────────────────────────────────────────────────
+  // Load profile weather_location FIRST, then fetch weather using that location.
+  // This ensures all weather data uses the farmer's saved location (not a default).
   useEffect(() => {
-    refresh(true);
-    // Initialize push notification system (does NOT request permission)
+    async function loadProfileAndRefresh() {
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          const profile = await getProfile().catch(() => null);
+          const profileLocation = profile?.weather_location || "";
+          const profileFarmName = profile?.farm_name || "";
+          const profileUserName = profile?.full_name?.split(" ")[0]
+            || user.user_metadata?.full_name?.split(" ")[0]
+            || user.user_metadata?.name?.split(" ")[0]
+            || "";
+
+          if (profileLocation && profileLocation !== location) {
+            setLocationState(profileLocation);
+            try { localStorage.setItem(LOCATION_STORAGE_KEY, profileLocation); } catch {}
+          }
+          if (profileFarmName) setFarmName(profileFarmName);
+          if (profileUserName) userNameRef.current = profileUserName;
+        }
+      } catch {
+        // Non-blocking — will use cached location or empty
+      }
+      setLocationLoaded(true);
+    }
+
+    loadProfileAndRefresh();
     initializePushNotifications();
-  }, [refresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── Fetch weather once location is loaded from profile ─────────────────────
+  useEffect(() => {
+    if (locationLoaded) {
+      refresh(true);
+    }
+  }, [locationLoaded, refresh]);
 
   // ─── Auto-refresh every hour ───────────────────────────────────────────────
   useEffect(() => {
@@ -222,8 +326,9 @@ export function WeatherProvider({ children }) {
   }, [refresh]);
 
   // ─── Refresh when location changes ─────────────────────────────────────────
+  // ─── Refresh when location changes (user explicitly changes location) ───────
   useEffect(() => {
-    if (location !== undefined) {
+    if (locationLoaded && location !== undefined) {
       forceRefresh();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -259,10 +364,19 @@ export function WeatherProvider({ children }) {
       earlyWarnings,
       notifications,
 
-      // Location management
+      // Location & farm info
       location,
+      farmName,
       setLocation,
       setUserName,
+
+      // Status & metadata (BUG 3-4-5-6-7)
+      refreshStatus,
+      lastUpdated,
+      nextRefresh,
+      provider,
+      isOffline,
+      confidence,
 
       // Actions
       refresh,
@@ -272,7 +386,8 @@ export function WeatherProvider({ children }) {
     [
       weather, loading, error,
       risk, alerts, recommendations, banner, insight, checklists, earlyWarnings, notifications,
-      location, setLocation, setUserName,
+      location, farmName, setLocation, setUserName,
+      refreshStatus, lastUpdated, nextRefresh, provider, isOffline, confidence,
       refresh, forceRefresh,
     ]
   );

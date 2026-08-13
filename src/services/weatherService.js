@@ -27,7 +27,7 @@
 
 const API_KEY = import.meta.env.VITE_WEATHER_API_KEY || "";
 const SAWS_API_KEY = import.meta.env.VITE_SAWS_API_KEY || "";
-const DEFAULT_LOCATION = import.meta.env.VITE_WEATHER_LOCATION || "Johannesburg,ZA";
+const DEFAULT_LOCATION = import.meta.env.VITE_WEATHER_LOCATION || "";
 const CACHE_MINUTES = parseInt(import.meta.env.VITE_WEATHER_CACHE_MINUTES || "30", 10);
 
 const OWM_BASE = "https://api.openweathermap.org/data/2.5";
@@ -42,6 +42,10 @@ const SAWS_BASE = "https://api.weathersa.co.za/v1";
 
 const CACHE_KEY_PREFIX = "feldrix_weather_";
 const cache = new Map();
+
+// Request deduplication — prevents duplicate API calls when multiple components
+// request weather data simultaneously (BUG 14 performance fix)
+const pendingRequests = new Map();
 
 /**
  * Get cached data if still valid.
@@ -728,6 +732,24 @@ export async function getWeatherSummary(location) {
   // Check full summary cache first (reduces API calls)
   const cached = getCached(cacheKey);
   if (cached) return cached;
+
+  // Request deduplication — if this exact request is already in flight, await it
+  if (pendingRequests.has(cacheKey)) {
+    return pendingRequests.get(cacheKey);
+  }
+
+  const requestPromise = _fetchWeatherSummary(loc, cacheKey);
+  pendingRequests.set(cacheKey, requestPromise);
+
+  try {
+    return await requestPromise;
+  } finally {
+    pendingRequests.delete(cacheKey);
+  }
+}
+
+/** Internal: actual fetch logic for getWeatherSummary (separated for deduplication) */
+async function _fetchWeatherSummary(loc, cacheKey) {
 
   // Try OneCall API first (single request for everything)
   if (API_KEY) {

@@ -64,7 +64,7 @@ export function getWeatherNotifications(data = {}) {
         title: alert.title,
         message: alert.message,
         module: "Weather",
-        route: "/weather",
+        route: "/weather#alerts",
         read: false,
         createdAt: new Date().toISOString(),
         // Extended fields for Weather Intelligence
