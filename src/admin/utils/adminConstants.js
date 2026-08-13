@@ -33,6 +33,7 @@ export const ADMIN_NAV_ITEMS = [
   { id: "analytics", label: "Analytics", icon: "📈", path: "/analytics" },
   { id: "system", label: "System Health", icon: "🛠", path: "/system" },
   { id: "weather-testing", label: "Weather Testing", icon: "🌦️", path: "/weather-testing" },
+  { id: "subscription-automation", label: "Subscription Automation", icon: "🔄", path: "/subscription-automation" },
   { id: "audit", label: "Audit Logs", icon: "📋", path: "/audit" },
   { id: "settings", label: "Settings", icon: "⚙️", path: "/settings" },
 ];
@@ -115,6 +116,7 @@ const NAV_PERMISSIONS = {
   analytics: "canViewAnalytics",
   system: "canViewSystem",
   "weather-testing": "canViewSystem",
+  "subscription-automation": "canManageSubscriptions",
   audit: "canViewAudit",
   settings: "canModifySettings",
 };

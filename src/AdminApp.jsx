@@ -28,6 +28,7 @@ const AdminSupport = lazy(() => import("./admin/pages/AdminSupport"));
 const AdminNotifications = lazy(() => import("./admin/pages/AdminNotifications"));
 const AdminSystemHealth = lazy(() => import("./admin/pages/AdminSystemHealth"));
 const AdminWeatherTesting = lazy(() => import("./admin/pages/AdminWeatherTesting"));
+const AdminSubscriptionAutomation = lazy(() => import("./admin/pages/AdminSubscriptionAutomation"));
 const AdminAuditLog = lazy(() => import("./admin/pages/AdminAuditLog"));
 const AdminSettings = lazy(() => import("./admin/pages/AdminSettings"));
 const AdminCustomerSuccess = lazy(() => import("./admin/pages/customer-success/CustomerSuccessCentre"));
@@ -75,6 +76,7 @@ export default function AdminApp() {
             <Route path="/notifications" element={<Suspense fallback={null}><AdminNotifications /></Suspense>} />
             <Route path="/system" element={<Suspense fallback={null}><AdminSystemHealth /></Suspense>} />
             <Route path="/weather-testing" element={<Suspense fallback={null}><AdminWeatherTesting /></Suspense>} />
+            <Route path="/subscription-automation" element={<Suspense fallback={null}><AdminSubscriptionAutomation /></Suspense>} />
             <Route path="/audit" element={<Suspense fallback={null}><AdminAuditLog /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={null}><AdminSettings /></Suspense>} />
           </Route>
