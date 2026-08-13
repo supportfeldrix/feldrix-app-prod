@@ -10,6 +10,7 @@ const menu = [
   { name: "Finance", emoji: "💳", path: "/finance" },
   { name: "Crops", emoji: "🌾", path: "/crops" },
   { name: "Machinery", emoji: "🚜", path: "/machinery" },
+  { name: "Weather", emoji: "⛅", path: "/weather" },
   { name: "Planner Dashboard", emoji: "📋", path: "/tasks" },
   { name: "Planner Workspace", emoji: "🧠", path: "/planner" },
   { name: "Reports", emoji: "📊", path: "/reports" },

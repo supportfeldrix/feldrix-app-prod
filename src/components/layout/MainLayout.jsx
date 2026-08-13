@@ -6,6 +6,7 @@ import TopBar from "./TopBar";
 import { NotificationProvider } from "../../context/NotificationContext";
 import { OnboardingProvider } from "../../context/OnboardingContext";
 import { ConnectionProvider } from "../../context/ConnectionContext";
+import { WeatherProvider } from "../../context/WeatherContext";
 import OnboardingOverlay from "../onboarding/OnboardingOverlay";
 
 const SIDEBAR_WIDTH = 280;
@@ -20,6 +21,7 @@ export default function MainLayout() {
 
   return (
     <ConnectionProvider>
+    <WeatherProvider>
     <NotificationProvider>
       <OnboardingProvider>
         <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f5f7fa" }}>
@@ -87,6 +89,7 @@ export default function MainLayout() {
         <OnboardingOverlay />
       </OnboardingProvider>
     </NotificationProvider>
+    </WeatherProvider>
     </ConnectionProvider>
   );
 }

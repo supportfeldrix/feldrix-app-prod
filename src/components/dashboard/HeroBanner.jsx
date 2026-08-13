@@ -9,6 +9,8 @@ import {
   Lightbulb,
 } from "@mui/icons-material";
 
+import { useWeatherBanner, useWeatherRisk } from "../../context/WeatherContext";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper Functions (preserved exactly)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,7 +138,7 @@ function HeroHeader({ greeting, summary, farmName, farmRegion }) {
 
 // ─── WeatherPanel ────────────────────────────────────────────────────────────
 
-function WeatherPanel({ weather, weatherText }) {
+function WeatherPanel({ weather, weatherText, riskBadge }) {
   return (
     <div
       style={{
@@ -171,6 +173,25 @@ function WeatherPanel({ weather, weatherText }) {
             {weather.current?.humidity && weather.current?.windSpeed ? " \u2022 " : ""}
             {weather.current?.windSpeed ? `Wind ${weather.current.windSpeed} km/h` : ""}
           </div>
+          {riskBadge && riskBadge.level !== "LOW" && (
+            <div
+              style={{
+                marginTop: 10,
+                display: "inline-block",
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                padding: "4px 10px",
+                borderRadius: 12,
+                background: `${riskBadge.color}30`,
+                color: riskBadge.color,
+                border: `1px solid ${riskBadge.color}50`,
+              }}
+            >
+              {riskBadge.emoji} {riskBadge.level} RISK
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ fontSize: 12, opacity: 0.4, fontWeight: 500 }}>
@@ -387,14 +408,38 @@ export default function HeroBanner({
   farmName = "",
   farmRegion = "",
 }) {
+  // ─── Weather Intelligence Integration ──────────────────────────────────────
+  // Weather banner from Intelligence Engine takes priority over generic greetings
+  // when severe weather is detected. This ensures farmers see critical alerts.
+  const weatherBanner = useWeatherBanner();
+  const weatherRisk = useWeatherRisk();
+
+  // Determine if weather should override the default greeting
+  const weatherOverride = weatherBanner.priority === "critical" || weatherBanner.priority === "warning";
+
   // Use briefing data if available, fallback to static
-  const baseGreeting = dailyBriefing?.greeting || getStaticGreeting();
-  const greeting = userName ? `${baseGreeting}, ${userName}` : baseGreeting;
-  const summary = dailyBriefing?.summary || "Your farm is looking great today.";
-  const recommendation = dailyBriefing?.recommendation || null;
+  const baseGreeting = weatherOverride
+    ? weatherBanner.greeting
+    : (dailyBriefing?.greeting || getStaticGreeting());
+
+  const greeting = weatherOverride
+    ? baseGreeting
+    : (userName ? `${baseGreeting}, ${userName}` : baseGreeting);
+
+  const summary = weatherOverride
+    ? weatherBanner.subtitle
+    : (dailyBriefing?.summary || "Your farm is looking great today.");
+
+  const recommendation = weatherOverride
+    ? (weatherBanner.action || null)
+    : (dailyBriefing?.recommendation || null);
+
   const highlights = dailyBriefing?.highlights?.slice(0, 3) || [];
   const weatherText = dailyBriefing?.weatherSummary || null;
-  const priority = dailyBriefing?.priority || "good";
+
+  const priority = weatherOverride
+    ? weatherBanner.priority
+    : (dailyBriefing?.priority || "good");
 
   // Priority accent for left border
   const accentColor =
@@ -482,7 +527,7 @@ export default function HeroBanner({
           </div>
 
           {/* Right Column — Weather */}
-          <WeatherPanel weather={weather} weatherText={weatherText} />
+          <WeatherPanel weather={weather} weatherText={weatherText} riskBadge={weatherRisk} />
         </div>
 
         {/* KPI Cards Grid */}

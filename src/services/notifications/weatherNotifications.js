@@ -1,29 +1,47 @@
 /**
- * FarmHand PRO — Notification Engine
- * Weather Notification Provider
+ * Feldrix — Weather Notification Provider
+ * Version 1.1 — Farm Weather Intelligence Platform
  *
- * Converts weather data into standardized notifications.
- * Evaluates conditions against configurable thresholds for
- * frost, rain, wind, and temperature extremes.
+ * Converts weather data into standardized notifications using the
+ * Weather Intelligence Engine. Replaces basic threshold checks with
+ * comprehensive farm-aware alerts including:
+ *   - Freeze / Frost warnings
+ *   - Heatwave alerts
+ *   - Heavy rain / Flood warnings
+ *   - Strong wind advisories
+ *   - Storm / Lightning / Hail alerts
+ *   - Early warning countdown notifications
+ *   - Farm-specific action recommendations
+ *
+ * Integrates with notificationEngine.js — produces notification objects
+ * that match the standard schema: { id, type, priority, title, message,
+ * module, route, read, createdAt }
  *
  * @module weatherNotifications
  */
 
-// Configurable thresholds
-const FROST_TEMP = 2;
-const HEAVY_RAIN_MM = 20;
-const STRONG_WIND_KMH = 40;
-const HIGH_TEMP = 35;
-const LOW_TEMP = 5;
+import {
+  generateWeatherAlerts,
+  generateWeatherRisk,
+  generateEarlyWarnings,
+  generateWeatherInsight,
+  RISK_LEVELS,
+} from "../weatherIntelligenceService";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN EXPORT — Called by notificationEngine.js
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Generates weather notifications from current and forecast data.
+ * Generates weather notifications from the supplied farm data context.
+ * Uses the Weather Intelligence Engine for comprehensive alert generation.
  *
  * @param {object} data - Farm data context
- * @param {object} data.weather - Weather data
+ * @param {object} data.weather - Weather data (from weatherService.getWeatherSummary)
  * @param {object} data.weather.current - Current conditions
  * @param {Array} data.weather.forecast - Forecast array
- * @returns {Array} Array of notification objects
+ * @param {Array} data.weather.hourly - Hourly forecast (new in v1.1)
+ * @returns {Array} Array of notification objects sorted by priority
  */
 export function getWeatherNotifications(data = {}) {
   try {
@@ -33,196 +51,172 @@ export function getWeatherNotifications(data = {}) {
       return [];
     }
 
-    const current = weather.current || {};
-    const forecast = Array.isArray(weather.forecast) ? weather.forecast : [];
-
     const notifications = [];
 
-    // Critical: Frost risk
-    if (isFrostRisk(current, forecast)) {
-      notifications.push(buildNotification(
-        "Critical",
-        "Frost Warning",
-        `Temperature expected to drop below ${FROST_TEMP}°C within 24 hours. Protect sensitive crops and check water troughs.`,
-        "frost_warning"
-      ));
+    // ─── Critical & High Priority Alerts ──────────────────────────────────────
+    const alerts = generateWeatherAlerts(weather);
+
+    for (const alert of alerts) {
+      notifications.push({
+        id: `weather-intel-${alert.type.toLowerCase()}`,
+        type: `weather_${alert.type.toLowerCase()}`,
+        priority: alert.priority,
+        title: alert.title,
+        message: alert.message,
+        module: "Weather",
+        route: "/weather",
+        read: false,
+        createdAt: new Date().toISOString(),
+        // Extended fields for Weather Intelligence
+        icon: alert.icon,
+        color: alert.color,
+        actionable: true,
+        advice: alert.advice || [],
+        alertType: alert.type,
+        pushEligible: alert.priority === "Critical",
+      });
     }
 
-    // High: Heavy rain
-    if (isHeavyRain(current, forecast)) {
-      const rainfall = getMaxRainfall(current, forecast);
-      notifications.push(buildNotification(
-        "High",
-        "Heavy Rain Expected",
-        `Rainfall of ${rainfall} mm is forecast. Delay spraying and check field drainage.`,
-        "heavy_rain"
-      ));
+    // ─── Early Warning Countdown Notifications ────────────────────────────────
+    const earlyWarnings = generateEarlyWarnings(weather);
+
+    for (const warning of earlyWarnings) {
+      // Only add countdown notification if no direct alert already exists for this type
+      const hasDirectAlert = alerts.some((a) => a.type === warning.alertType);
+      if (hasDirectAlert) continue;
+
+      notifications.push({
+        id: `weather-early-${warning.alertType.toLowerCase()}-${warning.stage.phase}`,
+        type: `weather_early_warning_${warning.alertType.toLowerCase()}`,
+        priority: warning.stage.phase === "immediate" ? "High" : "Medium",
+        title: `${warning.icon} ${warning.title} — ${warning.countdown}`,
+        message: warning.message,
+        module: "Weather",
+        route: "/weather",
+        read: false,
+        createdAt: new Date().toISOString(),
+        // Extended fields
+        icon: warning.icon,
+        color: warning.color,
+        actionable: true,
+        advice: warning.recommendations || [],
+        alertType: warning.alertType,
+        earlyWarning: true,
+        hoursUntil: warning.hoursUntil,
+        stage: warning.stage,
+        pushEligible: warning.stage.phase === "immediate",
+      });
     }
 
-    // High: Strong wind
-    if (isStrongWind(current, forecast)) {
-      const wind = getMaxWind(current, forecast);
-      notifications.push(buildNotification(
-        "High",
-        "Strong Wind Advisory",
-        `Wind speeds of ${wind} km/h expected. Avoid spraying and secure loose equipment.`,
-        "strong_wind"
-      ));
+    // ─── Weather Risk Level Notification ──────────────────────────────────────
+    const risk = generateWeatherRisk(weather);
+
+    if (risk.level === "EXTREME") {
+      // Only add if not already covered by specific alerts
+      if (alerts.length === 0) {
+        notifications.push({
+          id: "weather-risk-extreme",
+          type: "weather_risk_extreme",
+          priority: "Critical",
+          title: "Extreme Weather Risk",
+          message: risk.summary,
+          module: "Weather",
+          route: "/weather",
+          read: false,
+          createdAt: new Date().toISOString(),
+          icon: RISK_LEVELS.EXTREME.emoji,
+          color: RISK_LEVELS.EXTREME.color,
+          actionable: true,
+          pushEligible: true,
+        });
+      }
+    } else if (risk.level === "HIGH") {
+      if (alerts.length === 0) {
+        notifications.push({
+          id: "weather-risk-high",
+          type: "weather_risk_high",
+          priority: "High",
+          title: "High Weather Risk",
+          message: risk.summary,
+          module: "Weather",
+          route: "/weather",
+          read: false,
+          createdAt: new Date().toISOString(),
+          icon: RISK_LEVELS.HIGH.emoji,
+          color: RISK_LEVELS.HIGH.color,
+          actionable: true,
+          pushEligible: false,
+        });
+      }
     }
 
-    // Medium: High temperature
-    if (isHighTemperature(current, forecast)) {
-      const temp = getMaxTemp(current, forecast);
-      notifications.push(buildNotification(
-        "Medium",
-        "High Temperature Alert",
-        `Temperatures of ${temp}°C expected. Ensure livestock have adequate water and shade.`,
-        "high_temp"
-      ));
+    // ─── Moderate Weather Info (Low priority) ─────────────────────────────────
+    if (risk.level === "MODERATE" && alerts.length === 0) {
+      const insight = generateWeatherInsight(weather);
+      notifications.push({
+        id: "weather-moderate-info",
+        type: "weather_moderate",
+        priority: "Low",
+        title: "Weather Advisory",
+        message: insight,
+        module: "Weather",
+        route: "/weather",
+        read: false,
+        createdAt: new Date().toISOString(),
+        icon: RISK_LEVELS.MODERATE.emoji,
+        color: RISK_LEVELS.MODERATE.color,
+        actionable: false,
+        pushEligible: false,
+      });
     }
 
-    // Medium: Low temperature (not frost, but cold)
-    if (isLowTemperature(current, forecast) && !isFrostRisk(current, forecast)) {
-      const temp = getMinTemp(current, forecast);
-      notifications.push(buildNotification(
-        "Medium",
-        "Cold Weather Expected",
-        `Temperature expected to drop to ${temp}°C. Monitor young livestock and exposed crops.`,
-        "low_temp"
-      ));
-    }
-
-    // Low: Light/moderate rain expected
-    if (!isHeavyRain(current, forecast) && isRainExpected(current, forecast)) {
-      notifications.push(buildNotification(
-        "Low",
-        "Rain Expected",
-        "Light to moderate rain is forecast within 24 hours. Plan outdoor work accordingly.",
-        "rain_expected"
-      ));
+    // ─── Good Weather — Spray Window Opportunity (Info level) ─────────────────
+    if (risk.level === "LOW" && isGoodSprayWindow(weather)) {
+      notifications.push({
+        id: "weather-spray-window",
+        type: "weather_spray_window",
+        priority: "Info",
+        title: "Good Spray Conditions",
+        message: "Low wind, no rain expected. Good window for chemical application today.",
+        module: "Weather",
+        route: "/weather",
+        read: false,
+        createdAt: new Date().toISOString(),
+        icon: "\u2705",
+        actionable: false,
+        pushEligible: false,
+      });
     }
 
     return notifications;
-  } catch {
+  } catch (err) {
+    console.error("[WeatherNotifications] Generation failed:", err);
     return [];
   }
 }
 
-// =====================================================
-// Detection Helpers
-// =====================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Checks if frost is expected (temperature ≤ FROST_TEMP).
+ * Check if current conditions represent a good spray window.
+ * Requirements: wind < 15 km/h, no rain, not during storm.
  */
-function isFrostRisk(current, forecast) {
-  if (current.temperature != null && current.temperature <= FROST_TEMP) return true;
-  const next24h = forecast.slice(0, 1);
-  return next24h.some((day) => {
-    const minTemp = day.temperatureMin ?? day.temperature ?? null;
-    return minTemp != null && minTemp <= FROST_TEMP;
-  });
-}
+function isGoodSprayWindow(weather) {
+  const current = weather?.current;
+  if (!current) return false;
 
-/**
- * Checks if heavy rain is expected (≥ HEAVY_RAIN_MM).
- */
-function isHeavyRain(current, forecast) {
-  if (current.rainfall && current.rainfall >= HEAVY_RAIN_MM) return true;
-  return forecast.some((day) => day.rainfall && day.rainfall >= HEAVY_RAIN_MM);
-}
+  const wind = current.windSpeed ?? 0;
+  const rain = current.rainfall ?? 0;
+  const condition = (current.condition || "").toLowerCase();
 
-/**
- * Checks if strong wind is expected (≥ STRONG_WIND_KMH).
- */
-function isStrongWind(current, forecast) {
-  if (current.windSpeed && current.windSpeed >= STRONG_WIND_KMH) return true;
-  return forecast.some((day) => day.windSpeed && day.windSpeed >= STRONG_WIND_KMH);
-}
-
-/**
- * Checks if high temperature is expected (≥ HIGH_TEMP).
- */
-function isHighTemperature(current, forecast) {
-  if (current.temperature != null && current.temperature >= HIGH_TEMP) return true;
-  return forecast.some((day) => {
-    const maxTemp = day.temperatureMax ?? day.temperature ?? null;
-    return maxTemp != null && maxTemp >= HIGH_TEMP;
-  });
-}
-
-/**
- * Checks if low temperature is expected (≤ LOW_TEMP but above frost).
- */
-function isLowTemperature(current, forecast) {
-  if (current.temperature != null && current.temperature <= LOW_TEMP) return true;
-  return forecast.some((day) => {
-    const minTemp = day.temperatureMin ?? day.temperature ?? null;
-    return minTemp != null && minTemp <= LOW_TEMP;
-  });
-}
-
-/**
- * Checks if any rain is expected (light, moderate, or heavy).
- */
-function isRainExpected(current, forecast) {
-  if (current.rainfall && current.rainfall > 0) return true;
-  if (current.condition === "Rain" || current.condition === "Drizzle") return true;
-  return forecast.some((day) =>
-    (day.rainfall && day.rainfall > 0) ||
-    day.condition === "Rain" ||
-    day.condition === "Drizzle"
+  return (
+    wind < 15 &&
+    rain === 0 &&
+    !condition.includes("rain") &&
+    !condition.includes("storm") &&
+    !condition.includes("thunder") &&
+    !condition.includes("drizzle")
   );
-}
-
-// =====================================================
-// Value Extractors
-// =====================================================
-
-function getMaxRainfall(current, forecast) {
-  const values = [current.rainfall || 0, ...forecast.map((d) => d.rainfall || 0)];
-  return Math.round(Math.max(...values));
-}
-
-function getMaxWind(current, forecast) {
-  const values = [current.windSpeed || 0, ...forecast.map((d) => d.windSpeed || 0)];
-  return Math.round(Math.max(...values));
-}
-
-function getMaxTemp(current, forecast) {
-  const values = [
-    current.temperature ?? -Infinity,
-    ...forecast.map((d) => d.temperatureMax ?? d.temperature ?? -Infinity),
-  ];
-  return Math.round(Math.max(...values));
-}
-
-function getMinTemp(current, forecast) {
-  const values = [
-    current.temperature ?? Infinity,
-    ...forecast.map((d) => d.temperatureMin ?? d.temperature ?? Infinity),
-  ];
-  return Math.round(Math.min(...values));
-}
-
-// =====================================================
-// Builder
-// =====================================================
-
-/**
- * Builds a standardized notification object for weather events.
- * ID is deterministic (one per weather type) so dismissed/read state persists.
- */
-function buildNotification(priority, title, message, type) {
-  return {
-    id: `weather-${type}`,
-    type: `weather_${type}`,
-    priority,
-    title,
-    message,
-    module: "Weather",
-    route: "/dashboard",
-    read: false,
-    createdAt: new Date().toISOString(),
-  };
 }

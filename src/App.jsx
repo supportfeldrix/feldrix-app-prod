@@ -19,6 +19,7 @@ import Reports from "./pages/Reports";
 import Account from "./pages/Account";
 import Machinery from "./pages/Machinery";
 import MachineProfile from "./pages/MachineProfile";
+import Weather from "./pages/Weather";
 
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancelled from "./pages/PaymentCancelled";
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/finance" element={<Finance />} />
         <Route path="/machinery" element={<Machinery />} />
         <Route path="/machinery/:id" element={<MachineProfile />} />
+        <Route path="/weather" element={<Weather />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/planner" element={<PlannerWorkspace />} />
         <Route path="/reports" element={<Reports />} />
