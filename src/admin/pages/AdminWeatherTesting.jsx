@@ -70,6 +70,9 @@ export default function AdminWeatherTesting() {
   const loadAll = useCallback(async () => {
     setLoading(true);
 
+    // Safety timeout — ALWAYS exit loading state after 10 seconds max
+    const safetyTimer = setTimeout(() => setLoading(false), 10000);
+
     // Load each section independently — one failure must NOT block the entire page
     let device = null;
     let vapid = null;
@@ -80,6 +83,8 @@ export default function AdminWeatherTesting() {
     try { vapid = getVapidStatus(); } catch (err) { console.warn("[AdminWeatherTesting] VAPID status failed:", err); }
     try { log = await getAdminNotificationLog(50); } catch (err) { console.warn("[AdminWeatherTesting] Log fetch failed:", err); }
     try { statData = await getNotificationStats(); } catch (err) { console.warn("[AdminWeatherTesting] Stats fetch failed:", err); }
+
+    clearTimeout(safetyTimer);
 
     setDeviceStatus(device || {
       pushSupported: isPushSupported(),

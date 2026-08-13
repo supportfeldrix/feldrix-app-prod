@@ -252,20 +252,28 @@ export async function getDeviceStatus() {
     error: null,
   };
 
-  // Check service worker
+  // Check service worker (use getRegistration without specific scope for broader check)
   try {
     if ("serviceWorker" in navigator) {
-      const reg = await navigator.serviceWorker.getRegistration("/sw-weather.js");
-      status.serviceWorkerActive = !!reg?.active;
+      const reg = await Promise.race([
+        navigator.serviceWorker.getRegistration(),
+        new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
+      ]);
+      status.serviceWorkerActive = !!(reg?.active);
     }
   } catch { /* non-blocking */ }
 
-  // Check subscription in browser
-  if (isPushSupported() && navigator.serviceWorker) {
+  // Check subscription in browser (with timeout — .ready hangs if no SW registered)
+  if (isPushSupported() && "serviceWorker" in navigator) {
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      status.subscriptionActive = !!sub;
+      const reg = await Promise.race([
+        navigator.serviceWorker.getRegistration(),
+        new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
+      ]);
+      if (reg) {
+        const sub = await reg.pushManager.getSubscription();
+        status.subscriptionActive = !!sub;
+      }
     } catch { /* unavailable */ }
   }
 
