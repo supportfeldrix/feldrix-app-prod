@@ -116,17 +116,17 @@ export default function WeatherSummary({ weather: legacyWeather }) {
             <Stack direction="row" spacing={2} sx={{ opacity: 0.8 }}>
               {weather.current?.windSpeed != null && (
                 <Typography variant="caption" color="text.secondary">
-                  \uD83D\uDCA8 {weather.current.windSpeed} km/h
+                  💨 {weather.current.windSpeed} km/h
                 </Typography>
               )}
               {weather.current?.humidity != null && (
                 <Typography variant="caption" color="text.secondary">
-                  \uD83D\uDCA7 {weather.current.humidity}%
+                  💧 {weather.current.humidity}%
                 </Typography>
               )}
               {weather.current?.rainfall != null && weather.current.rainfall > 0 && (
                 <Typography variant="caption" color="text.secondary">
-                  \uD83C\uDF27\uFE0F {weather.current.rainfall} mm
+                  🌧️ {weather.current.rainfall} mm
                 </Typography>
               )}
             </Stack>
@@ -245,7 +245,7 @@ export default function WeatherSummary({ weather: legacyWeather }) {
                     </Typography>
                     {weather.forecast[0]?.pop > 0 && (
                       <Typography variant="caption" color="info.main" fontWeight={600}>
-                        \uD83D\uDCA7 {weather.forecast[0].pop}%
+                        💧 {weather.forecast[0].pop}%
                       </Typography>
                     )}
                   </Stack>

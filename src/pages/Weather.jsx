@@ -243,7 +243,7 @@ function HourlyForecast({ hourly }) {
                 </Typography>
                 {hour.pop != null && hour.pop > 0 && (
                   <Typography sx={{ fontSize: "0.6rem", opacity: 0.7, mt: 0.5 }}>
-                    \uD83D\uDCA7 {hour.pop}%
+                    💧 {hour.pop}%
                   </Typography>
                 )}
               </Box>
@@ -299,7 +299,7 @@ function DailyForecast({ forecast }) {
                 </Typography>
                 {day.pop != null && day.pop > 0 && (
                   <Typography sx={{ fontSize: "0.7rem", color: "info.main", fontWeight: 600, mr: 2 }}>
-                    \uD83D\uDCA7 {day.pop}%
+                    💧 {day.pop}%
                   </Typography>
                 )}
                 <Typography sx={{ fontSize: "0.82rem", fontWeight: 700, width: 40, textAlign: "right" }}>
@@ -338,10 +338,10 @@ function RecommendationsPanel({ recommendations }) {
   if (!recommendations) return null;
 
   const tabs = [
-    { label: "\uD83D\uDC04 Livestock", data: recommendations.livestock },
-    { label: "\uD83C\uDF31 Crops", data: recommendations.crops },
-    { label: "\uD83D\uDE9C Machinery", data: recommendations.machinery },
-    { label: "\uD83D\uDCCB General", data: recommendations.general },
+    { label: "🐄 Livestock", data: recommendations.livestock },
+    { label: "🌱 Crops", data: recommendations.crops },
+    { label: "🚜 Machinery", data: recommendations.machinery },
+    { label: "📋 General", data: recommendations.general },
   ];
 
   const activeTab = tabs[tab] || tabs[0];
