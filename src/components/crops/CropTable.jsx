@@ -219,12 +219,27 @@ export default function CropTable({ crops = [], onEdit, refreshCrops }) {
                   </TableCell>
 
                   <TableCell sx={dataCell}>
-                    <Chip
-                      label={crop.status || "Unknown"}
-                      size="small"
-                      color={getStatusColor(crop.status)}
-                      sx={{ fontWeight: 700, fontSize: "0.72rem", height: 26 }}
-                    />
+                    {crop.status === "Harvested" ? (
+                      <Chip
+                        label="Harvested"
+                        size="small"
+                        color="info"
+                        sx={{ fontWeight: 700, fontSize: "0.72rem", height: 26 }}
+                      />
+                    ) : lc.lifecycleStage ? (
+                      <Chip
+                        label={lc.lifecycleStage}
+                        size="small"
+                        sx={{ fontWeight: 700, fontSize: "0.72rem", height: 26, bgcolor: stageColor?.bg, color: stageColor?.color, border: `1px solid ${stageColor?.color}40` }}
+                      />
+                    ) : (
+                      <Chip
+                        label={crop.status || "Unknown"}
+                        size="small"
+                        color={getStatusColor(crop.status)}
+                        sx={{ fontWeight: 700, fontSize: "0.72rem", height: 26 }}
+                      />
+                    )}
                   </TableCell>
 
                   <TableCell sx={dataCell} align="right">

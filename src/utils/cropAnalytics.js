@@ -5,6 +5,8 @@
  * Generates crop health score and analytics from crop data.
  */
 
+import { getCropLifecycle } from "./cropLifecycle";
+
 /**
  * Calculates crop health score and analytics.
  *
@@ -267,7 +269,7 @@ function generateInsights({ activeCrops, harvestReady, overdue, needsIrrigation,
 
   // ─── MEDIUM: Flowering crops need inspection ───
   const floweringCrops = activeCrops.filter(
-    (c) => c.growth_stage === "Flowering" || c.growth_stage === "flowering"
+    (c) => getCropLifecycle(c).lifecycleStage === "Flowering"
   );
   if (floweringCrops.length > 0) {
     const names = floweringCrops.slice(0, 2).map((c) => c.crop_name || c.name || "Unnamed").join(", ");
@@ -286,7 +288,7 @@ function generateInsights({ activeCrops, harvestReady, overdue, needsIrrigation,
     if (!c.planting_date) return false;
     const planted = new Date(c.planting_date);
     const daysSincePlanting = Math.floor((today - planted) / 86400000);
-    return daysSincePlanting >= 28 && daysSincePlanting <= 35 && c.growth_stage !== "Harvest Ready";
+    return daysSincePlanting >= 28 && daysSincePlanting <= 35 && getCropLifecycle(c).lifecycleStage !== "Harvest Ready";
   });
   if (needsFertiliser.length > 0) {
     insights.push({
