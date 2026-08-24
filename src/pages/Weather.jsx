@@ -132,6 +132,23 @@ function CurrentConditions({ weather }) {
   const current = weather?.current;
   if (!current || !current.updatedAt) return null;
 
+  // Day/night detection from actual sunrise/sunset
+  const now = Date.now();
+  const sunriseTime = current.sunrise ? new Date(current.sunrise).getTime() : null;
+  const sunsetTime = current.sunset ? new Date(current.sunset).getTime() : null;
+  const isDay = (sunriseTime && sunsetTime) ? (now >= sunriseTime && now < sunsetTime) : true;
+
+  // Dynamic styling based on day/night
+  const cardBg = isDay
+    ? "linear-gradient(160deg, #E3F2FD 0%, #BBDEFB 30%, #FFFFFF 100%)"
+    : "linear-gradient(160deg, #0D1B2A 0%, #1B2838 40%, #1A237E 100%)";
+  const cardBorder = isDay ? "rgba(255, 193, 7, 0.35)" : "rgba(100, 149, 237, 0.35)";
+  const textPrimary = isDay ? "text.primary" : "#F1F5F9";
+  const textSecondary = isDay ? "text.secondary" : "#94A3B8";
+  const textDisabled = isDay ? "text.disabled" : "#64748B";
+  const dividerColor = isDay ? "divider" : "rgba(148, 163, 184, 0.15)";
+  const iconColor = isDay ? "text.disabled" : "#64748B";
+
   const details = [
     { icon: <Thermostat sx={{ fontSize: 18 }} />, label: "Feels Like", value: current.feelsLike != null ? `${current.feelsLike}°C` : "—" },
     { icon: <Air sx={{ fontSize: 18 }} />, label: "Wind", value: current.windSpeed != null ? `${current.windSpeed} km/h ${current.windDirection || ""}` : "—" },
@@ -144,15 +161,56 @@ function CurrentConditions({ weather }) {
   ];
 
   return (
-    <Card elevation={0} sx={{ borderRadius: radius.card, border: "1px solid", borderColor: "divider" }}>
-      <CardContent sx={{ p: 3 }}>
+    <Card
+      elevation={isDay ? 0 : 2}
+      sx={{
+        borderRadius: radius.card,
+        border: "1px solid",
+        borderColor: cardBorder,
+        background: cardBg,
+        transition: "background 0.6s ease, color 0.4s ease, border-color 0.4s ease",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Subtle decorative glow */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: -40,
+          right: -40,
+          width: 160,
+          height: 160,
+          borderRadius: "50%",
+          background: isDay
+            ? "radial-gradient(circle, rgba(255,193,7,0.12) 0%, transparent 70%)"
+            : "radial-gradient(circle, rgba(100,149,237,0.10) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      <CardContent sx={{ p: 3, position: "relative", zIndex: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           <Typography sx={{ fontSize: 56, lineHeight: 1 }}>{current.icon}</Typography>
-          <Box>
-            <Typography variant="h3" fontWeight={800} color="text.primary" sx={{ lineHeight: 1 }}>
-              {current.temperature}°C
-            </Typography>
-            <Typography variant="body1" color="text.secondary" fontWeight={500} sx={{ mt: 0.5 }}>
+          <Box sx={{ flex: 1 }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1, color: textPrimary }}>
+                {current.temperature}°C
+              </Typography>
+              <Chip
+                label={isDay ? "☀️ DAY" : "🌙 NIGHT"}
+                size="small"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "0.65rem",
+                  height: 22,
+                  bgcolor: isDay ? "rgba(255,193,7,0.15)" : "rgba(100,149,237,0.2)",
+                  color: isDay ? "#B45309" : "#93C5FD",
+                  border: "1px solid",
+                  borderColor: isDay ? "rgba(255,193,7,0.4)" : "rgba(100,149,237,0.4)",
+                }}
+              />
+            </Stack>
+            <Typography variant="body1" fontWeight={500} sx={{ mt: 0.5, color: textSecondary }}>
               {current.condition} {current.description && current.description !== current.condition ? `\u2014 ${current.description}` : ""}
             </Typography>
           </Box>
@@ -160,28 +218,28 @@ function CurrentConditions({ weather }) {
 
         {current.locationName && (
           <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 2 }}>
-            <LocationOn sx={{ fontSize: 14, color: "text.disabled" }} />
-            <Typography variant="caption" color="text.secondary">{current.locationName}</Typography>
+            <LocationOn sx={{ fontSize: 14, color: textDisabled }} />
+            <Typography variant="caption" sx={{ color: textSecondary }}>{current.locationName}</Typography>
             {current.updatedAt && (
-              <Typography variant="caption" color="text.disabled" sx={{ ml: 1 }}>
+              <Typography variant="caption" sx={{ ml: 1, color: textDisabled }}>
                 Updated {new Date(current.updatedAt).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
               </Typography>
             )}
           </Stack>
         )}
 
-        <Divider sx={{ mb: 2 }} />
+        <Divider sx={{ mb: 2, borderColor: dividerColor }} />
 
         <Grid container spacing={2}>
           {details.map((d) => (
             <Grid size={{ xs: 6, sm: 3 }} key={d.label}>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <Box sx={{ color: "text.disabled" }}>{d.icon}</Box>
+                <Box sx={{ color: iconColor }}>{d.icon}</Box>
                 <Box>
-                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5, color: textDisabled }}>
                     {d.label}
                   </Typography>
-                  <Typography variant="body2" fontWeight={700} color="text.primary">
+                  <Typography variant="body2" fontWeight={700} sx={{ color: textPrimary }}>
                     {d.value}
                   </Typography>
                 </Box>
@@ -194,11 +252,25 @@ function CurrentConditions({ weather }) {
   );
 }
 
-function HourlyForecast({ hourly }) {
+function HourlyForecast({ hourly, sunrise, sunset }) {
   if (!hourly || hourly.length === 0) return null;
 
   // Show next 24 hours
   const hours = hourly.slice(0, 24);
+
+  // Day/night detection for each hour
+  const sunriseMs = sunrise ? new Date(sunrise).getTime() : null;
+  const sunsetMs = sunset ? new Date(sunset).getTime() : null;
+
+  function isHourDay(hourTime) {
+    if (!sunriseMs || !sunsetMs) return true;
+    const hourMs = new Date(hourTime).getTime();
+    // For next-day hours, shift sunrise/sunset by 24h
+    const dayDuration = 24 * 60 * 60 * 1000;
+    if (hourMs >= sunriseMs && hourMs < sunsetMs) return true;
+    if (hourMs >= sunriseMs + dayDuration && hourMs < sunsetMs + dayDuration) return true;
+    return false;
+  }
 
   return (
     <Card elevation={0} sx={{ borderRadius: radius.card, border: "1px solid", borderColor: "divider" }}>
@@ -219,6 +291,7 @@ function HourlyForecast({ hourly }) {
           {hours.map((hour, i) => {
             const time = new Date(hour.time);
             const label = i === 0 ? "Now" : time.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" });
+            const hourIsDay = isHourDay(hour.time);
             return (
               <Box
                 key={i}
@@ -227,11 +300,16 @@ function HourlyForecast({ hourly }) {
                   textAlign: "center",
                   p: 1.5,
                   borderRadius: 2,
-                  bgcolor: i === 0 ? "primary.main" : "transparent",
+                  bgcolor: i === 0
+                    ? "primary.main"
+                    : hourIsDay
+                      ? "transparent"
+                      : "rgba(15, 23, 42, 0.06)",
                   color: i === 0 ? "#fff" : "text.primary",
                   border: i === 0 ? "none" : "1px solid",
-                  borderColor: "divider",
+                  borderColor: hourIsDay ? "divider" : "rgba(100, 149, 237, 0.25)",
                   flexShrink: 0,
+                  transition: "background 0.3s ease",
                 }}
               >
                 <Typography sx={{ fontSize: "0.65rem", fontWeight: 600, opacity: 0.7 }}>
@@ -850,7 +928,7 @@ export default function Weather() {
         <CurrentConditions weather={weather} />
 
         {/* HOURLY FORECAST */}
-        <HourlyForecast hourly={weather.hourly} />
+        <HourlyForecast hourly={weather.hourly} sunrise={weather.current?.sunrise} sunset={weather.current?.sunset} />
 
         {/* 7-DAY FORECAST */}
         <DailyForecast forecast={weather.forecast} />
