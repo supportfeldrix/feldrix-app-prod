@@ -124,9 +124,7 @@ export default function Dashboard() {
           breedingRecords: dash?.breedingRecords || [],
           weightRecords: dash?.weightRecords || [],
         },
-        crops: {
-          crops: dash?.crops || [],
-        },
+        crops: dash?.crops || [],
         finance: { records: dash?.financeRecords || [] },
         machinery: {
           machines: dash?.machines || [],

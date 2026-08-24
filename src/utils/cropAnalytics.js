@@ -43,36 +43,45 @@ export function generateCropAnalytics({ crops = [], weather = null } = {}) {
   );
 
   const harvestReady = activeCrops.filter((c) => {
-    if (!c.harvest_date) return false;
-    const hd = new Date(c.harvest_date);
+    if (!c.expected_harvest) return false;
+    const hd = new Date(c.expected_harvest);
     hd.setHours(0, 0, 0, 0);
     return hd <= weekFromNow;
   });
 
   const overdue = activeCrops.filter((c) => {
-    if (!c.harvest_date) return false;
-    const hd = new Date(c.harvest_date);
+    if (!c.expected_harvest) return false;
+    const hd = new Date(c.expected_harvest);
     hd.setHours(0, 0, 0, 0);
     return hd < today;
   });
 
   const upcomingHarvests = activeCrops.filter((c) => {
-    if (!c.harvest_date) return false;
-    const hd = new Date(c.harvest_date);
+    if (!c.expected_harvest) return false;
+    const hd = new Date(c.expected_harvest);
     hd.setHours(0, 0, 0, 0);
     return hd >= today && hd <= twoWeeksFromNow;
   });
 
-  // Irrigation check — crops with irrigation_status or last_irrigated
-  const needsIrrigation = activeCrops.filter((c) => {
-    if (c.irrigation_status === "Overdue" || c.irrigation_status === "Needed") return true;
-    if (c.last_irrigated) {
-      const lastIrr = new Date(c.last_irrigated);
-      const daysSince = Math.floor((today - lastIrr) / (1000 * 60 * 60 * 24));
-      return daysSince > 7;
+  // Irrigation risk — based on weather conditions only.
+  // The DB schema does not track irrigation_status or last_irrigated,
+  // so we can only flag irrigation risk when weather data shows hot/dry conditions.
+  const needsIrrigation = (() => {
+    if (!weather || !weather.available) return [];
+    const current = weather.current || {};
+    const forecast = Array.isArray(weather.forecast) ? weather.forecast : [];
+
+    const isHot = (current.temperature || 0) > 30;
+    const noRainExpected = !forecast.some(
+      (d) => d.condition === "Rain" || (d.rainfall && d.rainfall > 5)
+    );
+    const noCurrentRain = !(current.condition === "Rain" || (current.rainfall && current.rainfall > 5));
+
+    if (isHot && noRainExpected && noCurrentRain && activeCrops.length > 0) {
+      return activeCrops;
     }
-    return false;
-  });
+    return [];
+  })();
 
   const totalArea = crops.reduce(
     (sum, c) => sum + Number(c.area || 0), 0
@@ -204,7 +213,7 @@ function generateInsights({ activeCrops, harvestReady, overdue, needsIrrigation,
       });
     }
 
-    // ─── MEDIUM: Irrigation needed + no rain ───
+    // ─── MEDIUM: Irrigation risk — hot/dry conditions ───
     const rainExpected = forecast.some(
       (d) => d.condition === "Rain" || (d.rainfall && d.rainfall > 5)
     );
@@ -212,12 +221,12 @@ function generateInsights({ activeCrops, harvestReady, overdue, needsIrrigation,
 
     if (needsIrrigation.length > 0 && !rainExpected) {
       insights.push({
-        message: `${needsIrrigation.length} crop${needsIrrigation.length === 1 ? " requires" : "s require"} irrigation. No rain is forecast — irrigate to prevent water stress.`,
+        message: `${needsIrrigation.length} active crop${needsIrrigation.length === 1 ? "" : "s"} may need irrigation. High temperatures and no rain forecast — review irrigation schedule.`,
         reason: "High temperature and no rainfall expected in the coming days.",
-        action: "Irrigate today",
+        action: "Review irrigation",
         severity: "medium",
         type: "irrigation_needed",
-        taskData: { title: "Irrigate crops requiring water", category: "Crops", priority: "Medium" },
+        taskData: { title: "Review irrigation for active crops", category: "Crops", priority: "Medium" },
       });
     } else if (needsIrrigation.length > 0 && rainExpected) {
       insights.push({

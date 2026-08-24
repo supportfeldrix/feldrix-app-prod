@@ -71,8 +71,8 @@ export function generateCropInsights(data = {}) {
  */
 function getOverdueHarvests(crops, today) {
   return crops.filter((crop) => {
-    if (!crop.harvest_date) return false;
-    const harvestDate = new Date(crop.harvest_date);
+    if (!crop.expected_harvest) return false;
+    const harvestDate = new Date(crop.expected_harvest);
     harvestDate.setHours(0, 0, 0, 0);
     return harvestDate < today;
   });
@@ -86,8 +86,8 @@ function getHarvestsDueSoon(crops, today) {
   weekFromNow.setDate(weekFromNow.getDate() + 7);
 
   return crops.filter((crop) => {
-    if (!crop.harvest_date) return false;
-    const harvestDate = new Date(crop.harvest_date);
+    if (!crop.expected_harvest) return false;
+    const harvestDate = new Date(crop.expected_harvest);
     harvestDate.setHours(0, 0, 0, 0);
     return harvestDate >= today && harvestDate <= weekFromNow;
   });

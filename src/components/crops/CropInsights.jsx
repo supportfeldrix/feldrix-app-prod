@@ -131,7 +131,7 @@ export default function CropInsights({ analytics }) {
               <Stack spacing={1}>
                 <SummaryRow icon={<GrassIcon sx={{ fontSize: 18, color: "success.main" }} />} label="Active Crops" value={analytics.activeCrops} />
                 <SummaryRow icon={<AgricultureIcon sx={{ fontSize: 18, color: "warning.main" }} />} label="Ready for Harvest" value={analytics.harvestReady} />
-                <SummaryRow icon={<WaterDropIcon sx={{ fontSize: 18, color: "info.main" }} />} label="Need Irrigation" value={analytics.needsIrrigation} />
+                <SummaryRow icon={<WaterDropIcon sx={{ fontSize: 18, color: "info.main" }} />} label="Irrigation Risk" value={analytics.needsIrrigation} />
               </Stack>
             </Stack>
           </Stack>
@@ -240,7 +240,7 @@ export default function CropInsights({ analytics }) {
               <Stack spacing={1}>
                 <SummaryRow icon={<GrassIcon sx={{ fontSize: 18, color: "success.main" }} />} label="Active Crops" value={analytics.activeCrops} />
                 <SummaryRow icon={<AgricultureIcon sx={{ fontSize: 18, color: "warning.main" }} />} label="Ready for Harvest" value={analytics.harvestReady} />
-                <SummaryRow icon={<WaterDropIcon sx={{ fontSize: 18, color: "info.main" }} />} label="Need Irrigation" value={analytics.needsIrrigation} />
+                <SummaryRow icon={<WaterDropIcon sx={{ fontSize: 18, color: "info.main" }} />} label="Irrigation Risk" value={analytics.needsIrrigation} />
               </Stack>
             </Stack>
           </Stack>

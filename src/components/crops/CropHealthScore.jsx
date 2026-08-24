@@ -113,7 +113,7 @@ export default function CropHealthScore({ analytics }) {
               <Typography variant="h6" fontWeight={700} color="text.primary">
                 {analytics.needsIrrigation}
               </Typography>
-              <Typography variant="caption" color="text.secondary">Need Water</Typography>
+              <Typography variant="caption" color="text.secondary">Irrigation Risk</Typography>
             </Stack>
           </Stack>
         </Stack>

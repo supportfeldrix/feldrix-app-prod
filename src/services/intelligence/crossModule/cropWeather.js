@@ -82,9 +82,9 @@ function getCropsNearHarvest(crops) {
   sevenDays.setDate(sevenDays.getDate() + 7);
 
   return crops.filter((crop) => {
-    if (!crop.harvest_date) return false;
+    if (!crop.expected_harvest) return false;
     if (crop.status === "Harvested") return false;
-    const harvestDate = new Date(crop.harvest_date);
+    const harvestDate = new Date(crop.expected_harvest);
     harvestDate.setHours(0, 0, 0, 0);
     return harvestDate >= today && harvestDate <= sevenDays;
   });
