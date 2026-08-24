@@ -66,7 +66,11 @@ export default function CropPage() {
   );
 
   const totalCrops = crops.length;
-  const growing = crops.filter((c) => c.status === "Growing").length;
+  const growing = crops.filter((c) => {
+    if (c.status === "Harvested") return false;
+    const { lifecycleStage } = getCropLifecycle(c);
+    return lifecycleStage && lifecycleStage !== "Flowering" && lifecycleStage !== "Fruit / Grain Development" && lifecycleStage !== "Harvest Ready" && lifecycleStage !== "Harvested";
+  }).length;
   const harvested = crops.filter((c) => c.status === "Harvested").length;
   const totalArea = crops.reduce((sum, c) => sum + Number(c.area || 0), 0);
 
