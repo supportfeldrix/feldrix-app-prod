@@ -94,6 +94,8 @@ export function generateAnimalHealthAnalytics({
   // ---------------------------------------------------------------
   const overdueRecords = healthRecords.filter((r) => {
     if (!r.next_due) return false;
+    // Completed treatments are never overdue (next_due is preserved).
+    if (r.completed_at) return false;
     const due = new Date(r.next_due);
     due.setHours(0, 0, 0, 0);
     return due < today;
@@ -105,6 +107,7 @@ export function generateAnimalHealthAnalytics({
   // ---------------------------------------------------------------
   const vaccinationsDue = healthRecords.filter((r) => {
     if (!r.next_due) return false;
+    if (r.completed_at) return false;
     if (r.treatment_type !== "Vaccination") return false;
     const due = new Date(r.next_due);
     due.setHours(0, 0, 0, 0);
@@ -116,6 +119,7 @@ export function generateAnimalHealthAnalytics({
   // ---------------------------------------------------------------
   const followUpsDue = healthRecords.filter((r) => {
     if (!r.next_due) return false;
+    if (r.completed_at) return false;
     if (r.treatment_type === "Vaccination") return false;
     const due = new Date(r.next_due);
     due.setHours(0, 0, 0, 0);

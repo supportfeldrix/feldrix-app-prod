@@ -26,7 +26,11 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { deleteHealthRecord } from "../../services/healthService";
 import { radius, transitions } from "../../design/tokens";
 
-function getStatus(nextDue) {
+function getStatus(record) {
+  // Completed takes precedence over any date-based status. A completed
+  // treatment is never "Overdue", even though next_due is preserved.
+  if (record?.completed_at) return { label: "Completed", color: "success" };
+  const nextDue = record?.next_due;
   if (!nextDue) return { label: "No Due Date", color: "default" };
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -145,7 +149,7 @@ export default function HealthTable({ records = [], onEdit, refreshRecords }) {
               </TableRow>
             ) : (
               filtered.map((record, index) => {
-                const status = getStatus(record.next_due);
+                const status = getStatus(record);
                 return (
                   <TableRow
                     key={record.id}

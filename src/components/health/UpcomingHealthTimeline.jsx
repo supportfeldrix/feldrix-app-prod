@@ -96,6 +96,9 @@ function buildTimelineEvents(healthRecords) {
   for (const record of healthRecords) {
     if (!record.next_due) continue;
 
+    // Completed treatments are no longer outstanding health events.
+    if (record.completed_at) continue;
+
     const dueDate = new Date(record.next_due);
     dueDate.setHours(0, 0, 0, 0);
 
