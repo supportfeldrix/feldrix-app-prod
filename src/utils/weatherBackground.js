@@ -3,13 +3,14 @@
  *
  * Pure, dependency-free helper that turns the EXISTING weather data
  * (condition string from weatherService.mapCondition + day/night state)
- * into a visual "atmosphere" descriptor used by the Dashboard Weather card.
+ * into a rich visual "atmosphere" descriptor used by the Dashboard Weather
+ * card.
  *
  * IMPORTANT
  *   - Reuses the existing condition vocabulary only. It does NOT invent a
  *     new weather classification system.
- *   - No external image URLs, no network, no assets. Backgrounds are pure
- *     CSS gradients so they always render (and work offline).
+ *   - No external image URLs, no network, no assets. Backgrounds are built
+ *     purely from CSS gradients so they always render (and work offline).
  *   - Every state has a sensible fallback (neutral atmosphere).
  *
  * Condition vocabulary produced by weatherService.mapCondition():
@@ -57,73 +58,94 @@ export function isDaytime(sunrise, sunset, now = Date.now()) {
   return now >= sunriseTime && now < sunsetTime;
 }
 
-// Farm landscape palette (multi-ridge rolling hills) rendered via CSS.
-// Colour changes with day/night and is muted for overcast/rain/storm so it
-// reads as "the farm" under each sky. `mood` dulls greens for grey skies.
+// ─────────────────────────────────────────────────────────────────────────────
+// FARM LANDSCAPE PALETTE
+// Three depth planes (far hills, mid fields, foreground field). Colours shift
+// with day/night and are tinted per mood so the land reads correctly under
+// each sky.
+// ─────────────────────────────────────────────────────────────────────────────
 function farmLandscape(isDay, mood = "bright") {
-  // Base greens for day, deep greens for night.
-  let near = isDay ? "#3f7d3a" : "#12261a";
-  let mid = isDay ? "#4f8c44" : "#16301f";
-  let far = isDay ? "#6ba85c" : "#1d3a27";
-
-  if (mood === "muted") {
-    // Overcast — desaturated / greyer greens.
-    near = isDay ? "#4a6b4a" : "#141f19";
-    mid = isDay ? "#5a7a58" : "#1a271f";
-    far = isDay ? "#7f9a78" : "#22302a";
-  } else if (mood === "dark") {
-    // Rain / storm — darker, wetter landscape.
-    near = isDay ? "#2f4438" : "#0c1512";
-    mid = isDay ? "#3a5244" : "#111c17";
-    far = isDay ? "#4c6553" : "#16241d";
-  } else if (mood === "cold") {
-    // Snow — pale, cool landscape.
-    near = isDay ? "#b9c6c9" : "#28323a";
-    mid = isDay ? "#cdd9db" : "#333f48";
-    far = isDay ? "#e4ecee" : "#45525c";
-  }
-
-  return { near, mid, far };
+  const palettes = {
+    bright: {
+      day: { far: "#7fb069", mid: "#5c9a4d", near: "#3f7d3a", detail: "#2c5e2a", haze: "#cfe8d6" },
+      night: { far: "#1d3a27", mid: "#16301f", near: "#0f2418", detail: "#0a1a11", haze: "#26456a" },
+    },
+    muted: {
+      day: { far: "#8ba585", mid: "#6f8f66", near: "#54744d", detail: "#3f5c3a", haze: "#d3dcd6" },
+      night: { far: "#212f26", mid: "#19261d", near: "#121d16", detail: "#0c140f", haze: "#2a3b4d" },
+    },
+    dark: {
+      day: { far: "#54685a", mid: "#3f5648", near: "#2d4438", detail: "#1f322a", haze: "#aeb9bc" },
+      night: { far: "#182420", mid: "#111c17", near: "#0b1310", detail: "#070d0a", haze: "#1c2a33" },
+    },
+    cold: {
+      day: { far: "#dbe6e8", mid: "#c2d1d4", near: "#a6b8bc", detail: "#8ba0a4", haze: "#eef4f5" },
+      night: { far: "#3a4750", mid: "#2c3841", near: "#212c34", detail: "#18212a", haze: "#3d4b58" },
+    },
+  };
+  const p = palettes[mood] || palettes.bright;
+  return p[isDay ? "day" : "night"];
 }
 
 /**
- * Soft cloud layer expressed as a set of overlapping radial gradients.
- * Returns a CSS `background` string or null (clear skies get few/no clouds).
- * `density`: "few" | "some" | "many" | "storm"
+ * Natural cloud field: many soft, varied radial gradients at different sizes,
+ * positions and opacities so it reads as clouds rather than repeated circles.
+ * Returns { background, blur, opacity } or null.
+ *
+ * @param {boolean} isDay
+ * @param {"few"|"some"|"many"|"storm"|"none"} density
  */
 function cloudLayer(isDay, density) {
   if (!density || density === "none") return null;
 
-  const light = isDay ? "rgba(255,255,255,0.85)" : "rgba(226,232,240,0.30)";
-  const soft = isDay ? "rgba(255,255,255,0.55)" : "rgba(203,213,225,0.18)";
-  const grey = isDay ? "rgba(215,222,228,0.9)" : "rgba(148,163,184,0.22)";
-  const storm = isDay ? "rgba(120,132,144,0.9)" : "rgba(70,82,96,0.55)";
+  // Tone ramp for cloud bodies.
+  const hi = isDay ? "rgba(255,255,255,0.95)" : "rgba(214,224,240,0.34)";
+  const mid = isDay ? "rgba(246,249,252,0.72)" : "rgba(190,203,224,0.24)";
+  const lo = isDay ? "rgba(232,238,244,0.5)" : "rgba(160,176,200,0.18)";
+  const grey = isDay ? "rgba(206,214,222,0.92)" : "rgba(150,164,184,0.26)";
+  const dark = isDay ? "rgba(126,138,150,0.92)" : "rgba(78,90,104,0.6)";
 
-  const blobs = {
+  // Each cloud is 2–3 overlapping ellipses to get a lumpy, natural silhouette.
+  const cloud = (cx, cy, w, h, tone) =>
+    `radial-gradient(${w}px ${h}px at ${cx}% ${cy}%, ${tone} 0%, ${tone} 42%, transparent 74%)`;
+
+  const sets = {
     few: [
-      `radial-gradient(70px 34px at 22% 26%, ${light} 0%, transparent 70%)`,
-      `radial-gradient(90px 40px at 70% 20%, ${soft} 0%, transparent 72%)`,
+      cloud(24, 26, 78, 30, hi),
+      cloud(31, 30, 54, 24, hi),
+      cloud(72, 20, 66, 26, mid),
+      cloud(80, 24, 44, 20, lo),
     ],
     some: [
-      `radial-gradient(90px 42px at 18% 24%, ${light} 0%, transparent 70%)`,
-      `radial-gradient(120px 52px at 58% 18%, ${light} 0%, transparent 72%)`,
-      `radial-gradient(80px 38px at 86% 30%, ${soft} 0%, transparent 72%)`,
+      cloud(20, 26, 90, 34, hi),
+      cloud(28, 31, 60, 26, hi),
+      cloud(57, 19, 104, 38, hi),
+      cloud(66, 24, 66, 28, mid),
+      cloud(87, 30, 66, 26, lo),
     ],
     many: [
-      `radial-gradient(120px 50px at 20% 22%, ${grey} 0%, transparent 72%)`,
-      `radial-gradient(150px 60px at 60% 16%, ${grey} 0%, transparent 74%)`,
-      `radial-gradient(110px 48px at 90% 26%, ${soft} 0%, transparent 72%)`,
-      `radial-gradient(100px 44px at 40% 34%, ${soft} 0%, transparent 72%)`,
+      cloud(18, 24, 108, 40, grey),
+      cloud(27, 29, 72, 30, hi),
+      cloud(52, 17, 128, 46, grey),
+      cloud(62, 23, 84, 34, mid),
+      cloud(86, 27, 92, 34, lo),
+      cloud(40, 34, 80, 30, mid),
     ],
     storm: [
-      `radial-gradient(150px 60px at 24% 20%, ${storm} 0%, transparent 72%)`,
-      `radial-gradient(180px 70px at 64% 14%, ${storm} 0%, transparent 74%)`,
-      `radial-gradient(130px 54px at 92% 26%, ${storm} 0%, transparent 72%)`,
-      `radial-gradient(120px 50px at 44% 32%, ${grey} 0%, transparent 72%)`,
+      cloud(20, 22, 128, 46, dark),
+      cloud(30, 28, 84, 34, dark),
+      cloud(58, 16, 150, 52, dark),
+      cloud(68, 23, 96, 38, grey),
+      cloud(90, 26, 104, 40, dark),
+      cloud(44, 32, 92, 34, grey),
     ],
   };
 
-  return (blobs[density] || blobs.some).join(", ");
+  return {
+    background: (sets[density] || sets.some).join(", "),
+    blur: density === "storm" ? 3 : 4,
+    opacity: isDay ? (density === "storm" ? 0.95 : 0.92) : 0.7,
+  };
 }
 
 /**
@@ -131,22 +153,11 @@ function cloudLayer(isDay, density) {
  *
  * @param {string} condition
  * @param {boolean} isDay
- * @returns {{
- *   key: string,
- *   sky: string,        // CSS background (gradient) for the sky
- *   textColor: string,  // primary readable text colour
- *   subTextColor: string,
- *   overlay: string,    // gradient overlay to guarantee readability
- *   surface: string,    // translucent surface bg for glass panels
- *   surfaceBorder: string,
- *   landscape: {hill:string, hillFar:string},
- *   effect: null|"rain"|"storm"|"snow"|"stars"|"sun",
- * }}
+ * @returns {object} atmosphere descriptor consumed by WeatherSummary
  */
 export function getWeatherAtmosphere(condition, isDay) {
   const family = classifyCondition(condition);
 
-  // Landscape mood per family.
   const moodByFamily = {
     clear: "bright",
     partly: "bright",
@@ -159,7 +170,6 @@ export function getWeatherAtmosphere(condition, isDay) {
   };
   const landscape = farmLandscape(isDay, moodByFamily[family] || "bright");
 
-  // Cloud density per family.
   const cloudsByFamily = {
     clear: "few",
     partly: "some",
@@ -172,55 +182,53 @@ export function getWeatherAtmosphere(condition, isDay) {
   };
   const clouds = cloudLayer(isDay, cloudsByFamily[family] || "some");
 
-  // Readability defaults per day/night. Day uses dark text on light sky;
-  // night uses light text on dark sky. Rain/storm always use light text.
+  // ── Readability tokens ──────────────────────────────────────────────────
   const dayText = { textColor: "#0F2233", subTextColor: "rgba(15,34,51,0.72)" };
-  const nightText = { textColor: "#F1F5F9", subTextColor: "rgba(226,232,240,0.78)" };
+  const nightText = { textColor: "#F1F5F9", subTextColor: "rgba(226,232,240,0.80)" };
 
-  const daySurface = { surface: "rgba(255,255,255,0.28)", surfaceBorder: "rgba(255,255,255,0.45)" };
-  const nightSurface = { surface: "rgba(15,23,42,0.35)", surfaceBorder: "rgba(148,163,184,0.28)" };
+  const daySurface = { surface: "rgba(255,255,255,0.30)", surfaceBorder: "rgba(255,255,255,0.48)" };
+  const nightSurface = { surface: "rgba(15,23,42,0.38)", surfaceBorder: "rgba(148,163,184,0.30)" };
 
-  // Overlay keeps content legible. Day = subtle light-to-transparent from
-  // top; Night = stronger dark overlay.
-  const dayOverlay = "linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.30) 100%)";
-  const nightOverlay = "linear-gradient(180deg, rgba(2,6,23,0.25) 0%, rgba(2,6,23,0.55) 100%)";
+  const dayOverlay = "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 45%, rgba(255,255,255,0.22) 100%)";
+  const nightOverlay = "linear-gradient(180deg, rgba(2,6,23,0.22) 0%, rgba(2,6,23,0.30) 45%, rgba(2,6,23,0.55) 100%)";
 
   const base = isDay
     ? { ...dayText, ...daySurface, overlay: dayOverlay }
     : { ...nightText, ...nightSurface, overlay: nightOverlay };
 
+  // ── Skies: three-stop atmospheric gradients (zenith → mid → horizon) ─────
   const skies = {
     clear: {
-      day: "linear-gradient(180deg, #4aa3f0 0%, #8fccf5 55%, #d6ecfb 100%)",
-      night: "linear-gradient(180deg, #0a1a3f 0%, #16336b 55%, #1e2a52 100%)",
+      day: "linear-gradient(180deg, #2f8fe6 0%, #63b4f2 46%, #bfe4fb 82%, #e6f4fc 100%)",
+      night: "linear-gradient(180deg, #071634 0%, #102a5c 48%, #1c3a6e 84%, #24406f 100%)",
     },
     partly: {
-      day: "linear-gradient(180deg, #6fb0e8 0%, #a8cef0 55%, #e0eef8 100%)",
-      night: "linear-gradient(180deg, #12213f 0%, #22375f 55%, #2b3a55 100%)",
+      day: "linear-gradient(180deg, #4d9fe4 0%, #86c0ee 46%, #cbe6f8 82%, #e9f3fb 100%)",
+      night: "linear-gradient(180deg, #0d1e3e 0%, #1b3360 48%, #2a3f66 84%, #32476b 100%)",
     },
     cloudy: {
-      day: "linear-gradient(180deg, #8fa3b3 0%, #b3c1cc 55%, #d8dfe4 100%)",
-      night: "linear-gradient(180deg, #1c2530 0%, #2b3540 55%, #333d47 100%)",
+      day: "linear-gradient(180deg, #7f95a8 0%, #9fb1c0 46%, #c6d1da 82%, #dde4e9 100%)",
+      night: "linear-gradient(180deg, #171f2a 0%, #232d3a 48%, #2f3a48 84%, #384350 100%)",
     },
     rain: {
-      day: "linear-gradient(180deg, #5b6b78 0%, #7c8b96 55%, #9aa7b0 100%)",
-      night: "linear-gradient(180deg, #131b24 0%, #202b36 55%, #28323c 100%)",
+      day: "linear-gradient(180deg, #4f5f6c 0%, #6c7d89 46%, #8a99a4 82%, #9fadb6 100%)",
+      night: "linear-gradient(180deg, #0d141c 0%, #17212c 48%, #212c38 84%, #28333f 100%)",
     },
     storm: {
-      day: "linear-gradient(180deg, #33414d 0%, #4a5560 55%, #5d6771 100%)",
-      night: "linear-gradient(180deg, #090d13 0%, #171f2a 55%, #1f2732 100%)",
+      day: "linear-gradient(180deg, #29353f 0%, #3c4753 46%, #515c68 82%, #5f6a75 100%)",
+      night: "linear-gradient(180deg, #05080d 0%, #0f151e 48%, #191f2a 84%, #202730 100%)",
     },
     snow: {
-      day: "linear-gradient(180deg, #aebfca 0%, #cdd9e1 55%, #eef3f6 100%)",
-      night: "linear-gradient(180deg, #1e2733 0%, #313d4a 55%, #47535f 100%)",
+      day: "linear-gradient(180deg, #a2b6c3 0%, #c0cfd9 46%, #dde7ec 82%, #f0f5f7 100%)",
+      night: "linear-gradient(180deg, #1a232f 0%, #28323f 48%, #37424f 84%, #46515d 100%)",
     },
     fog: {
-      day: "linear-gradient(180deg, #9aa6ac 0%, #bcc4c8 55%, #dde1e3 100%)",
-      night: "linear-gradient(180deg, #1b2229 0%, #2a333b 55%, #39424a 100%)",
+      day: "linear-gradient(180deg, #93a1a8 0%, #b2bcc1 46%, #ccd3d6 82%, #e0e5e7 100%)",
+      night: "linear-gradient(180deg, #171d24 0%, #242c34 48%, #313a42 84%, #3c454d 100%)",
     },
     neutral: {
-      day: "linear-gradient(180deg, #6fa8dc 0%, #a8cef0 55%, #dfeef8 100%)",
-      night: "linear-gradient(180deg, #101a30 0%, #1f2c48 55%, #28334d 100%)",
+      day: "linear-gradient(180deg, #4f9be0 0%, #86c0ee 46%, #cbe6f8 82%, #e9f3fb 100%)",
+      night: "linear-gradient(180deg, #0b162e 0%, #172647 48%, #23335098 84%, #2a3a58 100%)",
     },
   };
 
@@ -231,36 +239,50 @@ export function getWeatherAtmosphere(condition, isDay) {
     rain: "rain",
     storm: "storm",
     snow: "snow",
-    fog: null,
+    fog: "fog",
     neutral: null,
   };
 
-  // Rain/storm skies are dark even during the day — force light text.
+  // Rain/storm skies are dark even during the day — force light text and a
+  // stronger overlay for contrast against streaks.
   const forceLight = family === "rain" || family === "storm";
   const readability = forceLight
-    ? { ...nightText, ...(isDay ? daySurface : nightSurface), overlay: isDay ? "linear-gradient(180deg, rgba(2,6,23,0.15) 0%, rgba(2,6,23,0.40) 100%)" : nightOverlay }
+    ? {
+        ...nightText,
+        ...(isDay ? daySurface : nightSurface),
+        overlay: isDay
+          ? "linear-gradient(180deg, rgba(2,6,23,0.12) 0%, rgba(2,6,23,0.18) 45%, rgba(2,6,23,0.44) 100%)"
+          : nightOverlay,
+      }
     : base;
 
   const sky = (skies[family] || skies.neutral)[isDay ? "day" : "night"];
 
-  // Horizon haze colour — a soft band where sky meets land, adds depth.
-  const haze = isDay
-    ? (forceLight ? "rgba(200,208,214,0.55)" : "rgba(255,255,255,0.55)")
-    : "rgba(120,140,180,0.22)";
+  // Horizon haze — soft band where sky meets land (atmospheric depth).
+  const haze = landscape.haze;
 
-  // Vignette strength for atmospheric framing.
+  // Vignette for framing.
   const vignette = isDay
-    ? "radial-gradient(130% 100% at 50% 30%, transparent 55%, rgba(15,23,42,0.16) 100%)"
-    : "radial-gradient(130% 100% at 50% 30%, transparent 45%, rgba(2,6,23,0.45) 100%)";
+    ? "radial-gradient(135% 105% at 50% 26%, transparent 52%, rgba(15,23,42,0.18) 100%)"
+    : "radial-gradient(135% 105% at 50% 26%, transparent 42%, rgba(2,6,23,0.48) 100%)";
+
+  // Fog veil — extra soft white/grey wash for mist states.
+  const fogVeil = family === "fog"
+    ? (isDay
+        ? "linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.42) 60%, rgba(255,255,255,0.30) 100%)"
+        : "linear-gradient(180deg, rgba(180,196,214,0.16) 0%, rgba(180,196,214,0.24) 60%, rgba(180,196,214,0.14) 100%)")
+    : null;
 
   return {
     key: `${family}-${isDay ? "day" : "night"}`,
     family,
+    isDay,
     sky,
-    clouds,
-    haze,
+    clouds,      // { background, blur, opacity } | null
+    haze,        // horizon haze colour
     vignette,
-    landscape,
+    fogVeil,     // string | null
+    landscape,   // { far, mid, near, detail, haze }
     effect: effectByFamily[family] ?? null,
     ...readability,
   };

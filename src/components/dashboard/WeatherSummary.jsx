@@ -112,46 +112,66 @@ export default function WeatherSummary({ weather: legacyWeather }) {
         "&:hover": { boxShadow: "0 12px 30px rgba(15,23,42,0.20)", transform: "translateY(-2px)" },
       }}
     >
-      {/* Sun (day) / moon (night) disc + glow */}
+      {/* Sun (day) / moon (night) disc + bloom + rays */}
       {(atmosphere.effect === "sun" || atmosphere.effect === "stars") && (
         <>
+          {/* Atmospheric bloom */}
           <Box
             aria-hidden
             sx={{
               position: "absolute",
-              top: 18,
-              right: 26,
-              width: isDay ? 46 : 34,
-              height: isDay ? 46 : 34,
+              top: -46,
+              right: -34,
+              width: 180,
+              height: 180,
               borderRadius: "50%",
               background: isDay
-                ? "radial-gradient(circle at 40% 40%, #fff4c2 0%, #ffd24d 60%, #ffb020 100%)"
-                : "radial-gradient(circle at 38% 38%, #ffffff 0%, #dfe7f2 55%, #b9c6da 100%)",
+                ? "radial-gradient(circle, rgba(255,222,130,0.42) 0%, rgba(255,214,102,0.12) 45%, rgba(255,214,102,0) 72%)"
+                : "radial-gradient(circle, rgba(226,232,240,0.24) 0%, rgba(226,232,240,0.06) 48%, rgba(226,232,240,0) 72%)",
+              pointerEvents: "none",
+            }}
+          />
+          {/* Subtle sun rays (day only) */}
+          {isDay && <SunRays />}
+          {/* Disc */}
+          <Box
+            aria-hidden
+            sx={{
+              position: "absolute",
+              top: 20,
+              right: 28,
+              width: isDay ? 44 : 32,
+              height: isDay ? 44 : 32,
+              borderRadius: "50%",
+              background: isDay
+                ? "radial-gradient(circle at 38% 36%, #fff7d6 0%, #ffd84f 58%, #ffb62e 100%)"
+                : "radial-gradient(circle at 36% 36%, #ffffff 0%, #e2e9f4 52%, #b9c6da 100%)",
               boxShadow: isDay
-                ? "0 0 26px 10px rgba(255,210,80,0.45)"
-                : "0 0 20px 6px rgba(210,224,245,0.35)",
+                ? "0 0 30px 12px rgba(255,205,70,0.5)"
+                : "0 0 22px 7px rgba(210,224,245,0.38)",
               pointerEvents: "none",
             }}
           />
-          <Box
-            aria-hidden
-            sx={{
-              position: "absolute",
-              top: -40,
-              right: -30,
-              width: 170,
-              height: 170,
-              borderRadius: "50%",
-              background: isDay
-                ? "radial-gradient(circle, rgba(255,214,102,0.35) 0%, rgba(255,214,102,0) 70%)"
-                : "radial-gradient(circle, rgba(226,232,240,0.22) 0%, rgba(226,232,240,0) 70%)",
-              pointerEvents: "none",
-            }}
-          />
+          {/* Moon shading (night) */}
+          {!isDay && (
+            <Box
+              aria-hidden
+              sx={{
+                position: "absolute",
+                top: 18,
+                right: 22,
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                boxShadow: "inset -7px -3px 0 0 rgba(30,45,75,0.55)",
+                pointerEvents: "none",
+              }}
+            />
+          )}
         </>
       )}
 
-      {/* Cloud layer (soft, condition-dependent) */}
+      {/* Cloud layer (soft, natural, condition-dependent) */}
       {atmosphere.clouds && (
         <Box
           aria-hidden
@@ -160,10 +180,10 @@ export default function WeatherSummary({ weather: legacyWeather }) {
             top: 0,
             left: 0,
             right: 0,
-            height: "62%",
-            background: atmosphere.clouds,
-            filter: "blur(2px)",
-            opacity: isDay ? 0.9 : 0.75,
+            height: "64%",
+            background: atmosphere.clouds.background,
+            filter: `blur(${atmosphere.clouds.blur}px)`,
+            opacity: atmosphere.clouds.opacity,
             pointerEvents: "none",
           }}
         />
@@ -175,69 +195,114 @@ export default function WeatherSummary({ weather: legacyWeather }) {
       {/* Rain / storm streaks */}
       {(atmosphere.effect === "rain" || atmosphere.effect === "storm") && <RainEffect heavy={atmosphere.effect === "storm"} />}
 
+      {/* Storm lightning — brief soft illumination (no bolt graphic) */}
+      {atmosphere.effect === "storm" && <LightningGlow />}
+
       {/* Snow */}
       {atmosphere.effect === "snow" && <SnowEffect />}
 
-      {/* Horizon haze — soft band where sky meets land (depth) */}
+      {/* Fog / mist veil */}
+      {atmosphere.fogVeil && (
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background: atmosphere.fogVeil,
+            filter: "blur(1px)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
+      {/* Horizon haze — soft band where sky meets land (atmospheric depth) */}
       <Box
         aria-hidden
         sx={{
           position: "absolute",
           left: 0,
           right: 0,
-          bottom: 78,
-          height: 46,
+          bottom: 74,
+          height: 54,
           background: `linear-gradient(180deg, transparent 0%, ${atmosphere.haze} 100%)`,
+          opacity: 0.85,
           pointerEvents: "none",
         }}
       />
 
-      {/* Farm landscape — layered ridges with field/tree hints */}
-      <Box aria-hidden sx={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 108, pointerEvents: "none" }}>
-        {/* Far ridge */}
+      {/* ── Farm landscape: three depth planes + subtle farm details ─────── */}
+      <Box aria-hidden sx={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 122, pointerEvents: "none" }}>
+        {/* Distant hills */}
         <Box
           sx={{
             position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 44,
-            height: 60,
+            left: -10,
+            right: -10,
+            bottom: 58,
+            height: 46,
             background: atmosphere.landscape.far,
-            opacity: 0.75,
-            borderTopLeftRadius: "60% 90%",
-            borderTopRightRadius: "48% 80%",
+            opacity: 0.7,
+            borderTopLeftRadius: "70% 100%",
+            borderTopRightRadius: "55% 90%",
+            filter: "blur(0.4px)",
           }}
         />
-        {/* Mid ridge */}
+        {/* Distant barn silhouette on the far hill */}
+        <Box sx={{ position: "absolute", bottom: 84, left: "68%", width: 16, height: 12, bgcolor: atmosphere.landscape.detail, opacity: 0.7 }} />
         <Box
           sx={{
             position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 26,
-            height: 58,
-            background: atmosphere.landscape.mid,
-            opacity: 0.9,
-            borderTopLeftRadius: "45% 80%",
-            borderTopRightRadius: "65% 100%",
+            bottom: 96,
+            left: "68%",
+            width: 0,
+            height: 0,
+            borderLeft: "8px solid transparent",
+            borderRight: "8px solid transparent",
+            borderBottom: `7px solid ${atmosphere.landscape.detail}`,
+            opacity: 0.7,
           }}
         />
-        {/* Near field with subtle furrow texture */}
+
+        {/* Mid rolling fields */}
+        <Box
+          sx={{
+            position: "absolute",
+            left: -10,
+            right: -10,
+            bottom: 34,
+            height: 56,
+            background: atmosphere.landscape.mid,
+            opacity: 0.92,
+            borderTopLeftRadius: "45% 85%",
+            borderTopRightRadius: "70% 100%",
+          }}
+        />
+        {/* Tree line on the mid ridge */}
+        <Box sx={{ position: "absolute", bottom: 78, left: "12%", width: 11, height: 18, bgcolor: atmosphere.landscape.detail, borderRadius: "50% 50% 42% 42%", opacity: 0.9 }} />
+        <Box sx={{ position: "absolute", bottom: 80, left: "20%", width: 8, height: 13, bgcolor: atmosphere.landscape.detail, borderRadius: "50% 50% 42% 42%", opacity: 0.85 }} />
+        <Box sx={{ position: "absolute", bottom: 82, left: "86%", width: 13, height: 22, bgcolor: atmosphere.landscape.detail, borderRadius: "50% 50% 42% 42%", opacity: 0.9 }} />
+
+        {/* Foreground field with furrows + field divisions */}
         <Box
           sx={{
             position: "absolute",
             left: 0,
             right: 0,
             bottom: 0,
-            height: 42,
-            background: `repeating-linear-gradient(90deg, ${atmosphere.landscape.near} 0px, ${atmosphere.landscape.near} 14px, rgba(0,0,0,0.06) 15px, ${atmosphere.landscape.near} 16px), linear-gradient(180deg, ${atmosphere.landscape.mid} 0%, ${atmosphere.landscape.near} 100%)`,
-            borderTopLeftRadius: "40% 60%",
-            borderTopRightRadius: "40% 60%",
+            height: 58,
+            background: `
+              repeating-linear-gradient(92deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 2px, transparent 22px),
+              repeating-linear-gradient(90deg, ${atmosphere.landscape.near} 0px, ${atmosphere.landscape.near} 13px, rgba(0,0,0,0.07) 14px, ${atmosphere.landscape.near} 15px),
+              linear-gradient(180deg, ${atmosphere.landscape.mid} 0%, ${atmosphere.landscape.near} 55%, ${atmosphere.landscape.detail} 100%)`,
+            borderTopLeftRadius: "48% 70%",
+            borderTopRightRadius: "48% 70%",
           }}
         />
-        {/* A couple of tree silhouettes on the mid ridge */}
-        <Box sx={{ position: "absolute", bottom: 40, left: "16%", width: 10, height: 16, bgcolor: atmosphere.landscape.near, borderRadius: "50% 50% 40% 40%", opacity: 0.9 }} />
-        <Box sx={{ position: "absolute", bottom: 42, left: "78%", width: 12, height: 20, bgcolor: atmosphere.landscape.near, borderRadius: "50% 50% 40% 40%", opacity: 0.9 }} />
+        {/* Fence line along the foreground */}
+        <Box sx={{ position: "absolute", bottom: 30, left: "8%", right: "8%", height: 1.5, bgcolor: atmosphere.landscape.detail, opacity: 0.55 }} />
+        {["12%", "26%", "40%", "54%", "68%", "82%"].map((l) => (
+          <Box key={l} sx={{ position: "absolute", bottom: 26, left: l, width: 1.5, height: 9, bgcolor: atmosphere.landscape.detail, opacity: 0.55 }} />
+        ))}
       </Box>
 
       {/* Vignette for atmospheric framing */}
@@ -282,12 +347,16 @@ export default function WeatherSummary({ weather: legacyWeather }) {
               alignItems: "center",
               gap: 0.5,
               px: 1,
-              py: 0.25,
+              py: 0.3,
               mb: 0.5,
               borderRadius: 999,
               bgcolor: atmosphere.surface,
               border: "1px solid",
-              borderColor: atmosphere.surfaceBorder,
+              // Warm/golden accent by day, cool blue by night.
+              borderColor: isDay ? "rgba(255,196,68,0.75)" : "rgba(120,160,220,0.6)",
+              boxShadow: isDay
+                ? "0 0 10px rgba(255,196,68,0.25)"
+                : "0 0 10px rgba(120,160,220,0.22)",
               backdropFilter: "blur(3px)",
             }}
           >
@@ -297,12 +366,25 @@ export default function WeatherSummary({ weather: legacyWeather }) {
             <Typography
               variant="caption"
               fontWeight={800}
-              sx={{ color: atmosphere.textColor, letterSpacing: 1, fontSize: "0.6rem" }}
+              sx={{
+                color: isDay ? "#B45309" : "#AFC7EE",
+                letterSpacing: 1.2,
+                fontSize: "0.6rem",
+              }}
             >
               {isDay ? "DAY" : "NIGHT"}
             </Typography>
           </Box>
-          <Typography aria-hidden sx={{ fontSize: 46, lineHeight: 1 }}>
+          <Typography
+            aria-hidden
+            sx={{
+              fontSize: 48,
+              lineHeight: 1,
+              filter: isDay
+                ? "drop-shadow(0 2px 6px rgba(15,23,42,0.22))"
+                : "drop-shadow(0 2px 8px rgba(0,0,0,0.45))",
+            }}
+          >
             {current?.icon || "\u2600\uFE0F"}
           </Typography>
           <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1.1, color: atmosphere.textColor }}>
@@ -496,6 +578,55 @@ function StarField() {
         />
       ))}
     </Box>
+  );
+}
+
+function SunRays() {
+  // Soft conic sheen suggesting light rays from the upper-right sun.
+  // Static (no animation) to avoid distraction.
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        position: "absolute",
+        top: -60,
+        right: -60,
+        width: 220,
+        height: 220,
+        pointerEvents: "none",
+        opacity: 0.35,
+        background:
+          "conic-gradient(from 200deg at 50% 50%, rgba(255,225,150,0) 0deg, rgba(255,225,150,0.22) 12deg, rgba(255,225,150,0) 24deg, rgba(255,225,150,0) 40deg, rgba(255,225,150,0.18) 52deg, rgba(255,225,150,0) 66deg, rgba(255,225,150,0) 84deg, rgba(255,225,150,0.20) 96deg, rgba(255,225,150,0) 110deg)",
+        maskImage: "radial-gradient(circle at 50% 50%, black 30%, transparent 72%)",
+        WebkitMaskImage: "radial-gradient(circle at 50% 50%, black 30%, transparent 72%)",
+        filter: "blur(1px)",
+      }}
+    />
+  );
+}
+
+function LightningGlow() {
+  // Very subtle, brief soft illumination — no bolt graphic.
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        background:
+          "radial-gradient(60% 40% at 60% 22%, rgba(226,232,240,0.55) 0%, rgba(226,232,240,0) 60%)",
+        opacity: 0,
+        animation: "feldrixLightning 9s ease-in-out infinite",
+        "@keyframes feldrixLightning": {
+          "0%, 92%, 100%": { opacity: 0 },
+          "93%": { opacity: 0.7 },
+          "94%": { opacity: 0.05 },
+          "95%": { opacity: 0.5 },
+          "97%": { opacity: 0 },
+        },
+      }}
+    />
   );
 }
 
