@@ -62,6 +62,7 @@ import { getWeatherHistory, getWeatherHistorySummary } from "../services/weather
 import WeatherChecklist from "../components/weather/WeatherChecklist";
 import EarlyWarningCountdown from "../components/weather/EarlyWarningCountdown";
 import WeatherNotificationSettings from "../components/weather/WeatherNotificationSettings";
+import RainfallLog from "../components/weather/RainfallLog";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SUB-COMPONENTS
@@ -947,6 +948,9 @@ export default function Weather() {
         <PremiumDashboardSection title="Weather History" description="Historical weather data for your farm">
           <WeatherHistoryPanel />
         </PremiumDashboardSection>
+
+        {/* RAINFALL LOG (farmer-recorded rainfall — separate from weather API) */}
+        <RainfallLog />
 
         {/* NOTIFICATION SETTINGS */}
         <PremiumDashboardSection title="Notification Settings" description="Control which weather alerts notify you">
