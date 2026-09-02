@@ -112,20 +112,58 @@ export default function WeatherSummary({ weather: legacyWeather }) {
         "&:hover": { boxShadow: "0 12px 30px rgba(15,23,42,0.20)", transform: "translateY(-2px)" },
       }}
     >
-      {/* Sun / moon glow */}
+      {/* Sun (day) / moon (night) disc + glow */}
       {(atmosphere.effect === "sun" || atmosphere.effect === "stars") && (
+        <>
+          <Box
+            aria-hidden
+            sx={{
+              position: "absolute",
+              top: 18,
+              right: 26,
+              width: isDay ? 46 : 34,
+              height: isDay ? 46 : 34,
+              borderRadius: "50%",
+              background: isDay
+                ? "radial-gradient(circle at 40% 40%, #fff4c2 0%, #ffd24d 60%, #ffb020 100%)"
+                : "radial-gradient(circle at 38% 38%, #ffffff 0%, #dfe7f2 55%, #b9c6da 100%)",
+              boxShadow: isDay
+                ? "0 0 26px 10px rgba(255,210,80,0.45)"
+                : "0 0 20px 6px rgba(210,224,245,0.35)",
+              pointerEvents: "none",
+            }}
+          />
+          <Box
+            aria-hidden
+            sx={{
+              position: "absolute",
+              top: -40,
+              right: -30,
+              width: 170,
+              height: 170,
+              borderRadius: "50%",
+              background: isDay
+                ? "radial-gradient(circle, rgba(255,214,102,0.35) 0%, rgba(255,214,102,0) 70%)"
+                : "radial-gradient(circle, rgba(226,232,240,0.22) 0%, rgba(226,232,240,0) 70%)",
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      )}
+
+      {/* Cloud layer (soft, condition-dependent) */}
+      {atmosphere.clouds && (
         <Box
           aria-hidden
           sx={{
             position: "absolute",
-            top: -30,
-            right: -20,
-            width: 150,
-            height: 150,
-            borderRadius: "50%",
-            background: isDay
-              ? "radial-gradient(circle, rgba(255,214,102,0.55) 0%, rgba(255,214,102,0) 70%)"
-              : "radial-gradient(circle, rgba(226,232,240,0.30) 0%, rgba(226,232,240,0) 70%)",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "62%",
+            background: atmosphere.clouds,
+            filter: "blur(2px)",
+            opacity: isDay ? 0.9 : 0.75,
             pointerEvents: "none",
           }}
         />
@@ -140,22 +178,70 @@ export default function WeatherSummary({ weather: legacyWeather }) {
       {/* Snow */}
       {atmosphere.effect === "snow" && <SnowEffect />}
 
-      {/* Farm landscape silhouette */}
+      {/* Horizon haze — soft band where sky meets land (depth) */}
       <Box
         aria-hidden
         sx={{
           position: "absolute",
           left: 0,
           right: 0,
-          bottom: 0,
-          height: 90,
+          bottom: 78,
+          height: 46,
+          background: `linear-gradient(180deg, transparent 0%, ${atmosphere.haze} 100%)`,
           pointerEvents: "none",
-          background: `radial-gradient(120% 90% at 20% 100%, ${atmosphere.landscape.hillFar} 0%, transparent 60%),
-                       radial-gradient(120% 80% at 85% 100%, ${atmosphere.landscape.hill} 0%, transparent 55%),
-                       linear-gradient(180deg, transparent 0%, ${atmosphere.landscape.hill} 100%)`,
-          opacity: 0.9,
         }}
       />
+
+      {/* Farm landscape — layered ridges with field/tree hints */}
+      <Box aria-hidden sx={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 108, pointerEvents: "none" }}>
+        {/* Far ridge */}
+        <Box
+          sx={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 44,
+            height: 60,
+            background: atmosphere.landscape.far,
+            opacity: 0.75,
+            borderTopLeftRadius: "60% 90%",
+            borderTopRightRadius: "48% 80%",
+          }}
+        />
+        {/* Mid ridge */}
+        <Box
+          sx={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 26,
+            height: 58,
+            background: atmosphere.landscape.mid,
+            opacity: 0.9,
+            borderTopLeftRadius: "45% 80%",
+            borderTopRightRadius: "65% 100%",
+          }}
+        />
+        {/* Near field with subtle furrow texture */}
+        <Box
+          sx={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 42,
+            background: `repeating-linear-gradient(90deg, ${atmosphere.landscape.near} 0px, ${atmosphere.landscape.near} 14px, rgba(0,0,0,0.06) 15px, ${atmosphere.landscape.near} 16px), linear-gradient(180deg, ${atmosphere.landscape.mid} 0%, ${atmosphere.landscape.near} 100%)`,
+            borderTopLeftRadius: "40% 60%",
+            borderTopRightRadius: "40% 60%",
+          }}
+        />
+        {/* A couple of tree silhouettes on the mid ridge */}
+        <Box sx={{ position: "absolute", bottom: 40, left: "16%", width: 10, height: 16, bgcolor: atmosphere.landscape.near, borderRadius: "50% 50% 40% 40%", opacity: 0.9 }} />
+        <Box sx={{ position: "absolute", bottom: 42, left: "78%", width: 12, height: 20, bgcolor: atmosphere.landscape.near, borderRadius: "50% 50% 40% 40%", opacity: 0.9 }} />
+      </Box>
+
+      {/* Vignette for atmospheric framing */}
+      <Box aria-hidden sx={{ position: "absolute", inset: 0, background: atmosphere.vignette, pointerEvents: "none" }} />
 
       {/* Readability overlay */}
       <Box
@@ -190,20 +276,32 @@ export default function WeatherSummary({ weather: legacyWeather }) {
 
         {/* Current weather — hero */}
         <Stack alignItems="center" spacing={0.25} sx={{ pt: 0.5, pb: 1 }}>
-          <Chip
-            label={isDay ? "\u2600\uFE0F DAY" : "\uD83C\uDF19 NIGHT"}
-            size="small"
+          <Box
             sx={{
-              fontWeight: 700,
-              fontSize: "0.62rem",
-              height: 20,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.5,
+              px: 1,
+              py: 0.25,
               mb: 0.5,
+              borderRadius: 999,
               bgcolor: atmosphere.surface,
-              color: atmosphere.textColor,
               border: "1px solid",
               borderColor: atmosphere.surfaceBorder,
+              backdropFilter: "blur(3px)",
             }}
-          />
+          >
+            <Typography aria-hidden sx={{ fontSize: 12, lineHeight: 1 }}>
+              {isDay ? "\u2600\uFE0F" : "\uD83C\uDF19"}
+            </Typography>
+            <Typography
+              variant="caption"
+              fontWeight={800}
+              sx={{ color: atmosphere.textColor, letterSpacing: 1, fontSize: "0.6rem" }}
+            >
+              {isDay ? "DAY" : "NIGHT"}
+            </Typography>
+          </Box>
           <Typography aria-hidden sx={{ fontSize: 46, lineHeight: 1 }}>
             {current?.icon || "\u2600\uFE0F"}
           </Typography>
@@ -262,16 +360,30 @@ export default function WeatherSummary({ weather: legacyWeather }) {
               px: 1.25,
               mb: 1.5,
               borderRadius: 2,
-              bgcolor: nextAlert.priority === "Critical" ? "rgba(239,68,68,0.92)" : "rgba(249,115,22,0.92)",
-              color: "#fff",
+              bgcolor: "rgba(255,255,255,0.92)",
+              borderLeft: "4px solid",
+              borderColor: nextAlert.priority === "Critical" ? "#dc2626" : "#f97316",
+              boxShadow: "0 4px 14px rgba(15,23,42,0.18)",
+              backdropFilter: "blur(3px)",
             }}
           >
-            <WarningAmberIcon sx={{ fontSize: 18, mt: 0.1, flexShrink: 0 }} />
+            <WarningAmberIcon
+              sx={{
+                fontSize: 18,
+                mt: 0.1,
+                flexShrink: 0,
+                color: nextAlert.priority === "Critical" ? "#dc2626" : "#f97316",
+              }}
+            />
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="caption" fontWeight={800} sx={{ display: "block", lineHeight: 1.3 }}>
+              <Typography
+                variant="caption"
+                fontWeight={800}
+                sx={{ display: "block", lineHeight: 1.3, color: nextAlert.priority === "Critical" ? "#b91c1c" : "#c2410c" }}
+              >
                 {nextAlert.icon} {nextAlert.title}
               </Typography>
-              <Typography variant="caption" sx={{ display: "block", lineHeight: 1.35, opacity: 0.95 }}>
+              <Typography variant="caption" sx={{ display: "block", lineHeight: 1.35, color: "rgba(15,23,42,0.75)" }}>
                 {nextAlert.advice?.[0] || nextAlert.message}
               </Typography>
             </Box>

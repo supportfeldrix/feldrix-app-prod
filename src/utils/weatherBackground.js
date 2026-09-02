@@ -57,15 +57,73 @@ export function isDaytime(sunrise, sunset, now = Date.now()) {
   return now >= sunriseTime && now < sunsetTime;
 }
 
-// Farm landscape silhouette (rolling hills) rendered via CSS gradients.
-// Colour changes with day/night so it reads as "the farm" under each sky.
-function farmLandscape(isDay) {
-  const hill = isDay ? "#3f7d3a" : "#12261a";
-  const hillFar = isDay ? "#5a9450" : "#1a3324";
-  return {
-    hill,
-    hillFar,
+// Farm landscape palette (multi-ridge rolling hills) rendered via CSS.
+// Colour changes with day/night and is muted for overcast/rain/storm so it
+// reads as "the farm" under each sky. `mood` dulls greens for grey skies.
+function farmLandscape(isDay, mood = "bright") {
+  // Base greens for day, deep greens for night.
+  let near = isDay ? "#3f7d3a" : "#12261a";
+  let mid = isDay ? "#4f8c44" : "#16301f";
+  let far = isDay ? "#6ba85c" : "#1d3a27";
+
+  if (mood === "muted") {
+    // Overcast — desaturated / greyer greens.
+    near = isDay ? "#4a6b4a" : "#141f19";
+    mid = isDay ? "#5a7a58" : "#1a271f";
+    far = isDay ? "#7f9a78" : "#22302a";
+  } else if (mood === "dark") {
+    // Rain / storm — darker, wetter landscape.
+    near = isDay ? "#2f4438" : "#0c1512";
+    mid = isDay ? "#3a5244" : "#111c17";
+    far = isDay ? "#4c6553" : "#16241d";
+  } else if (mood === "cold") {
+    // Snow — pale, cool landscape.
+    near = isDay ? "#b9c6c9" : "#28323a";
+    mid = isDay ? "#cdd9db" : "#333f48";
+    far = isDay ? "#e4ecee" : "#45525c";
+  }
+
+  return { near, mid, far };
+}
+
+/**
+ * Soft cloud layer expressed as a set of overlapping radial gradients.
+ * Returns a CSS `background` string or null (clear skies get few/no clouds).
+ * `density`: "few" | "some" | "many" | "storm"
+ */
+function cloudLayer(isDay, density) {
+  if (!density || density === "none") return null;
+
+  const light = isDay ? "rgba(255,255,255,0.85)" : "rgba(226,232,240,0.30)";
+  const soft = isDay ? "rgba(255,255,255,0.55)" : "rgba(203,213,225,0.18)";
+  const grey = isDay ? "rgba(215,222,228,0.9)" : "rgba(148,163,184,0.22)";
+  const storm = isDay ? "rgba(120,132,144,0.9)" : "rgba(70,82,96,0.55)";
+
+  const blobs = {
+    few: [
+      `radial-gradient(70px 34px at 22% 26%, ${light} 0%, transparent 70%)`,
+      `radial-gradient(90px 40px at 70% 20%, ${soft} 0%, transparent 72%)`,
+    ],
+    some: [
+      `radial-gradient(90px 42px at 18% 24%, ${light} 0%, transparent 70%)`,
+      `radial-gradient(120px 52px at 58% 18%, ${light} 0%, transparent 72%)`,
+      `radial-gradient(80px 38px at 86% 30%, ${soft} 0%, transparent 72%)`,
+    ],
+    many: [
+      `radial-gradient(120px 50px at 20% 22%, ${grey} 0%, transparent 72%)`,
+      `radial-gradient(150px 60px at 60% 16%, ${grey} 0%, transparent 74%)`,
+      `radial-gradient(110px 48px at 90% 26%, ${soft} 0%, transparent 72%)`,
+      `radial-gradient(100px 44px at 40% 34%, ${soft} 0%, transparent 72%)`,
+    ],
+    storm: [
+      `radial-gradient(150px 60px at 24% 20%, ${storm} 0%, transparent 72%)`,
+      `radial-gradient(180px 70px at 64% 14%, ${storm} 0%, transparent 74%)`,
+      `radial-gradient(130px 54px at 92% 26%, ${storm} 0%, transparent 72%)`,
+      `radial-gradient(120px 50px at 44% 32%, ${grey} 0%, transparent 72%)`,
+    ],
   };
+
+  return (blobs[density] || blobs.some).join(", ");
 }
 
 /**
@@ -87,7 +145,32 @@ function farmLandscape(isDay) {
  */
 export function getWeatherAtmosphere(condition, isDay) {
   const family = classifyCondition(condition);
-  const landscape = farmLandscape(isDay);
+
+  // Landscape mood per family.
+  const moodByFamily = {
+    clear: "bright",
+    partly: "bright",
+    cloudy: "muted",
+    fog: "muted",
+    rain: "dark",
+    storm: "dark",
+    snow: "cold",
+    neutral: "bright",
+  };
+  const landscape = farmLandscape(isDay, moodByFamily[family] || "bright");
+
+  // Cloud density per family.
+  const cloudsByFamily = {
+    clear: "few",
+    partly: "some",
+    cloudy: "many",
+    fog: "many",
+    rain: "many",
+    storm: "storm",
+    snow: "some",
+    neutral: "some",
+  };
+  const clouds = cloudLayer(isDay, cloudsByFamily[family] || "some");
 
   // Readability defaults per day/night. Day uses dark text on light sky;
   // night uses light text on dark sky. Rain/storm always use light text.
@@ -160,9 +243,23 @@ export function getWeatherAtmosphere(condition, isDay) {
 
   const sky = (skies[family] || skies.neutral)[isDay ? "day" : "night"];
 
+  // Horizon haze colour — a soft band where sky meets land, adds depth.
+  const haze = isDay
+    ? (forceLight ? "rgba(200,208,214,0.55)" : "rgba(255,255,255,0.55)")
+    : "rgba(120,140,180,0.22)";
+
+  // Vignette strength for atmospheric framing.
+  const vignette = isDay
+    ? "radial-gradient(130% 100% at 50% 30%, transparent 55%, rgba(15,23,42,0.16) 100%)"
+    : "radial-gradient(130% 100% at 50% 30%, transparent 45%, rgba(2,6,23,0.45) 100%)";
+
   return {
     key: `${family}-${isDay ? "day" : "night"}`,
+    family,
     sky,
+    clouds,
+    haze,
+    vignette,
     landscape,
     effect: effectByFamily[family] ?? null,
     ...readability,
