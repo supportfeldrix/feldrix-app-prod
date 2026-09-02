@@ -219,30 +219,42 @@ export default function DayPlannerDialog({
                 <Stack
                   direction="row"
                   spacing={2}
+                  alignItems="center"
                   sx={{ mt: 3 }}
                 >
-                  <Button
-                    variant="outlined"
-                    startIcon={<Edit />}
-                    onClick={() =>
-                      handleEditClick(task)
-                    }
-                  >
-                    Edit
-                  </Button>
+                  {task.status === "Completed" ? (
+                    // Completed tasks: show status, no Complete action.
+                    <Chip
+                      icon={<CheckCircle />}
+                      color="success"
+                      label="Completed"
+                    />
+                  ) : (
+                    <>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Edit />}
+                        onClick={() =>
+                          handleEditClick(task)
+                        }
+                      >
+                        Edit
+                      </Button>
 
-                  <Button
-                    variant="contained"
-                    color="success"
-                    startIcon={
-                      <CheckCircle />
-                    }
-                    onClick={() =>
-                      onComplete?.(task)
-                    }
-                  >
-                    Complete
-                  </Button>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        startIcon={
+                          <CheckCircle />
+                        }
+                        onClick={() =>
+                          onComplete?.(task)
+                        }
+                      >
+                        Complete
+                      </Button>
+                    </>
+                  )}
                 </Stack>
 
               </CardContent>
