@@ -36,6 +36,7 @@ import {
   deleteManualTask,
   getPlannerTasks,
 } from "../services/plannerService";
+import { completeHealthTask } from "../services/healthService";
 
 function buildTaskFromPayload(payload) {
   if (!payload || !payload.source) return null;
@@ -119,8 +120,16 @@ export default function PlannerWorkspace() {
 
   async function handleCompleteTask(task) {
     try {
-      if (task.status === "Completed") { await deleteManualTask(task.id); }
-      else { await completeManualTask(task.id); }
+      // Virtual Animal Health tasks complete the source health record
+      // (sets completed_at). They are never deleted.
+      if (task.module === "Animal Health") {
+        await completeHealthTask(task.record);
+      } else if (task.status === "Completed") {
+        // Manual tasks: the completed action is a Delete.
+        await deleteManualTask(task.id);
+      } else {
+        await completeManualTask(task.id);
+      }
       await loadPlanner();
     } catch (err) { console.error("Task Action:", err); }
   }

@@ -178,6 +178,27 @@ export default function TaskCard({
                 </Button>
               )}
 
+              {/* Virtual Animal Health tasks: allow Complete only.
+                  No Delete (the record is real health history). */}
+              {task.module === "Animal Health" &&
+                task.status !== "Completed" && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="success"
+                    sx={{ mr: 1 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+
+                      if (onComplete) {
+                        onComplete(task);
+                      }
+                    }}
+                  >
+                    Complete
+                  </Button>
+                )}
+
               <Box
                 onClick={(e) => {
                   e.stopPropagation();
