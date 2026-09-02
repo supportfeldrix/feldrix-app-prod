@@ -20,7 +20,7 @@ import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
 import { addRainfallLog, updateRainfallLog } from "../../services/rainfallService";
 
-const SOURCE_OPTIONS = ["Rain Gauge", "Weather Station", "Manual Estimate", "Other"];
+const SOURCE_OPTIONS = ["Rain Gauge", "Weather Station", "Manual Estimate", "Weather Estimate", "Other"];
 
 function today() {
   return new Date().toISOString().split("T")[0];

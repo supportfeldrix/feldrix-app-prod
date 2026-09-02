@@ -27,6 +27,12 @@ import { getRainfallLogs, getRainfallSummary } from "../../services/rainfallServ
 import { getCrops } from "../../services/cropService";
 import RainfallForm from "./RainfallForm";
 import RainfallHistory from "./RainfallHistory";
+import RainfallTrend from "./RainfallTrend";
+import WeatherRainSuggestion from "./WeatherRainSuggestion";
+
+function todayISO() {
+  return new Date().toISOString().split("T")[0];
+}
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -74,6 +80,21 @@ export default function RainfallLog() {
     loadFieldOptions();
   }, []);
 
+  // Open the form from a weather-service suggestion. Prefills today's date,
+  // "Weather Estimate" source, and (optionally) the suggested amount — which
+  // the farmer can still change before saving. No id → creates a new record
+  // only on save. Nothing is written automatically.
+  function handleSuggestionLog({ amount, prefillAmount }) {
+    setSelectedLog({
+      rainfall_date: todayISO(),
+      amount_mm: prefillAmount && amount != null ? amount : "",
+      field_name: "",
+      measurement_source: "Weather Estimate",
+      notes: "",
+    });
+    setShowForm(true);
+  }
+
   const latest = logs[0] || null;
 
   const summaryCards = useMemo(() => ([
@@ -88,6 +109,9 @@ export default function RainfallLog() {
       description="Record rainfall measured on your farm."
     >
       <Stack spacing={3}>
+        {/* Weather-service rain suggestion (farmer must confirm) */}
+        <WeatherRainSuggestion logs={logs} onLog={handleSuggestionLog} />
+
         {/* Summary + primary action */}
         <Card elevation={2} sx={{ borderRadius: 3 }}>
           <CardContent sx={{ p: 3 }}>
@@ -208,6 +232,9 @@ export default function RainfallLog() {
             )
           )
         )}
+
+        {/* Rainfall Trend (from confirmed rainfall_logs only) */}
+        {logs.length > 0 && <RainfallTrend logs={logs} />}
 
         {/* History */}
         {logs.length > 0 && (
