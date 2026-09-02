@@ -1,15 +1,23 @@
 /**
  * Feldrix — Weather Summary Dashboard Card
- * Version 1.1 — Farm Weather Intelligence Platform
+ * Version 2.0 — Premium dynamic farm-weather card
  *
- * This card answers: "What should I do today?"
+ * This card answers: "What is the weather doing on my farm right now?"
+ *
+ * VISUAL REDESIGN NOTES
+ *   - Same dashboard position and column width (Farm Overview center).
+ *   - Reuses the EXISTING weather data (useWeather + prop fallback),
+ *     risk/alerts intelligence, day/night rule, condition vocabulary and
+ *     emoji icons. No new API calls, no new dependencies, no DB changes.
+ *   - Dynamic background responds to REAL weather condition + day/night via
+ *     utils/weatherBackground.js (pure CSS gradients + subtle effects).
  *
  * Displays:
- *   - Current temperature & conditions
- *   - Farm Weather Risk Score (color-coded)
- *   - Today's top recommendation
+ *   - Current temperature, condition, feels-like, wind, humidity
+ *   - DAY / NIGHT state (from actual sunrise/sunset)
+ *   - Farm Weather Risk badge (existing calculation)
+ *   - Severe alert warning banner (existing calculation)
  *   - Tomorrow's outlook
- *   - Next severe alert (if any)
  *   - Link to full Weather Intelligence page
  */
 
@@ -19,59 +27,148 @@ import {
   Card,
   CardContent,
   Chip,
-  Divider,
   Stack,
   Typography,
 } from "@mui/material";
 import CloudIcon from "@mui/icons-material/Cloud";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { radius, transitions } from "../../design/tokens";
+import AirIcon from "@mui/icons-material/Air";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
+import { radius } from "../../design/tokens";
 
 import { useWeather } from "../../context/WeatherContext";
+import { getWeatherAtmosphere, isDaytime } from "../../utils/weatherBackground";
 
 export default function WeatherSummary({ weather: legacyWeather }) {
   const navigate = useNavigate();
 
-  // Use WeatherContext for intelligence data
-  const {
-    weather: contextWeather,
-    risk,
-    alerts,
-    insight,
-    recommendations,
-  } = useWeather();
+  // Use WeatherContext for intelligence data (existing behaviour)
+  const { weather: contextWeather, risk, alerts } = useWeather();
 
   // Prefer context data, fallback to prop for backwards compatibility
   const weather = contextWeather || legacyWeather;
+  const current = weather?.current;
 
-  // Get top recommendation for today
-  const topRecommendation = getTopRecommendation(recommendations);
-
-  // Get next severe alert
+  // Next severe alert (existing calculation)
   const nextAlert = alerts && alerts.length > 0 ? alerts[0] : null;
+
+  // Day/night from actual sunrise/sunset (same rule as Weather page)
+  const isDay = isDaytime(current?.sunrise, current?.sunset);
+
+  // Dynamic atmosphere from REAL condition + day/night
+  const atmosphere = getWeatherAtmosphere(current?.condition, isDay);
+
+  // ── Empty / unavailable state (preserve existing fallback) ──────────────
+  if (!weather?.available) {
+    return (
+      <Card
+        elevation={0}
+        onClick={() => navigate("/weather")}
+        sx={{
+          borderRadius: radius.card,
+          height: "100%",
+          border: "1px solid",
+          borderColor: "divider",
+          cursor: "pointer",
+          transition: "box-shadow .2s ease, transform .2s ease",
+          "&:hover": { boxShadow: 2, transform: "translateY(-2px)" },
+        }}
+      >
+        <CardContent sx={{ p: 3, textAlign: "center" }}>
+          <CloudIcon sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
+          <Typography variant="body2" fontWeight={700} color="text.primary">
+            {weather?.locationError ? "Location Not Found" : "Weather Unavailable"}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {weather?.locationError
+              ? "Update your Weather Location in Account \u2192 Farm Information."
+              : "Configure an API key to enable weather intelligence."}
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const tomorrow = weather.forecast?.[0] || null;
 
   return (
     <Card
       elevation={0}
+      onClick={() => navigate("/weather")}
+      aria-label={`Weather: ${current?.condition || "unknown"}, ${current?.temperature}°C, ${isDay ? "day" : "night"}. Open Weather Intelligence.`}
       sx={{
         borderRadius: radius.card,
         height: "100%",
-        border: "1px solid",
-        borderColor: nextAlert?.priority === "Critical" ? "error.light" : "divider",
-        transition: transitions.hover,
+        position: "relative",
+        overflow: "hidden",
         cursor: "pointer",
-        "&:hover": { boxShadow: 2, transform: "translateY(-2px)" },
+        color: atmosphere.textColor,
+        background: atmosphere.sky,
+        border: "1px solid",
+        borderColor: nextAlert?.priority === "Critical" ? "rgba(239,68,68,0.55)" : "rgba(255,255,255,0.15)",
+        boxShadow: "0 8px 24px rgba(15,23,42,0.14)",
+        transition: "background 0.6s ease, color 0.4s ease, box-shadow .2s ease, transform .2s ease",
+        "&:hover": { boxShadow: "0 12px 30px rgba(15,23,42,0.20)", transform: "translateY(-2px)" },
       }}
-      onClick={() => navigate("/weather")}
     >
-      <CardContent sx={{ p: 2.5 }}>
+      {/* Sun / moon glow */}
+      {(atmosphere.effect === "sun" || atmosphere.effect === "stars") && (
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            top: -30,
+            right: -20,
+            width: 150,
+            height: 150,
+            borderRadius: "50%",
+            background: isDay
+              ? "radial-gradient(circle, rgba(255,214,102,0.55) 0%, rgba(255,214,102,0) 70%)"
+              : "radial-gradient(circle, rgba(226,232,240,0.30) 0%, rgba(226,232,240,0) 70%)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
+      {/* Starfield for clear nights */}
+      {atmosphere.effect === "stars" && <StarField />}
+
+      {/* Rain / storm streaks */}
+      {(atmosphere.effect === "rain" || atmosphere.effect === "storm") && <RainEffect heavy={atmosphere.effect === "storm"} />}
+
+      {/* Snow */}
+      {atmosphere.effect === "snow" && <SnowEffect />}
+
+      {/* Farm landscape silhouette */}
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 90,
+          pointerEvents: "none",
+          background: `radial-gradient(120% 90% at 20% 100%, ${atmosphere.landscape.hillFar} 0%, transparent 60%),
+                       radial-gradient(120% 80% at 85% 100%, ${atmosphere.landscape.hill} 0%, transparent 55%),
+                       linear-gradient(180deg, transparent 0%, ${atmosphere.landscape.hill} 100%)`,
+          opacity: 0.9,
+        }}
+      />
+
+      {/* Readability overlay */}
+      <Box
+        aria-hidden
+        sx={{ position: "absolute", inset: 0, background: atmosphere.overlay, pointerEvents: "none" }}
+      />
+
+      <CardContent sx={{ p: 2.5, position: "relative", zIndex: 1 }}>
         {/* Header */}
         <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <CloudIcon sx={{ fontSize: 20, color: "info.main" }} />
-            <Typography variant="subtitle1" fontWeight={700} color="text.primary">
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            <CloudIcon sx={{ fontSize: 20, color: atmosphere.textColor }} />
+            <Typography variant="subtitle1" fontWeight={800} sx={{ color: atmosphere.textColor }}>
               Weather
             </Typography>
           </Stack>
@@ -80,229 +177,260 @@ export default function WeatherSummary({ weather: legacyWeather }) {
               label={risk.label}
               size="small"
               sx={{
-                bgcolor: `${risk.color}18`,
-                color: risk.color,
+                bgcolor: `${risk.color}`,
+                color: "#fff",
                 fontWeight: 700,
                 fontSize: "0.65rem",
                 height: 22,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
               }}
             />
           )}
         </Stack>
 
-        <Divider sx={{ mb: 2 }} />
+        {/* Current weather — hero */}
+        <Stack alignItems="center" spacing={0.25} sx={{ pt: 0.5, pb: 1 }}>
+          <Chip
+            label={isDay ? "\u2600\uFE0F DAY" : "\uD83C\uDF19 NIGHT"}
+            size="small"
+            sx={{
+              fontWeight: 700,
+              fontSize: "0.62rem",
+              height: 20,
+              mb: 0.5,
+              bgcolor: atmosphere.surface,
+              color: atmosphere.textColor,
+              border: "1px solid",
+              borderColor: atmosphere.surfaceBorder,
+            }}
+          />
+          <Typography aria-hidden sx={{ fontSize: 46, lineHeight: 1 }}>
+            {current?.icon || "\u2600\uFE0F"}
+          </Typography>
+          <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1.1, color: atmosphere.textColor }}>
+            {current?.temperature}°C
+          </Typography>
+          <Typography variant="body2" fontWeight={600} sx={{ color: atmosphere.subTextColor }}>
+            {current?.condition}
+          </Typography>
+          {current?.feelsLike != null && current.feelsLike !== current.temperature && (
+            <Typography variant="caption" sx={{ color: atmosphere.subTextColor }}>
+              Feels like {current.feelsLike}°
+            </Typography>
+          )}
+        </Stack>
 
-        {weather?.available ? (
-          <Stack spacing={2}>
-            {/* Current Weather */}
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Typography sx={{ fontSize: 40, lineHeight: 1 }}>
-                {weather.current?.icon || "\u2600\uFE0F"}
+        {/* Wind + humidity glass row */}
+        <Stack
+          direction="row"
+          spacing={1}
+          justifyContent="center"
+          sx={{ mb: 1.5 }}
+        >
+          {current?.windSpeed != null && (
+            <GlassStat
+              atmosphere={atmosphere}
+              icon={<AirIcon sx={{ fontSize: 15 }} />}
+              label={`${current.windSpeed} km/h`}
+            />
+          )}
+          {current?.humidity != null && (
+            <GlassStat
+              atmosphere={atmosphere}
+              icon={<WaterDropIcon sx={{ fontSize: 15 }} />}
+              label={`${current.humidity}%`}
+            />
+          )}
+          {current?.rainfall != null && current.rainfall > 0 && (
+            <GlassStat
+              atmosphere={atmosphere}
+              icon={<span aria-hidden>{"\uD83C\uDF27\uFE0F"}</span>}
+              label={`${current.rainfall} mm`}
+            />
+          )}
+        </Stack>
+
+        {/* Severe alert warning banner (existing calculation) */}
+        {nextAlert && (
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="flex-start"
+            role="alert"
+            sx={{
+              py: 1,
+              px: 1.25,
+              mb: 1.5,
+              borderRadius: 2,
+              bgcolor: nextAlert.priority === "Critical" ? "rgba(239,68,68,0.92)" : "rgba(249,115,22,0.92)",
+              color: "#fff",
+            }}
+          >
+            <WarningAmberIcon sx={{ fontSize: 18, mt: 0.1, flexShrink: 0 }} />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="caption" fontWeight={800} sx={{ display: "block", lineHeight: 1.3 }}>
+                {nextAlert.icon} {nextAlert.title}
               </Typography>
-              <Box>
-                <Typography variant="h4" fontWeight={800} color="text.primary" sx={{ lineHeight: 1 }}>
-                  {weather.current?.temperature}°C
-                </Typography>
-                <Typography variant="body2" color="text.secondary" fontWeight={500} sx={{ mt: 0.5 }}>
-                  {weather.current?.condition}
-                  {weather.current?.feelsLike != null && weather.current.feelsLike !== weather.current.temperature && (
-                    <> • Feels {weather.current.feelsLike}°</>
-                  )}
-                </Typography>
-              </Box>
-            </Stack>
-
-            {/* Quick Stats */}
-            <Stack direction="row" spacing={2} sx={{ opacity: 0.8 }}>
-              {weather.current?.windSpeed != null && (
-                <Typography variant="caption" color="text.secondary">
-                  💨 {weather.current.windSpeed} km/h
-                </Typography>
-              )}
-              {weather.current?.humidity != null && (
-                <Typography variant="caption" color="text.secondary">
-                  💧 {weather.current.humidity}%
-                </Typography>
-              )}
-              {weather.current?.rainfall != null && weather.current.rainfall > 0 && (
-                <Typography variant="caption" color="text.secondary">
-                  🌧️ {weather.current.rainfall} mm
-                </Typography>
-              )}
-            </Stack>
-
-            {/* Next Severe Alert (if any) */}
-            {nextAlert && (
-              <>
-                <Divider />
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  alignItems="center"
-                  sx={{
-                    py: 1,
-                    px: 1.5,
-                    borderRadius: 2,
-                    bgcolor: nextAlert.priority === "Critical" ? "rgba(239,68,68,0.06)" : "rgba(249,115,22,0.05)",
-                    border: "1px solid",
-                    borderColor: nextAlert.priority === "Critical" ? "rgba(239,68,68,0.2)" : "rgba(249,115,22,0.15)",
-                  }}
-                >
-                  <WarningAmberIcon
-                    sx={{
-                      fontSize: 16,
-                      color: nextAlert.priority === "Critical" ? "error.main" : "warning.main",
-                    }}
-                  />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      variant="caption"
-                      fontWeight={700}
-                      sx={{
-                        color: nextAlert.priority === "Critical" ? "error.main" : "warning.main",
-                        display: "block",
-                      }}
-                    >
-                      {nextAlert.icon} {nextAlert.title}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{
-                        display: "block",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {nextAlert.advice?.[0] || nextAlert.message}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </>
-            )}
-
-            {/* Today's Recommendation */}
-            {topRecommendation && !nextAlert && (
-              <>
-                <Divider />
-                <Stack direction="row" spacing={1} alignItems="flex-start">
-                  <TipsAndUpdatesIcon sx={{ fontSize: 16, color: "warning.main", mt: 0.2 }} />
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      fontWeight={700}
-                      color="text.disabled"
-                      sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-                    >
-                      Today's Advice
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, lineHeight: 1.5 }}>
-                      {topRecommendation}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </>
-            )}
-
-            {/* Weather Insight (fallback if no alert or recommendation) */}
-            {!nextAlert && !topRecommendation && insight && (
-              <>
-                <Divider />
-                <Stack direction="row" spacing={1} alignItems="flex-start">
-                  <TipsAndUpdatesIcon sx={{ fontSize: 16, color: "warning.main", mt: 0.2 }} />
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      fontWeight={700}
-                      color="text.disabled"
-                      sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-                    >
-                      Weather Insight
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, lineHeight: 1.5 }}>
-                      {insight}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </>
-            )}
-
-            {/* Tomorrow Outlook */}
-            {weather.forecast?.length > 0 && (
-              <>
-                <Divider />
-                <Box>
-                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                    Tomorrow
-                  </Typography>
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.5 }}>
-                    <Typography variant="body2" color="text.primary">
-                      {weather.forecast[0]?.icon} {weather.forecast[0]?.temperatureMax ?? weather.forecast[0]?.temperature}° / {weather.forecast[0]?.temperatureMin ?? "—"}°
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {weather.forecast[0]?.condition}
-                    </Typography>
-                    {weather.forecast[0]?.pop > 0 && (
-                      <Typography variant="caption" color="info.main" fontWeight={600}>
-                        💧 {weather.forecast[0].pop}%
-                      </Typography>
-                    )}
-                  </Stack>
-                </Box>
-              </>
-            )}
-
-            {/* View More Link */}
-            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ pt: 0.5 }}>
-              <Typography variant="caption" color="primary.main" fontWeight={600}>
-                View Weather Intelligence
+              <Typography variant="caption" sx={{ display: "block", lineHeight: 1.35, opacity: 0.95 }}>
+                {nextAlert.advice?.[0] || nextAlert.message}
               </Typography>
-              <ArrowForwardIcon sx={{ fontSize: 12, color: "primary.main" }} />
-            </Stack>
+            </Box>
           </Stack>
-        ) : (
-          /* Empty State */
-          <Box sx={{ py: 3, textAlign: "center" }}>
-            <CloudIcon sx={{ fontSize: 32, color: "text.disabled", mb: 1 }} />
-            <Typography variant="body2" fontWeight={600} color="text.primary">
-              {weather?.locationError ? "Location Not Found" : "Weather Unavailable"}
+        )}
+
+        {/* Tomorrow forecast — glass surface */}
+        {tomorrow && (
+          <Box
+            sx={{
+              borderRadius: 2,
+              px: 1.5,
+              py: 1,
+              mb: 1.5,
+              bgcolor: atmosphere.surface,
+              border: "1px solid",
+              borderColor: atmosphere.surfaceBorder,
+              backdropFilter: "blur(2px)",
+            }}
+          >
+            <Typography
+              variant="caption"
+              fontWeight={800}
+              sx={{ color: atmosphere.subTextColor, textTransform: "uppercase", letterSpacing: 0.6, fontSize: "0.6rem" }}
+            >
+              Tomorrow
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {weather?.locationError
-                ? "Update your Weather Location in Account \u2192 Farm Information."
-                : "Configure an API key to enable weather intelligence."}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.25 }}>
+              <Typography aria-hidden sx={{ fontSize: 20 }}>{tomorrow.icon}</Typography>
+              <Typography variant="body2" fontWeight={700} sx={{ color: atmosphere.textColor }}>
+                {(tomorrow.temperatureMax ?? tomorrow.temperature)}° / {tomorrow.temperatureMin ?? "\u2014"}°
+              </Typography>
+              <Typography variant="body2" sx={{ color: atmosphere.subTextColor, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {tomorrow.condition}
+              </Typography>
+              {tomorrow.pop > 0 && (
+                <Typography variant="caption" fontWeight={700} sx={{ color: atmosphere.textColor }}>
+                  {"\uD83D\uDCA7"} {tomorrow.pop}%
+                </Typography>
+              )}
+            </Stack>
           </Box>
         )}
+
+        {/* Weather Intelligence link */}
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Typography variant="caption" fontWeight={800} sx={{ color: atmosphere.textColor }}>
+            View Weather Intelligence
+          </Typography>
+          <ArrowForwardIcon sx={{ fontSize: 13, color: atmosphere.textColor }} />
+        </Stack>
       </CardContent>
     </Card>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HELPERS
+// PRESENTATION SUB-COMPONENTS (visual only)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Extract the single most important recommendation for today.
- * Prioritizes: critical livestock → critical crops → high urgency → moderate.
- */
-function getTopRecommendation(recommendations) {
-  if (!recommendations) return null;
+function GlassStat({ atmosphere, icon, label }) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={0.5}
+      sx={{
+        px: 1.25,
+        py: 0.5,
+        borderRadius: 999,
+        bgcolor: atmosphere.surface,
+        border: "1px solid",
+        borderColor: atmosphere.surfaceBorder,
+        color: atmosphere.textColor,
+      }}
+    >
+      {icon}
+      <Typography variant="caption" fontWeight={700} sx={{ color: atmosphere.textColor }}>
+        {label}
+      </Typography>
+    </Stack>
+  );
+}
 
-  const all = [
-    ...(recommendations.livestock || []),
-    ...(recommendations.crops || []),
-    ...(recommendations.machinery || []),
-    ...(recommendations.general || []),
+function StarField() {
+  // A few deterministic stars — subtle, non-animated to avoid distraction.
+  const stars = [
+    { top: "14%", left: "22%", s: 2 },
+    { top: "20%", left: "60%", s: 1.5 },
+    { top: "12%", left: "78%", s: 2.5 },
+    { top: "30%", left: "40%", s: 1.5 },
+    { top: "26%", left: "12%", s: 1.5 },
+    { top: "34%", left: "88%", s: 2 },
   ];
+  return (
+    <Box aria-hidden sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {stars.map((st, i) => (
+        <Box
+          key={i}
+          sx={{
+            position: "absolute",
+            top: st.top,
+            left: st.left,
+            width: st.s,
+            height: st.s,
+            borderRadius: "50%",
+            bgcolor: "rgba(255,255,255,0.85)",
+            boxShadow: "0 0 4px rgba(255,255,255,0.7)",
+          }}
+        />
+      ))}
+    </Box>
+  );
+}
 
-  if (all.length === 0) return null;
+function RainEffect({ heavy }) {
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        opacity: heavy ? 0.45 : 0.3,
+        backgroundImage:
+          "repeating-linear-gradient(105deg, rgba(255,255,255,0.35) 0px, rgba(255,255,255,0.35) 1px, transparent 1px, transparent 9px)",
+        backgroundSize: "auto",
+        maskImage: "linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 80%, transparent 100%)",
+        WebkitMaskImage: "linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 80%, transparent 100%)",
+      }}
+    />
+  );
+}
 
-  // Sort by urgency
-  const urgencyOrder = { critical: 0, high: 1, moderate: 2, low: 3, info: 4 };
-  all.sort((a, b) => (urgencyOrder[a.urgency] ?? 5) - (urgencyOrder[b.urgency] ?? 5));
-
-  return all[0]?.message || null;
+function SnowEffect() {
+  const flakes = [
+    { top: "10%", left: "18%" },
+    { top: "22%", left: "48%" },
+    { top: "16%", left: "72%" },
+    { top: "34%", left: "30%" },
+    { top: "40%", left: "62%" },
+    { top: "28%", left: "86%" },
+  ];
+  return (
+    <Box aria-hidden sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {flakes.map((f, i) => (
+        <Box
+          key={i}
+          sx={{
+            position: "absolute",
+            top: f.top,
+            left: f.left,
+            width: 4,
+            height: 4,
+            borderRadius: "50%",
+            bgcolor: "rgba(255,255,255,0.9)",
+          }}
+        />
+      ))}
+    </Box>
+  );
 }
