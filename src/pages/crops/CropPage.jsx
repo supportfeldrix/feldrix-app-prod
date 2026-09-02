@@ -24,7 +24,12 @@ import CropHealthScore from "../../components/crops/CropHealthScore";
 import CropInsights from "../../components/crops/CropInsights";
 import ViewToggle from "../../components/livestock/ViewToggle";
 
+import GroundSampleCard from "../../components/crops/GroundSampleCard";
+import GroundSamplingForm from "../../components/crops/GroundSamplingForm";
+import GroundSampleHistory from "../../components/crops/GroundSampleHistory";
+
 import { getCrops } from "../../services/cropService";
+import { getGroundSamples } from "../../services/groundSamplingService";
 import { getWeatherSummary } from "../../services/weatherService";
 import { generateCropAnalytics } from "../../utils/cropAnalytics";
 import { getCropLifecycle, getCropLifecycleDistribution, getHarvestReadyCrops, getCropStageColor } from "../../utils/cropLifecycle";
@@ -38,6 +43,11 @@ export default function CropPage() {
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState("table");
   const [lifecycleFilter, setLifecycleFilter] = useState("all");
+
+  // Ground Sampling (Soil Sampling) state
+  const [groundSamples, setGroundSamples] = useState([]);
+  const [selectedSample, setSelectedSample] = useState(null);
+  const [showSampleForm, setShowSampleForm] = useState(false);
 
   async function loadCrops() {
     setLoading(true);
@@ -56,8 +66,18 @@ export default function CropPage() {
     }
   }
 
+  async function loadGroundSamples() {
+    try {
+      const data = await getGroundSamples();
+      setGroundSamples(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   useEffect(() => {
     loadCrops();
+    loadGroundSamples();
   }, []);
 
   const analytics = useMemo(
@@ -202,6 +222,44 @@ export default function CropPage() {
             onEdit={(crop) => { setSelectedCrop(crop); setShowForm(true); }}
             refreshCrops={loadCrops}
           />
+        </PremiumDashboardSection>
+
+        {/* Ground Sampling (Soil Sampling) */}
+        <PremiumDashboardSection
+          title="Ground Sampling"
+          description="Soil analysis and field nutrient history."
+        >
+          <Stack spacing={3}>
+            {showSampleForm && (
+              <GroundSamplingForm
+                sample={selectedSample}
+                crops={crops}
+                refreshSamples={loadGroundSamples}
+                onSaved={() => { setSelectedSample(null); setShowSampleForm(false); }}
+                onCancel={() => { setSelectedSample(null); setShowSampleForm(false); }}
+              />
+            )}
+
+            <GroundSampleCard
+              latest={groundSamples[0] || null}
+              previousCount={Math.max(0, groundSamples.length - 1)}
+              onAdd={() => { setSelectedSample(null); setShowSampleForm(true); }}
+              onEdit={(sample) => { setSelectedSample(sample); setShowSampleForm(true); }}
+            />
+
+            {groundSamples.length > 0 && (
+              <PremiumDashboardSection
+                title="Ground Sampling History"
+                description={`${groundSamples.length} sample${groundSamples.length !== 1 ? "s" : ""} recorded.`}
+              >
+                <GroundSampleHistory
+                  samples={groundSamples}
+                  onEdit={(sample) => { setSelectedSample(sample); setShowSampleForm(true); }}
+                  refreshSamples={loadGroundSamples}
+                />
+              </PremiumDashboardSection>
+            )}
+          </Stack>
         </PremiumDashboardSection>
       </Stack>
     </PremiumPageLayout>
