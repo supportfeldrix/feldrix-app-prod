@@ -94,9 +94,26 @@ export default function HealthHistory({
 
           <tbody>
             {records.map((record) => {
+              // Completed takes precedence: a completed treatment is never
+              // "Overdue", regardless of its (preserved) next_due date.
+              const completed = !!record.completed_at;
+
               const overdue =
+                !completed &&
                 record.next_due &&
                 new Date(record.next_due) < new Date();
+
+              const statusLabel = completed
+                ? "Completed"
+                : overdue
+                ? "Overdue"
+                : "Up to Date";
+
+              const statusColor = completed
+                ? "#16A34A"
+                : overdue
+                ? "#DC2626"
+                : "#16A34A";
 
               return (
                 <tr
@@ -129,9 +146,7 @@ export default function HealthHistory({
                   <td style={cell}>
                     <span
                       style={{
-                        background: overdue
-                          ? "#DC2626"
-                          : "#16A34A",
+                        background: statusColor,
                         color: "#FFFFFF",
                         padding:
                           "6px 12px",
@@ -140,9 +155,7 @@ export default function HealthHistory({
                         fontWeight: 700,
                       }}
                     >
-                      {overdue
-                        ? "Overdue"
-                        : "Up to Date"}
+                      {statusLabel}
                     </span>
                   </td>
                 </tr>

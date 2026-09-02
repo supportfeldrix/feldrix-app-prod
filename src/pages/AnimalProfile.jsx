@@ -66,6 +66,15 @@ export default function AnimalProfile() {
     }
   }, [location.state]);
 
+  // Re-fetch health history whenever the Health tab is opened, so changes
+  // made elsewhere (e.g. completing a task from the Planner calendar) are
+  // reflected without requiring a full page reload.
+  useEffect(() => {
+    if (activeTab === "health" && animal?.id) {
+      loadHealthHistory(animal.id);
+    }
+  }, [activeTab, animal?.id]);
+
   async function loadAnimal() {
     try {
       const animals = await getAnimals();
