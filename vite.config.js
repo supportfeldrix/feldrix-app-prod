@@ -43,6 +43,17 @@ const isAdmin = mode === 'admin';
 const pwaConfig = isAdmin ? [] : [
   VitePWA({
     registerType: 'autoUpdate',
+    // Single service worker: our custom sw-weather.js provides BOTH the PWA
+    // precache (via injectManifest) AND weather push handling. This avoids a
+    // second competing Workbox-generated SW at scope "/".
+    strategies: 'injectManifest',
+    srcDir: 'public',
+    filename: 'sw-weather.js',
+    injectManifest: {
+      globPatterns: ['**/*.{js,css,html,ico,svg,png,woff,woff2}'],
+      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      globIgnores: ['**/branding/login/**', '**/branding/report-cover.png'],
+    },
     includeAssets: [
       'branding/feldrix-farmer-icon.svg',
       'icons/farmer/apple-touch-icon.png',
@@ -71,32 +82,6 @@ const pwaConfig = isAdmin ? [] : [
         { src: '/icons/farmer/icon-384x384.png', sizes: '384x384', type: 'image/png' },
         { src: '/icons/farmer/icon-512x512.png', sizes: '512x512', type: 'image/png' },
         { src: '/icons/farmer/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-      ],
-    },
-    workbox: {
-      globPatterns: ['**/*.{js,css,html,ico,svg,png,woff,woff2}'],
-      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-      globIgnores: ['**/branding/login/**', '**/branding/report-cover.png'],
-      navigateFallback: '/index.html',
-      navigateFallbackDenylist: [/^\/api/, /^\/functions/],
-      skipWaiting: true,
-      clientsClaim: true,
-      runtimeCaching: [
-        {
-          urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-          handler: 'CacheFirst',
-          options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } },
-        },
-        {
-          urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-          handler: 'CacheFirst',
-          options: { cacheName: 'gstatic-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } },
-        },
-        {
-          urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-          handler: 'NetworkFirst',
-          options: { cacheName: 'supabase-api-cache', expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 }, cacheableResponse: { statuses: [0, 200] } },
-        },
       ],
     },
   }),

@@ -25,6 +25,7 @@
  *   - Smart watches receive notifications via paired phone OS
  */
 
+import toast from "react-hot-toast";
 import { supabase } from "../supabaseClient";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -42,9 +43,9 @@ const COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
 // Maximum history entries stored locally
 const MAX_LOCAL_HISTORY = 100;
 
-// App branding
-const APP_ICON = "/Branding/app-icon-192.png";
-const APP_BADGE = "/Branding/app-icon-192.png";
+// App branding — must reference assets that actually exist in /public/Branding.
+const APP_ICON = "/Branding/app-icon-1024.png";
+const APP_BADGE = "/Branding/app-icon-1024.png";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DEFAULT NOTIFICATION SETTINGS — Per alert type
@@ -369,24 +370,64 @@ export function sendWeatherNotification(alert) {
  */
 export function processWeatherAlerts(notifications, context = {}) {
   if (!Array.isArray(notifications) || notifications.length === 0) return 0;
-  if (Notification.permission !== "granted") return 0;
+  if (!isPushSupported()) return 0;
 
   const settings = getSettings();
   if (!settings.enabled) return 0;
 
+  const permissionGranted = Notification.permission === "granted";
   let sent = 0;
 
   for (const notification of notifications) {
-    // Only push Critical and High priority
+    // Only surface Critical and High priority alerts.
     if (notification.priority !== "Critical" && notification.priority !== "High") continue;
 
     const enriched = { ...notification, farmName: context.farmName || "" };
-    if (sendWeatherNotification(enriched)) {
-      sent++;
+
+    if (permissionGranted) {
+      // Preferred path: OS/browser push notification.
+      if (sendWeatherNotification(enriched)) sent++;
+    } else {
+      // Foreground fallback: the app is open but the farmer has not granted
+      // browser notification permission. Surface Critical alerts in-app via
+      // the existing toast system so the alert is not silently lost. We do
+      // NOT auto-prompt for permission here (respects the existing prompt UX).
+      if (showForegroundWeatherAlert(enriched, settings)) sent++;
     }
   }
 
   return sent;
+}
+
+/**
+ * In-app fallback for a Critical weather alert when browser push permission
+ * is not granted but the app is open. Reuses react-hot-toast (already mounted
+ * globally). Respects the same enable + cooldown gates as push so the farmer
+ * is not spammed on every refresh.
+ *
+ * @returns {boolean} whether an in-app alert was shown
+ */
+function showForegroundWeatherAlert(alert, settings) {
+  // Only Critical alerts warrant an intrusive foreground alert.
+  if (alert.priority !== "Critical") return false;
+  if (!settings.enabled) return false;
+  if (!isAlertTypeEnabled(alert.type || alert.alertType, settings)) return false;
+  if (isInCooldown(alert.type || alert.alertType)) return false;
+
+  try {
+    const { title, body } = formatNotification(alert);
+    toast.error(`${title}\n${body}`, {
+      duration: 8000,
+      icon: "🚨",
+      style: { whiteSpace: "pre-line", maxWidth: 420 },
+    });
+    recordCooldown(alert.type || alert.alertType);
+    recordNotificationSent(alert);
+    return true;
+  } catch (err) {
+    console.error("[Push] Foreground alert failed:", err);
+    return false;
+  }
 }
 
 /**

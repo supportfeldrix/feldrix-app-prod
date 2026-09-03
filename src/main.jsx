@@ -11,14 +11,9 @@ import "./index.css";
 import App from "./App";
 import theme from "./theme/theme";
 
-// Register weather push notification service worker
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw-weather.js", { scope: "/" })
-      .then(() => console.info("[Feldrix] Weather push service worker registered."))
-      .catch((err) => console.warn("[Feldrix] Weather SW registration failed:", err));
-  });
-}
+// The service worker (sw-weather.js) is registered automatically by VitePWA
+// (injectManifest strategy). It provides both PWA precache and weather push,
+// so there is a single controlling service worker at scope "/".
 
 const queryClient = new QueryClient();
 

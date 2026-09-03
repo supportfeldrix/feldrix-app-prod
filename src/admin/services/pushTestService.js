@@ -154,8 +154,8 @@ export function sendTestNotification(alertType, farmName = "") {
 
     const options = {
       body,
-      icon: "/Branding/app-icon-192.png",
-      badge: "/Branding/app-icon-192.png",
+      icon: "/Branding/app-icon-1024.png",
+      badge: "/Branding/app-icon-1024.png",
       tag: `feldrix-test-${alertType}`,
       renotify: true,
       requireInteraction: alert.priority === "Critical",

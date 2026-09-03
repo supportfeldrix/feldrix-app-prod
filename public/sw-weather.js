@@ -17,7 +17,57 @@
  *   - Smart watches receive via paired phone's notification system
  *
  * NO third-party services. Uses Web Push API only.
+ *
+ * Built via VitePWA `injectManifest`: this is the SINGLE service worker for
+ * the farmer app. It provides BOTH the PWA precache (below) AND weather push
+ * handling, so there is no competing second service worker at scope "/".
  */
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PWA PRECACHE — Workbox manifest injected at build time by VitePWA.
+// Guarded so the file still works if opened without an injected manifest.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { precacheAndRoute } from "workbox-precaching";
+import { registerRoute } from "workbox-routing";
+import { CacheFirst, NetworkFirst } from "workbox-strategies";
+import { ExpirationPlugin } from "workbox-expiration";
+import { CacheableResponsePlugin } from "workbox-cacheable-response";
+
+// self.__WB_MANIFEST is replaced at build time with the precache manifest.
+precacheAndRoute(self.__WB_MANIFEST || []);
+
+// Runtime caching (parity with the previous generateSW config).
+registerRoute(
+  ({ url }) => url.origin === "https://fonts.googleapis.com",
+  new CacheFirst({
+    cacheName: "google-fonts-cache",
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  })
+);
+registerRoute(
+  ({ url }) => url.origin === "https://fonts.gstatic.com",
+  new CacheFirst({
+    cacheName: "gstatic-fonts-cache",
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  })
+);
+registerRoute(
+  ({ url }) => /\.supabase\.co$/.test(url.hostname),
+  new NetworkFirst({
+    cacheName: "supabase-api-cache",
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 5 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  })
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUSH EVENT — Receive and display notification
@@ -40,8 +90,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Feldrix Weather Alert";
   const options = {
     body: payload.body || "Tap to view weather details.",
-    icon: payload.icon || "/Branding/app-icon-192.png",
-    badge: payload.badge || "/Branding/app-icon-192.png",
+    icon: payload.icon || "/Branding/app-icon-1024.png",
+    badge: payload.badge || "/Branding/app-icon-1024.png",
     tag: payload.tag || "feldrix-weather-alert",
     renotify: payload.renotify !== false,
     requireInteraction: payload.requireInteraction || false,
