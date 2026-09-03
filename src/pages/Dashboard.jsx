@@ -97,6 +97,9 @@ export default function Dashboard() {
       today.setHours(0, 0, 0, 0);
 
       const due = (health || []).filter((record) => {
+        // Completed treatments are never due/overdue (next_due is preserved
+        // for history; completion is tracked via completed_at).
+        if (record.completed_at) return false;
         if (!record.next_due) return false;
         const dueDate = new Date(record.next_due);
         dueDate.setHours(0, 0, 0, 0);
@@ -164,6 +167,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboard();
+
+    // Refresh dashboard data when the user returns to this tab/window or
+    // navigates back to the Dashboard (e.g. after completing a treatment on
+    // the Health / Animal Profile screens). This reuses the single
+    // loadDashboard() path rather than adding duplicate polling.
+    const handleFocus = () => loadDashboard();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") loadDashboard();
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   if (loading || !dashboard) {

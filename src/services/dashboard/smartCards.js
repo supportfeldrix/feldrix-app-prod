@@ -93,7 +93,9 @@ function generateLivestockCard(livestock = {}) {
   today.setHours(0, 0, 0, 0);
 
   const needAttention = healthRecords.filter((r) => {
-    if (r.completed === true || r.status === "Completed") return false;
+    // Completed treatments are never "needing attention". The animal_health
+    // table tracks completion via completed_at (next_due is preserved).
+    if (r.completed_at) return false;
     if (!r.next_due) return false;
     const due = new Date(r.next_due);
     due.setHours(0, 0, 0, 0);

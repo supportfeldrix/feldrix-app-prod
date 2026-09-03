@@ -32,7 +32,8 @@ export function getLivestockNotifications(data = {}) {
     const notifications = [];
 
     for (const record of healthRecords) {
-      if (record.completed === true || record.status === "Completed") continue;
+      // Completion is tracked via completed_at (next_due is preserved).
+      if (record.completed_at) continue;
 
       const scheduledDate = record.next_due || record.scheduled_date;
       if (!scheduledDate) continue;

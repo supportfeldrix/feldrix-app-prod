@@ -157,7 +157,8 @@ function generateHighlights(data) {
   today.setHours(0, 0, 0, 0);
 
   const healthDue = healthRecords.filter((r) => {
-    if (r.completed === true || r.status === "Completed") return false;
+    // Completion is tracked via completed_at (next_due is preserved).
+    if (r.completed_at) return false;
     if (!r.next_due) return false;
     const d = new Date(r.next_due);
     d.setHours(0, 0, 0, 0);

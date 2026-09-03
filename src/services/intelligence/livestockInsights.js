@@ -75,6 +75,9 @@ export function generateLivestockInsights(data = {}) {
  */
 function getOverdueTreatments(healthRecords, today) {
   return healthRecords.filter((record) => {
+    // Completed treatments are never overdue. next_due is preserved for
+    // history/audit, so completion must be determined by completed_at.
+    if (record.completed_at) return false;
     if (!record.next_due) return false;
     const dueDate = new Date(record.next_due);
     dueDate.setHours(0, 0, 0, 0);
