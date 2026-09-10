@@ -519,7 +519,7 @@ export async function getSAWSWarnings(province = "GP") {
  * Geocode a location name to lat/lon.
  * Required for OneCall API which needs coordinates.
  */
-async function geocodeLocation(location) {
+export async function geocodeLocation(location) {
   const cacheKey = `geocode_${location}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;

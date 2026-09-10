@@ -14,11 +14,13 @@ import {
 import AgricultureIcon from "@mui/icons-material/Agriculture";
 import EditIcon from "@mui/icons-material/Edit";
 
-import { getProfile } from "../../services/profileService";
+import { getProfile, getFarmContext } from "../../services/profileService";
+import { getCountryConfig } from "../../constants/locations";
 import EditFarmDialog from "./EditFarmDialog";
 
 export default function FarmInformation() {
   const [profile, setProfile] = useState(null);
+  const [context, setContext] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -32,12 +34,23 @@ export default function FarmInformation() {
 
       const data = await getProfile();
       setProfile(data);
+      setContext(data ? await getFarmContext(data) : null);
     } catch (error) {
       console.error("Failed to load farm information:", error);
     } finally {
       setLoading(false);
     }
   }
+
+  const countryConfig = getCountryConfig(profile?.country);
+  // Country-aware administrative region: State for US, Province for SA.
+  const regionValue = context?.region || "Not Set";
+
+  // Weather location display: show as stored (strip the ,XX suffix for both
+  // ZA and US) without implying a South African default for other countries.
+  const weatherDisplay = profile?.weather_location
+    ? profile.weather_location.replace(/,[A-Z]{2}$/, "")
+    : "Not Set";
 
   const farmDetails = [
     {
@@ -49,8 +62,8 @@ export default function FarmInformation() {
       value: profile?.farm_type || "Not Set",
     },
     {
-      label: "Province",
-      value: profile?.province || "Not Set",
+      label: countryConfig.regionLabel,
+      value: regionValue,
     },
     {
       label: "Country",
@@ -70,9 +83,7 @@ export default function FarmInformation() {
     },
     {
       label: "Weather Location",
-      value: profile?.weather_location
-        ? profile.weather_location.replace(",ZA", "")
-        : "Default (Johannesburg)",
+      value: weatherDisplay,
     },
   ];
 
