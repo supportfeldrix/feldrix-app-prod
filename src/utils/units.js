@@ -41,6 +41,8 @@ export const CONVERSION = {
   GALLONS_PER_LITRE: 0.2641720524, // US gallons
   KG_PER_TONNE: 1000,
   LB_PER_US_TON: 2000,
+  HPA_PER_INHG: 33.8638866667, // 1 inHg = 33.8639 hPa
+  KM_PER_MILE: 1.609344,
 };
 
 export const cToF = (c) => (Number(c) * 9) / 5 + 32;
@@ -55,6 +57,10 @@ export const kgToLb = (kg) => Number(kg) * CONVERSION.LB_PER_KG;
 export const lbToKg = (lb) => Number(lb) / CONVERSION.LB_PER_KG;
 export const litresToGallons = (l) => Number(l) * CONVERSION.GALLONS_PER_LITRE;
 export const gallonsToLitres = (g) => Number(g) / CONVERSION.GALLONS_PER_LITRE;
+export const hpaToInHg = (hpa) => Number(hpa) / CONVERSION.HPA_PER_INHG;
+export const inHgToHpa = (inhg) => Number(inhg) * CONVERSION.HPA_PER_INHG;
+export const kmToMiles = (km) => Number(km) / CONVERSION.KM_PER_MILE;
+export const milesToKm = (mi) => Number(mi) * CONVERSION.KM_PER_MILE;
 
 // ─── Central display precision ───────────────────────────────
 
@@ -65,6 +71,8 @@ const PRECISION = {
   area: 2,
   mass: 1,
   volume: 1,
+  pressure: 2,
+  distance: 1,
 };
 
 /** Round to n decimals, drop trailing zeros, keep as a Number. */
@@ -82,8 +90,8 @@ function num(value, decimals, locale = "en-US") {
 // ─── Unit labels per system ──────────────────────────────────
 
 export const UNIT_LABELS = {
-  metric: { temperature: "\u00B0C", precipitation: "mm", wind: "km/h", area: "ha", mass: "kg", volume: "L" },
-  us_customary: { temperature: "\u00B0F", precipitation: "in", wind: "mph", area: "acres", mass: "lb", volume: "gal" },
+  metric: { temperature: "\u00B0C", precipitation: "mm", wind: "km/h", area: "ha", mass: "kg", volume: "L", pressure: "hPa", distance: "km" },
+  us_customary: { temperature: "\u00B0F", precipitation: "in", wind: "mph", area: "acres", mass: "lb", volume: "gal", pressure: "inHg", distance: "mi" },
 };
 
 export function unitLabel(kind, ctxOrSystem) {
@@ -153,7 +161,39 @@ export function formatVolume(valueL, ctx, { withUnit = true } = {}) {
   return withUnit ? `${s} ${us ? "gal" : "L"}` : s;
 }
 
+/** Atmospheric pressure: canonical hPa (millibars). US shows inHg. */
+export function formatPressure(valueHpa, ctx, { withUnit = true } = {}) {
+  if (empty(valueHpa)) return "\u2014";
+  const us = isUsCustomary(ctx);
+  const v = us ? hpaToInHg(valueHpa) : Number(valueHpa);
+  const s = num(v, us ? PRECISION.pressure : 0);
+  return withUnit ? `${s} ${us ? "inHg" : "hPa"}` : s;
+}
+
+/** Distance/visibility: canonical km. US shows miles. */
+export function formatDistance(valueKm, ctx, { withUnit = true } = {}) {
+  if (empty(valueKm)) return "\u2014";
+  const us = isUsCustomary(ctx);
+  const v = us ? kmToMiles(valueKm) : Number(valueKm);
+  const s = num(v, PRECISION.distance);
+  return withUnit ? `${s} ${us ? "mi" : "km"}` : s;
+}
+
 /** The label to use for a farm-area field, e.g. "Farm Size (ha)" / "(acres)". */
 export function areaFieldLabel(base, ctxOrSystem) {
   return `${base} (${unitLabel("area", ctxOrSystem)})`;
+}
+
+/**
+ * Normalise a crop's stored area to CANONICAL hectares using its own
+ * area_unit (crops.area_unit is authoritative — farmers choose ha|acres).
+ * Use this BEFORE aggregating crop areas so a farm mixing units (or storing
+ * acres) is summed correctly; then display the canonical total via
+ * formatArea(). Stored crop values are never modified.
+ */
+export function cropAreaToHa(crop) {
+  const raw = Number(crop?.area || 0);
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+  const unit = String(crop?.area_unit || "ha").trim().toLowerCase();
+  return unit === "acres" || unit === "acre" ? acresToHa(raw) : raw; // canonical ha
 }

@@ -30,7 +30,7 @@ import {
   generateWeatherNotifications,
 } from "../services/weatherIntelligenceService";
 import { initializePushNotifications, processWeatherAlerts } from "../services/pushNotificationService";
-import { getCurrentUser, getProfile } from "../services/profileService";
+import { getCurrentUser, getProfile, getFarmContext } from "../services/profileService";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -129,6 +129,9 @@ export function WeatherProvider({ children }) {
   const intervalRef = useRef(null);
   const lastRefreshRef = useRef(0);
   const userNameRef = useRef("");
+  // Farm measurement context (metric / us_customary) so weather intelligence
+  // messages localize embedded values. Null until profile loads (SA-safe).
+  const farmCtxRef = useRef(null);
 
   // Farm info (loaded from profile for display)
   const [farmName, setFarmName] = useState("");
@@ -207,14 +210,15 @@ export function WeatherProvider({ children }) {
         setConfidence(calculateConfidence(weatherData));
 
         // Run Intelligence Engine
-        const riskResult = generateWeatherRisk(weatherData);
-        const alertsResult = generateWeatherAlerts(weatherData);
+        const fCtx = farmCtxRef.current;
+        const riskResult = generateWeatherRisk(weatherData, fCtx);
+        const alertsResult = generateWeatherAlerts(weatherData, fCtx);
         const recsResult = generateWeatherRecommendations(weatherData);
-        const bannerResult = generateWeatherBanner(weatherData, userNameRef.current);
-        const insightResult = generateWeatherInsight(weatherData);
+        const bannerResult = generateWeatherBanner(weatherData, userNameRef.current, fCtx);
+        const insightResult = generateWeatherInsight(weatherData, fCtx);
         const checklistResult = generateChecklist(weatherData);
         const warningsResult = generateEarlyWarnings(weatherData);
-        const notifsResult = generateWeatherNotifications(weatherData);
+        const notifsResult = generateWeatherNotifications(weatherData, fCtx);
 
         setRisk(riskResult);
         setAlerts(alertsResult);
@@ -293,6 +297,8 @@ export function WeatherProvider({ children }) {
           }
           if (profileFarmName) setFarmName(profileFarmName);
           if (profileUserName) userNameRef.current = profileUserName;
+          // Resolve the farm measurement context for localizing alert text.
+          farmCtxRef.current = await getFarmContext().catch(() => null);
         }
       } catch {
         // Non-blocking — will use cached location or empty

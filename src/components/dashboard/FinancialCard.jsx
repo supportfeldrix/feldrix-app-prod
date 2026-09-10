@@ -1,10 +1,12 @@
 import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function FinancialCard({
   title,
   amount,
   icon,
 }) {
+  const farmCtx = useFarmContext();
   return (
     <div
       style={{
@@ -37,7 +39,7 @@ export default function FinancialCard({
               color: "#1B5E20",
             }}
           >
-            {formatCurrency(amount)}
+            {formatCurrency(amount, farmCtx)}
           </h2>
         </div>
 

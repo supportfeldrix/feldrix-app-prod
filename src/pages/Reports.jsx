@@ -51,6 +51,8 @@ import { getFarmReport } from "../services/reportService";
 import { generateReport } from "../services/reports/reportGenerator";
 import { generateReportPdf } from "../utils/reportPdfGenerator";
 import { generateReportExcel } from "../utils/reportExcelGenerator";
+import { formatCurrency } from "../utils/currency";
+import useFarmContext from "../hooks/useFarmContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -72,6 +74,7 @@ const REPORT_TEMPLATES = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Reports() {
+  const farmCtx = useFarmContext();
   const [report, setReport] = useState({
     totalAnimals: 0,
     totalIncome: 0,
@@ -218,7 +221,7 @@ export default function Reports() {
           />
           <PremiumStatCard
             label="Total Income"
-            value={`R ${Number(report.totalIncome || 0).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`}
+            value={formatCurrency(report.totalIncome || 0, farmCtx)}
             subtitle="Revenue"
             icon={<AccountBalanceWalletIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(22,163,74,0.12)"
@@ -226,7 +229,7 @@ export default function Reports() {
           />
           <PremiumStatCard
             label="Total Expenses"
-            value={`R ${Number(report.totalExpenses || 0).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`}
+            value={formatCurrency(report.totalExpenses || 0, farmCtx)}
             subtitle="Costs"
             icon={<AccountBalanceWalletIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(220,38,38,0.12)"
@@ -234,7 +237,7 @@ export default function Reports() {
           />
           <PremiumStatCard
             label="Net Profit"
-            value={`R ${Number(report.netProfit || 0).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`}
+            value={formatCurrency(report.netProfit || 0, farmCtx)}
             subtitle={report.netProfit >= 0 ? "Profitable" : "Loss"}
             icon={<AssessmentIcon sx={{ fontSize: 28 }} />}
             iconBg={report.netProfit >= 0 ? "rgba(22,163,74,0.12)" : "rgba(220,38,38,0.12)"}

@@ -26,6 +26,8 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { deleteAnimal } from "../../services/livestockService";
 import { radius, transitions } from "../../design/tokens";
 import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
+import { formatMass } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 function getStatusColor(status) {
   switch (status) {
@@ -49,6 +51,7 @@ function getSpeciesIcon(type) {
 }
 
 export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
+  const farmCtx = useFarmContext();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
@@ -215,7 +218,7 @@ export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
 
                   <TableCell sx={dataCell}>
                     <Typography variant="body2" color="text.primary" fontWeight={600}>
-                      {animal.weight ? `${animal.weight} kg` : "\u2014"}
+                      {animal.weight ? formatMass(animal.weight, farmCtx) : "\u2014"}
                     </Typography>
                   </TableCell>
 

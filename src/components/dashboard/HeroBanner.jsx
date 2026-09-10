@@ -10,6 +10,8 @@ import {
 } from "@mui/icons-material";
 
 import { useWeatherBanner, useWeatherRisk } from "../../context/WeatherContext";
+import { formatTemperature, formatWindSpeed } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper Functions (preserved exactly)
@@ -158,20 +160,20 @@ function WeatherPanel({ weather, weatherText, riskBadge }) {
       {weather?.available ? (
         <div>
           <div style={{ fontSize: 48, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.02em" }}>
-            {weather.current?.temperature ?? ""}&deg;
+            {weather.current?.temperature != null ? formatTemperature(weather.current.temperature, farmCtx) : ""}
           </div>
           <div style={{ fontSize: 13, opacity: 0.9, marginTop: 8, fontWeight: 600 }}>
             {weather.current?.condition || weatherText || ""}
           </div>
           {(weather.current?.high || weather.current?.low) && (
             <div style={{ fontSize: 11, opacity: 0.6, marginTop: 6, fontWeight: 400 }}>
-              H: {weather.current?.high ?? ""}&deg; &nbsp; L: {weather.current?.low ?? ""}&deg;
+              H: {weather.current?.high != null ? formatTemperature(weather.current.high, farmCtx) : ""} &nbsp; L: {weather.current?.low != null ? formatTemperature(weather.current.low, farmCtx) : ""}
             </div>
           )}
           <div style={{ fontSize: 11, opacity: 0.55, marginTop: 4, fontWeight: 400 }}>
             {weather.current?.humidity ? `Humidity ${weather.current.humidity}%` : ""}
             {weather.current?.humidity && weather.current?.windSpeed ? " • " : ""}
-            {weather.current?.windSpeed ? `Wind ${weather.current.windSpeed} km/h` : ""}
+            {weather.current?.windSpeed ? `Wind ${formatWindSpeed(weather.current.windSpeed, farmCtx)}` : ""}
           </div>
           {riskBadge && riskBadge.level !== "LOW" && (
             <div
@@ -413,6 +415,7 @@ export default function HeroBanner({
   // when severe weather is detected. This ensures farmers see critical alerts.
   const weatherBanner = useWeatherBanner();
   const weatherRisk = useWeatherRisk();
+  const farmCtx = useFarmContext();
 
   // Determine if weather should override the default greeting
   const weatherOverride = weatherBanner.priority === "critical" || weatherBanner.priority === "warning";
@@ -584,7 +587,7 @@ export default function HeroBanner({
               <KPICard
                 icon={"\uD83D\uDCB3"}
                 label="Finance"
-                value={`R ${farmHealthScore.toLocaleString()}`}
+                value={`${farmHealthScore.toLocaleString()}`}
                 sub={farmHealthStatus || "Score"}
                 status="good"
                 accent

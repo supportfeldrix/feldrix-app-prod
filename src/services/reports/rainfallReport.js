@@ -69,7 +69,7 @@ export async function generateRainfallReport({ from, to, farmContext } = {}) {
     },
     aiSummary:
       entries > 0
-        ? `${round1(totalMm)} mm of rainfall recorded across ${entries} entr${entries === 1 ? "y" : "ies"} this period.`
+        ? `${formatPrecipitation(totalMm, ctx)} of rainfall recorded across ${entries} entr${entries === 1 ? "y" : "ies"} this period.`
         : "No farmer-recorded rainfall for this period.",
   };
 }

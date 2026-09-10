@@ -1,12 +1,6 @@
 import StatCard from "../ui/StatCard";
-
-function formatCurrency(value = 0) {
-  return new Intl.NumberFormat("en-ZA", {
-    style: "currency",
-    currency: "ZAR",
-    minimumFractionDigits: 2,
-  }).format(Number(value));
-}
+import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function FinanceSummary({
   income = 0,
@@ -14,6 +8,8 @@ export default function FinanceSummary({
   profit = 0,
   transactions = [],
 }) {
+  const farmCtx = useFarmContext();
+  const fmt = (value) => formatCurrency(value, farmCtx);
   return (
     <div
       style={{
@@ -25,21 +21,21 @@ export default function FinanceSummary({
     >
       <StatCard
         title="Income"
-        value={formatCurrency(income)}
+        value={fmt(income)}
         icon="💰"
         color="#16A34A"
       />
 
       <StatCard
         title="Expenses"
-        value={formatCurrency(expenses)}
+        value={fmt(expenses)}
         icon="💸"
         color="#DC2626"
       />
 
       <StatCard
         title="Net Profit"
-        value={formatCurrency(profit)}
+        value={fmt(profit)}
         icon="📈"
         color={profit >= 0 ? "#2563EB" : "#DC2626"}
       />

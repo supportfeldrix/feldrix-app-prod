@@ -31,8 +31,11 @@ import { getBreedingRecords } from "../services/breedingService";
 import { generateLivestockAnalytics } from "../utils/livestockAnalytics";
 import { LIVESTOCK_STATUSES, ACTIVE_STATUSES } from "../constants/livestockStatus";
 import { getLifecycleStage, getLifecycleDistribution } from "../services/livestockLifecycle";
+import { formatMass } from "../utils/units";
+import useFarmContext from "../hooks/useFarmContext";
 
 export default function Livestock() {
+  const farmCtx = useFarmContext();
   const [animals, setAnimals] = useState([]);
   const [healthRecords, setHealthRecords] = useState([]);
   const [breedingRecords, setBreedingRecords] = useState([]);
@@ -132,7 +135,7 @@ export default function Livestock() {
           />
           <PremiumStatCard
             label="Average Weight"
-            value={`${analytics.averageWeight} kg`}
+            value={formatMass(analytics.averageWeight, farmCtx)}
             subtitle="Herd average"
             icon={<ScaleIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(21,101,192,0.12)"

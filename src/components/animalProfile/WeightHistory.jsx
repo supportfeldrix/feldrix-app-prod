@@ -1,7 +1,11 @@
+import { formatMass } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
+
 export default function WeightHistory({
   records = [],
   onAddWeight,
 }) {
+  const farmCtx = useFarmContext();
   return (
     <div
       style={{
@@ -102,7 +106,7 @@ export default function WeightHistory({
                 </td>
 
                 <td style={cell}>
-                  <strong>{record.weight} kg</strong>
+                  <strong>{formatMass(record.weight, farmCtx)}</strong>
                 </td>
 
                 <td style={cell}>

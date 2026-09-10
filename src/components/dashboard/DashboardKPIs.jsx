@@ -1,9 +1,13 @@
 import MetricCard from "../ui/MetricCard";
+import { formatCurrency } from "../../utils/currency";
+import { formatArea, formatMass } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function DashboardKPIs({
   dashboard,
   healthDue = 0,
 }) {
+  const farmCtx = useFarmContext();
   if (!dashboard) return null;
 
   const animals = dashboard.animals || [];
@@ -64,7 +68,7 @@ export default function DashboardKPIs({
       >
         <MetricCard
           title="Farm Value"
-          value={`R ${totalValue.toLocaleString()}`}
+          value={formatCurrency(totalValue, farmCtx)}
           subtitle="Estimated farm value"
           icon="💰"
           color="#16A34A"
@@ -112,7 +116,7 @@ export default function DashboardKPIs({
 
         <MetricCard
           title="Farm Area"
-          value={`${totalArea.toFixed(1)} ha`}
+          value={formatArea(totalArea, farmCtx)}
           subtitle="Total planted area"
           icon="📏"
           color="#0EA5E9"
@@ -120,7 +124,7 @@ export default function DashboardKPIs({
 
         <MetricCard
           title="Avg Weight"
-          value={`${averageWeight} kg`}
+          value={formatMass(averageWeight, farmCtx)}
           subtitle="Average herd weight"
           icon="⚖️"
           color="#7C3AED"

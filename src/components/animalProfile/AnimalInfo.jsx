@@ -1,4 +1,9 @@
+import { formatMass } from "../../utils/units";
+import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
+
 export default function AnimalInfo({ animal }) {
+  const farmCtx = useFarmContext();
   if (!animal) return null;
 
   return (
@@ -52,7 +57,7 @@ export default function AnimalInfo({ animal }) {
           title="Weight"
           value={
             animal.weight
-              ? `${animal.weight} kg`
+              ? formatMass(animal.weight, farmCtx)
               : "-"
           }
         />
@@ -66,9 +71,7 @@ export default function AnimalInfo({ animal }) {
           title="Purchase Price"
           value={
             animal.purchase_price
-              ? `R ${Number(
-                  animal.purchase_price
-                ).toLocaleString()}`
+              ? formatCurrency(animal.purchase_price, farmCtx)
               : "-"
           }
         />

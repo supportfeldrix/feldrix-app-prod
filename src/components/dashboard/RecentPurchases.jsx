@@ -1,6 +1,8 @@
 import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function RecentPurchases({ animals = [] }) {
+  const farmCtx = useFarmContext();
   const recent = [...animals]
     .sort(
       (a, b) =>
@@ -143,7 +145,7 @@ export default function RecentPurchases({ animals = [] }) {
                 }}
               >
                 {animal.purchase_price
-                  ? formatCurrency(animal.purchase_price)
+                  ? formatCurrency(animal.purchase_price, farmCtx)
                   : "Not recorded"}
               </div>
 

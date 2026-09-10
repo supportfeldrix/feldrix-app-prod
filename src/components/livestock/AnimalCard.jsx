@@ -19,6 +19,9 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { radius, transitions, elevation } from "../../design/tokens";
 import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
 import { getCoverPhoto, generateSignedUrl } from "../../services/photoService";
+import { formatMass } from "../../utils/units";
+import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 function getStatusColor(status) {
   switch (status) {
@@ -43,6 +46,7 @@ function getSpeciesIcon(type) {
 }
 
 export default function AnimalCard({ animal, onEdit, onDelete }) {
+  const farmCtx = useFarmContext();
   const navigate = useNavigate();
   const [coverUrl, setCoverUrl] = useState(null);
 
@@ -126,9 +130,9 @@ export default function AnimalCard({ animal, onEdit, onDelete }) {
             }}
           >
             <AttrField label="Gender" value={animal.gender || "\u2014"} />
-            <AttrField label="Weight" value={animal.weight ? `${animal.weight} kg` : "\u2014"} />
+            <AttrField label="Weight" value={animal.weight ? formatMass(animal.weight, farmCtx) : "\u2014"} />
             <AttrField label="Species" value={animal.animal_type || "\u2014"} />
-            <AttrField label="Value" value={animal.purchase_price ? `R ${Number(animal.purchase_price).toLocaleString()}` : "\u2014"} />
+            <AttrField label="Value" value={animal.purchase_price ? formatCurrency(animal.purchase_price, farmCtx) : "\u2014"} />
           </Box>
 
           <Divider />

@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { cropAreaToHa } from "../utils/units";
 
 export async function getDashboardStats() {
   // --------------------------------------------------
@@ -183,8 +184,11 @@ export async function getDashboardStats() {
     (c) => c.status === "Harvested"
   ).length;
 
+  // Canonical hectares: normalize each crop from its own area_unit (ha|acres)
+  // before summing, so the dashboard total is unit-correct. Display layer
+  // converts to the farm's measurement system.
   const totalArea = cropList.reduce(
-    (sum, c) => sum + Number(c.area || 0),
+    (sum, c) => sum + cropAreaToHa(c),
     0
   );
 

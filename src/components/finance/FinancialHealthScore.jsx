@@ -12,6 +12,8 @@ import {
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { componentSize } from "../../design/tokens";
+import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 function getScoreColor(score, palette) {
   if (score >= 80) return palette.success.main;
@@ -57,6 +59,7 @@ const SCORE_FACTORS = [
 export default function FinancialHealthScore({ analytics }) {
   const theme = useTheme();
   const { palette } = theme;
+  const farmCtx = useFarmContext();
 
   if (!analytics || !analytics.available) {
     return (
@@ -142,7 +145,7 @@ export default function FinancialHealthScore({ analytics }) {
             </Stack>
             <Stack alignItems="center" spacing={0.25}>
               <Typography variant="h6" fontWeight={700} color="text.primary">
-                R {Number(analytics.totalIncome || 0).toLocaleString("en-ZA", { maximumFractionDigits: 0 })}
+                {formatCurrency(analytics.totalIncome || 0, farmCtx)}
               </Typography>
               <Typography variant="caption" color="text.secondary">Income</Typography>
             </Stack>

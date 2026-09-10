@@ -20,7 +20,26 @@
  *   generateMachineryAdvice()    — Machinery protection/operation advice
  *   generateChecklist()          — Actionable preparation checklist items
  *   generateEarlyWarnings()      — Countdown-based early warning system (72h/24h/6h/during/after)
+ *
+ * LOCALIZATION (USA-2.1): threshold comparisons stay CANONICAL (°C / km/h / mm)
+ * so intelligence logic is identical for every farm. Only the values EMBEDDED
+ * in human-readable message strings are converted for display, via the central
+ * formatters below, when a farm context (ctx) is supplied. ctx is optional and
+ * defaults to metric, preserving the South African baseline.
  */
+
+import {
+  formatTemperature,
+  formatWindSpeed,
+  formatPrecipitation,
+} from "../utils/units";
+
+// Localized value-only formatters (no em-dash; used inside sentences).
+// These convert a canonical value to the farm's display unit + unit label.
+// When ctx is null they yield metric (SA baseline) exactly as before.
+const tVal = (c, ctx) => formatTemperature(c, ctx); // e.g. "0°C" / "32°F"
+const wVal = (kmh, ctx) => formatWindSpeed(kmh, ctx); // e.g. "47 km/h" / "29 mph"
+const rVal = (mm, ctx) => formatPrecipitation(mm, ctx); // e.g. "30 mm" / "1.18 in"
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // THRESHOLDS — South African farming conditions
@@ -97,7 +116,7 @@ const WARNING_STAGES = {
  * @param {object} weather - Weather data from weatherService
  * @returns {object} { level, color, emoji, label, score, factors[], summary }
  */
-export function generateWeatherRisk(weather) {
+export function generateWeatherRisk(weather, ctx = null) {
   if (!weather?.available || !weather.current) {
     return { ...RISK_LEVELS.LOW, factors: [], summary: "Weather data unavailable." };
   }
@@ -114,24 +133,24 @@ export function generateWeatherRisk(weather) {
   const maxTemp = getMaxTemperature(current, forecast, hourly);
 
   if (minTemp <= THRESHOLDS.FREEZE) {
-    factors.push({ type: "freeze", severity: "extreme", message: `Freezing: ${minTemp}°C expected`, score: 4 });
+    factors.push({ type: "freeze", severity: "extreme", message: `Freezing: ${tVal(minTemp, ctx)} expected`, score: 4 });
     maxScore = Math.max(maxScore, 4);
   } else if (minTemp <= THRESHOLDS.FROST) {
-    factors.push({ type: "frost", severity: "high", message: `Frost risk: ${minTemp}°C expected`, score: 3 });
+    factors.push({ type: "frost", severity: "high", message: `Frost risk: ${tVal(minTemp, ctx)} expected`, score: 3 });
     maxScore = Math.max(maxScore, 3);
   } else if (minTemp <= THRESHOLDS.COLD) {
-    factors.push({ type: "cold", severity: "moderate", message: `Cold: ${minTemp}°C expected`, score: 2 });
+    factors.push({ type: "cold", severity: "moderate", message: `Cold: ${tVal(minTemp, ctx)} expected`, score: 2 });
     maxScore = Math.max(maxScore, 2);
   }
 
   if (maxTemp >= THRESHOLDS.EXTREME_HEAT) {
-    factors.push({ type: "extreme_heat", severity: "extreme", message: `Extreme heat: ${maxTemp}°C`, score: 4 });
+    factors.push({ type: "extreme_heat", severity: "extreme", message: `Extreme heat: ${tVal(maxTemp, ctx)}`, score: 4 });
     maxScore = Math.max(maxScore, 4);
   } else if (maxTemp >= THRESHOLDS.HEATWAVE) {
-    factors.push({ type: "heatwave", severity: "high", message: `Heatwave: ${maxTemp}°C`, score: 3 });
+    factors.push({ type: "heatwave", severity: "high", message: `Heatwave: ${tVal(maxTemp, ctx)}`, score: 3 });
     maxScore = Math.max(maxScore, 3);
   } else if (maxTemp >= THRESHOLDS.HOT) {
-    factors.push({ type: "hot", severity: "moderate", message: `Hot conditions: ${maxTemp}°C`, score: 2 });
+    factors.push({ type: "hot", severity: "moderate", message: `Hot conditions: ${tVal(maxTemp, ctx)}`, score: 2 });
     maxScore = Math.max(maxScore, 2);
   }
 
@@ -139,13 +158,13 @@ export function generateWeatherRisk(weather) {
   const maxWind = getMaxWind(current, forecast, hourly);
 
   if (maxWind >= THRESHOLDS.DANGEROUS_WIND) {
-    factors.push({ type: "dangerous_wind", severity: "extreme", message: `Dangerous wind: ${maxWind} km/h`, score: 4 });
+    factors.push({ type: "dangerous_wind", severity: "extreme", message: `Dangerous wind: ${wVal(maxWind, ctx)}`, score: 4 });
     maxScore = Math.max(maxScore, 4);
   } else if (maxWind >= THRESHOLDS.STRONG_WIND) {
-    factors.push({ type: "strong_wind", severity: "high", message: `Strong wind: ${maxWind} km/h`, score: 3 });
+    factors.push({ type: "strong_wind", severity: "high", message: `Strong wind: ${wVal(maxWind, ctx)}`, score: 3 });
     maxScore = Math.max(maxScore, 3);
   } else if (maxWind >= THRESHOLDS.MODERATE_WIND) {
-    factors.push({ type: "moderate_wind", severity: "moderate", message: `Moderate wind: ${maxWind} km/h`, score: 2 });
+    factors.push({ type: "moderate_wind", severity: "moderate", message: `Moderate wind: ${wVal(maxWind, ctx)}`, score: 2 });
     maxScore = Math.max(maxScore, 2);
   }
 
@@ -153,13 +172,13 @@ export function generateWeatherRisk(weather) {
   const maxRain = getMaxRainfall(current, forecast, hourly);
 
   if (maxRain >= THRESHOLDS.FLOOD_RISK) {
-    factors.push({ type: "flood", severity: "extreme", message: `Flood risk: ${maxRain} mm`, score: 4 });
+    factors.push({ type: "flood", severity: "extreme", message: `Flood risk: ${rVal(maxRain, ctx)}`, score: 4 });
     maxScore = Math.max(maxScore, 4);
   } else if (maxRain >= THRESHOLDS.HEAVY_RAIN) {
-    factors.push({ type: "heavy_rain", severity: "high", message: `Heavy rain: ${maxRain} mm`, score: 3 });
+    factors.push({ type: "heavy_rain", severity: "high", message: `Heavy rain: ${rVal(maxRain, ctx)}`, score: 3 });
     maxScore = Math.max(maxScore, 3);
   } else if (maxRain >= THRESHOLDS.MODERATE_RAIN) {
-    factors.push({ type: "moderate_rain", severity: "moderate", message: `Moderate rain: ${maxRain} mm`, score: 2 });
+    factors.push({ type: "moderate_rain", severity: "moderate", message: `Moderate rain: ${rVal(maxRain, ctx)}`, score: 2 });
     maxScore = Math.max(maxScore, 2);
   }
 
@@ -227,7 +246,7 @@ export function generateWeatherRisk(weather) {
  * @param {object} weather - Weather data from weatherService
  * @returns {Array} Array of alert objects: { id, type, priority, title, message, advice[], icon, color, expiresAt }
  */
-export function generateWeatherAlerts(weather) {
+export function generateWeatherAlerts(weather, ctx = null) {
   if (!weather?.available || !weather.current) return [];
 
   const current = weather.current;
@@ -247,7 +266,7 @@ export function generateWeatherAlerts(weather) {
       type: "FREEZE",
       priority: "Critical",
       title: "Freeze Warning",
-      message: `Temperature expected to drop to ${minTemp}°C. Protect livestock and crops immediately.`,
+      message: `Temperature expected to drop to ${tVal(minTemp, ctx)}. Protect livestock and crops immediately.`,
       icon: "\u2744\uFE0F",
       color: "#3B82F6",
       advice: [
@@ -273,7 +292,7 @@ export function generateWeatherAlerts(weather) {
       type: "FROST",
       priority: "High",
       title: "Frost Advisory",
-      message: `Temperature expected to drop to ${minTemp}°C. Frost damage risk for crops.`,
+      message: `Temperature expected to drop to ${tVal(minTemp, ctx)}. Frost damage risk for crops.`,
       icon: "\uD83C\uDF28\uFE0F",
       color: "#60A5FA",
       advice: [
@@ -297,7 +316,7 @@ export function generateWeatherAlerts(weather) {
       type: "HEATWAVE",
       priority: maxTemp >= THRESHOLDS.EXTREME_HEAT ? "Critical" : "High",
       title: maxTemp >= THRESHOLDS.EXTREME_HEAT ? "Extreme Heat Warning" : "Heatwave Warning",
-      message: `Temperature expected to reach ${maxTemp}°C. Heat stress risk for livestock.`,
+      message: `Temperature expected to reach ${tVal(maxTemp, ctx)}. Heat stress risk for livestock.`,
       icon: "\uD83D\uDD25",
       color: "#EF4444",
       advice: [
@@ -323,7 +342,7 @@ export function generateWeatherAlerts(weather) {
       type: isFlood ? "FLOOD" : "HEAVY_RAIN",
       priority: isFlood ? "Critical" : "High",
       title: isFlood ? "Flood Warning" : "Heavy Rain Warning",
-      message: `${maxRain} mm of rainfall expected. ${isFlood ? "Flooding possible in low-lying areas." : "Delay field operations."}`,
+      message: `${rVal(maxRain, ctx)} of rainfall expected. ${isFlood ? "Flooding possible in low-lying areas." : "Delay field operations."}`,
       icon: isFlood ? "\uD83C\uDF0A" : "\uD83C\uDF27\uFE0F",
       color: isFlood ? "#7C3AED" : "#3B82F6",
       advice: isFlood
@@ -357,7 +376,7 @@ export function generateWeatherAlerts(weather) {
       type: "HIGH_WIND",
       priority: isDangerous ? "Critical" : "High",
       title: isDangerous ? "Dangerous Wind Warning" : "Strong Wind Advisory",
-      message: `Wind speeds of ${maxWind} km/h expected. ${isDangerous ? "Avoid all outdoor operations." : "Postpone spraying."}`,
+      message: `Wind speeds of ${wVal(maxWind, ctx)} expected. ${isDangerous ? "Avoid all outdoor operations." : "Postpone spraying."}`,
       icon: "\uD83D\uDCA8",
       color: "#6B7280",
       advice: isDangerous
@@ -484,8 +503,8 @@ export function generateWeatherRecommendations(weather) {
  * @param {object} weather - Weather data
  * @returns {Array} Notification objects compatible with notificationEngine
  */
-export function generateWeatherNotifications(weather) {
-  const alerts = generateWeatherAlerts(weather);
+export function generateWeatherNotifications(weather, ctx = null) {
+  const alerts = generateWeatherAlerts(weather, ctx);
 
   return alerts.map((alert) => ({
     id: `weather-intel-${alert.type.toLowerCase()}`,
@@ -511,7 +530,7 @@ export function generateWeatherNotifications(weather) {
  * @param {string} userName - Farmer's name
  * @returns {object} { greeting, subtitle, priority, icon, action }
  */
-export function generateWeatherBanner(weather, userName = "") {
+export function generateWeatherBanner(weather, userName = "", ctx = null) {
   const name = userName ? `, ${userName}` : "";
   const timeGreeting = getTimeGreeting();
 
@@ -525,8 +544,8 @@ export function generateWeatherBanner(weather, userName = "") {
     };
   }
 
-  const alerts = generateWeatherAlerts(weather);
-  const risk = generateWeatherRisk(weather);
+  const alerts = generateWeatherAlerts(weather, ctx);
+  const risk = generateWeatherRisk(weather, ctx);
 
   // Critical alerts take priority
   if (alerts.length > 0 && alerts[0].priority === "Critical") {
@@ -612,22 +631,22 @@ export function generateWeatherBanner(weather, userName = "") {
  * @param {object} weather - Weather data
  * @returns {string} One-line farm-relevant insight
  */
-export function generateWeatherInsight(weather) {
+export function generateWeatherInsight(weather, ctx = null) {
   if (!weather?.available || !weather.current) {
     return "Weather data unavailable. Check your location settings.";
   }
 
-  const alerts = generateWeatherAlerts(weather);
+  const alerts = generateWeatherAlerts(weather, ctx);
 
   if (alerts.length > 0) {
     const top = alerts[0];
     switch (top.type) {
-      case "FREEZE": return `Freeze warning: ${top.details.expectedMin}°C expected. Protect livestock and crops.`;
-      case "FROST": return `Frost risk tonight: ${top.details.expectedMin}°C. Protect seedlings.`;
-      case "HEATWAVE": return `Heatwave: ${top.details.expectedMax}°C expected. Ensure livestock have water and shade.`;
-      case "HEAVY_RAIN": return `Heavy rain: ${top.details.expectedRainfall}mm expected. Delay field work.`;
-      case "FLOOD": return `Flood risk: ${top.details.expectedRainfall}mm. Move livestock from low areas.`;
-      case "HIGH_WIND": return `Strong wind: ${top.details.expectedWind} km/h. Postpone spraying.`;
+      case "FREEZE": return `Freeze warning: ${tVal(top.details.expectedMin, ctx)} expected. Protect livestock and crops.`;
+      case "FROST": return `Frost risk tonight: ${tVal(top.details.expectedMin, ctx)}. Protect seedlings.`;
+      case "HEATWAVE": return `Heatwave: ${tVal(top.details.expectedMax, ctx)} expected. Ensure livestock have water and shade.`;
+      case "HEAVY_RAIN": return `Heavy rain: ${rVal(top.details.expectedRainfall, ctx)} expected. Delay field work.`;
+      case "FLOOD": return `Flood risk: ${rVal(top.details.expectedRainfall, ctx)}. Move livestock from low areas.`;
+      case "HIGH_WIND": return `Strong wind: ${wVal(top.details.expectedWind, ctx)}. Postpone spraying.`;
       case "STORM": return "Thunderstorm expected. Avoid open fields and delay operations.";
       case "LIGHTNING": return "Lightning risk. Keep workers and livestock away from open areas.";
       case "HAIL": return "Hail expected. Move machinery under cover immediately.";

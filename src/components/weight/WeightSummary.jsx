@@ -1,6 +1,10 @@
+import { formatMass } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
+
 export default function WeightSummary({
   records = [],
 }) {
+  const farmCtx = useFarmContext();
   if (records.length === 0) return null;
 
   // Always sort by creation time (newest first)
@@ -18,17 +22,17 @@ export default function WeightSummary({
   const cards = [
     {
       title: "Latest Weight",
-      value: `${latest.weight} kg`,
+      value: formatMass(latest.weight, farmCtx),
       color: "#2563EB",
     },
     {
       title: "First Weight",
-      value: `${oldest.weight} kg`,
+      value: formatMass(oldest.weight, farmCtx),
       color: "#64748B",
     },
     {
       title: "Weight Gain",
-      value: `${gain >= 0 ? "+" : ""}${gain} kg`,
+      value: `${gain >= 0 ? "+" : "-"}${formatMass(Math.abs(gain), farmCtx)}`,
       color: gain >= 0 ? "#16A34A" : "#DC2626",
     },
     {

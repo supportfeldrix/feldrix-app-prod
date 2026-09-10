@@ -1,6 +1,10 @@
 import StatCard from "../ui/StatCard";
 
+import { formatArea, cropAreaToHa } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
+
 export default function CropStatsGrid({ crops = [] }) {
+  const farmCtx = useFarmContext();
   const totalCrops = crops.length;
 
   const growing = crops.filter(
@@ -11,10 +15,9 @@ export default function CropStatsGrid({ crops = [] }) {
     (crop) => crop.status === "Harvested"
   ).length;
 
-  const totalArea = crops.reduce(
-    (sum, crop) => sum + Number(crop.area || 0),
-    0
-  );
+  // Canonical hectares: normalize each crop from its own area_unit before
+  // summing; display converts to the farm's measurement system.
+  const totalArea = crops.reduce((sum, crop) => sum + cropAreaToHa(crop), 0);
 
   return (
     <div
@@ -48,7 +51,7 @@ export default function CropStatsGrid({ crops = [] }) {
 
       <StatCard
         title="Total Area"
-        value={`${totalArea.toFixed(2)} ha`}
+        value={formatArea(totalArea, farmCtx)}
         icon="📏"
         color="#1565C0"
       />

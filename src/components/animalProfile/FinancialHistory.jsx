@@ -1,7 +1,11 @@
+import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
+
 export default function FinancialHistory({
   animal,
   transactions = [],
 }) {
+  const farmCtx = useFarmContext();
   const purchasePrice = Number(
     animal?.purchase_price || 0
   );
@@ -47,25 +51,25 @@ export default function FinancialHistory({
       >
         <FinanceCard
           title="Purchase Price"
-          value={`R ${purchasePrice.toLocaleString()}`}
+          value={formatCurrency(purchasePrice, farmCtx)}
           color="#2563EB"
         />
 
         <FinanceCard
           title="Expenses"
-          value={`R ${totalExpenses.toLocaleString()}`}
+          value={formatCurrency(totalExpenses, farmCtx)}
           color="#DC2626"
         />
 
         <FinanceCard
           title="Income"
-          value={`R ${totalIncome.toLocaleString()}`}
+          value={formatCurrency(totalIncome, farmCtx)}
           color="#16A34A"
         />
 
         <FinanceCard
           title="Profit / Loss"
-          value={`R ${profit.toLocaleString()}`}
+          value={formatCurrency(profit, farmCtx)}
           color={profit >= 0 ? "#16A34A" : "#DC2626"}
         />
       </div>
@@ -146,10 +150,7 @@ export default function FinancialHistory({
                         : "#DC2626",
                   }}
                 >
-                  R{" "}
-                  {Number(
-                    transaction.amount || 0
-                  ).toLocaleString()}
+                  {formatCurrency(transaction.amount || 0, farmCtx)}
                 </td>
               </tr>
             ))}

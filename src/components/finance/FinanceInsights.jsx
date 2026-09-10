@@ -12,10 +12,13 @@ import {
 
 import {
   AccountBalance,
-  AttachMoney,
+  AccountBalanceWallet,
   TrendingUp,
   TrendingDown,
 } from "@mui/icons-material";
+
+import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 function MetricCard({ icon, label, value, color }) {
   return (
@@ -36,6 +39,8 @@ function MetricCard({ icon, label, value, color }) {
 }
 
 export default function FinanceInsights({ analytics }) {
+  const farmCtx = useFarmContext();
+  const fmt = (v) => formatCurrency(v, farmCtx);
   if (!analytics || !analytics.available) {
     return (
       <Card elevation={2} sx={{ borderRadius: 3 }}>
@@ -50,7 +55,7 @@ export default function FinanceInsights({ analytics }) {
           <Divider sx={{ mb: 2 }} />
 
           <Box sx={{ py: 3, textAlign: "center" }}>
-            <AttachMoney sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
+            <AccountBalanceWallet sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
             <Typography variant="body2" fontWeight={600}>
               Not enough financial history yet.
             </Typography>
@@ -102,18 +107,18 @@ export default function FinanceInsights({ analytics }) {
         <Grid container spacing={1.5}>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <MetricCard
-              icon={<AttachMoney sx={{ fontSize: 16, color: "success.dark" }} />}
+              icon={<AccountBalanceWallet sx={{ fontSize: 16, color: "success.dark" }} />}
               label="Total Income"
-              value={`R${Number(totalIncome).toLocaleString()}`}
+              value={fmt(totalIncome)}
               color="success.dark"
             />
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <MetricCard
-              icon={<AttachMoney sx={{ fontSize: 16, color: "error.main" }} />}
+              icon={<AccountBalanceWallet sx={{ fontSize: 16, color: "error.main" }} />}
               label="Total Expenses"
-              value={`R${Number(totalExpenses).toLocaleString()}`}
+              value={fmt(totalExpenses)}
               color="error.main"
             />
           </Grid>
@@ -125,7 +130,7 @@ export default function FinanceInsights({ analytics }) {
                 : <TrendingDown sx={{ fontSize: 16, color: profitColor }} />
               }
               label="Net Profit"
-              value={`R${Number(Math.abs(netProfit)).toLocaleString()}`}
+              value={fmt(Math.abs(netProfit))}
               color={profitColor}
             />
           </Grid>

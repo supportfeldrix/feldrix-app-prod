@@ -33,9 +33,12 @@ import { getGroundSamples } from "../../services/groundSamplingService";
 import { getWeatherSummary } from "../../services/weatherService";
 import { generateCropAnalytics } from "../../utils/cropAnalytics";
 import { getCropLifecycle, getCropLifecycleDistribution, getHarvestReadyCrops, getCropStageColor } from "../../utils/cropLifecycle";
+import { formatArea, cropAreaToHa } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 import PhotoSection from "../../components/photos/PhotoSection";
 
 export default function CropPage() {
+  const farmCtx = useFarmContext();
   const [crops, setCrops] = useState([]);
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -92,7 +95,7 @@ export default function CropPage() {
     return lifecycleStage && lifecycleStage !== "Flowering" && lifecycleStage !== "Fruit / Grain Development" && lifecycleStage !== "Harvest Ready" && lifecycleStage !== "Harvested";
   }).length;
   const harvested = crops.filter((c) => c.status === "Harvested").length;
-  const totalArea = crops.reduce((sum, c) => sum + Number(c.area || 0), 0);
+  const totalArea = crops.reduce((sum, c) => sum + cropAreaToHa(c), 0);
 
   // Lifecycle-aware stats
   const lifecycleDist = getCropLifecycleDistribution(crops);
@@ -146,7 +149,7 @@ export default function CropPage() {
           />
           <PremiumStatCard
             label="Total Area"
-            value={`${totalArea.toFixed(1)} ha`}
+            value={formatArea(totalArea, farmCtx)}
             subtitle="Under management"
             icon={<LandscapeIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(21,101,192,0.12)"

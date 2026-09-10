@@ -88,7 +88,7 @@ export async function generateCropReport({ from, to, farmContext } = {}) {
     },
     aiSummary:
       plantedInPeriod.length > 0
-        ? `${plantedInPeriod.length} crop(s) planted this period (${areaPlanted.toFixed(1)} ha).`
+        ? `${plantedInPeriod.length} crop(s) planted this period (${area(areaPlanted, ctx)}).`
         : "No new plantings recorded for this period.",
   };
 }

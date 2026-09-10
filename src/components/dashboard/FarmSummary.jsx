@@ -1,6 +1,10 @@
 import StatCard from "../ui/StatCard";
+import { formatCurrency } from "../../utils/currency";
+import { formatArea } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function FarmSummary({ dashboard }) {
+  const farmCtx = useFarmContext();
   if (!dashboard) return null;
 
   const {
@@ -35,14 +39,14 @@ export default function FarmSummary({ dashboard }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
         <StatCard
           title="Farm Value"
-          value={`R ${Number(totalValue).toLocaleString()}`}
+          value={formatCurrency(totalValue, farmCtx)}
           icon="💰"
           color="#2E7D32"
         />
 
         <StatCard
           title="Farm Area"
-          value={`${Number(totalArea).toFixed(2)} ha`}
+          value={formatArea(totalArea, farmCtx)}
           icon="📏"
           color="#1565C0"
         />

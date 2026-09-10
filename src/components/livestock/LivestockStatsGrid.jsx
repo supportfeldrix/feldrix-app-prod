@@ -1,10 +1,13 @@
 import StatCard from "../ui/StatCard";
+import { formatMass } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 /**
  * Livestock KPI cards.
  * Consumes the unified analytics object — no independent calculations.
  */
 export default function LivestockStatsGrid({ analytics }) {
+  const farmCtx = useFarmContext();
   const totalAnimals = analytics?.totalAnimals ?? 0;
   const healthyAnimals = analytics?.healthyAnimals ?? 0;
   const pregnantAnimals = analytics?.pregnantAnimals ?? 0;
@@ -42,7 +45,7 @@ export default function LivestockStatsGrid({ analytics }) {
 
       <StatCard
         title="Average Weight"
-        value={`${averageWeight} kg`}
+        value={formatMass(averageWeight, farmCtx)}
         icon="⚖️"
         color="#1565C0"
       />

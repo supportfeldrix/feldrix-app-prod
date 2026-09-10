@@ -1,9 +1,12 @@
 import StatCard from "../ui/StatCard";
+import { formatMass } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function StatsGrid({
   animals = [],
   pregnantBreeding = 0,
 }) {
+  const farmCtx = useFarmContext();
   const total = animals.length;
 
   const healthy = animals.filter(
@@ -53,7 +56,7 @@ export default function StatsGrid({
 
       <StatCard
         title="Average Weight"
-        value={`${averageWeight} kg`}
+        value={formatMass(averageWeight, farmCtx)}
         icon="⚖️"
         color="#1565C0"
       />

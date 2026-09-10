@@ -26,12 +26,12 @@ import FinancialHealthScore from "../components/finance/FinancialHealthScore";
 
 import { getFinanceRecords } from "../services/financeService";
 import { generateFinanceAnalytics } from "../utils/financeAnalytics";
-
-function formatZAR(value) {
-  return `R ${Math.abs(Number(value || 0)).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatCurrency } from "../utils/currency";
+import useFarmContext from "../hooks/useFarmContext";
 
 export default function Finance() {
+  const farmCtx = useFarmContext(); // farm operating currency/locale (null → ZAR/en-ZA)
+  const fmtMoney = (v) => formatCurrency(Math.abs(Number(v || 0)), farmCtx);
   const [records, setRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -88,7 +88,7 @@ export default function Finance() {
         <PremiumKPIGrid gap={3.5}>
           <PremiumStatCard
             label="Total Income"
-            value={formatZAR(income)}
+            value={fmtMoney(income)}
             subtitle="All revenue"
             icon={<TrendingUpIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(22,163,74,0.12)"
@@ -96,7 +96,7 @@ export default function Finance() {
           />
           <PremiumStatCard
             label="Total Expenses"
-            value={formatZAR(expenses)}
+            value={fmtMoney(expenses)}
             subtitle="All costs"
             icon={<TrendingDownIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(220,38,38,0.12)"
@@ -104,7 +104,7 @@ export default function Finance() {
           />
           <PremiumStatCard
             label="Net Profit"
-            value={`${profit >= 0 ? "+" : "-"}${formatZAR(profit)}`}
+            value={`${profit >= 0 ? "+" : "-"}${fmtMoney(profit)}`}
             subtitle={profit >= 0 ? "Profitable" : "Operating at loss"}
             icon={<ShowChartIcon sx={{ fontSize: 28 }} />}
             iconBg={profit >= 0 ? "rgba(22,163,74,0.12)" : "rgba(220,38,38,0.12)"}

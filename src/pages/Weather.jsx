@@ -60,7 +60,7 @@ import {
 import { useWeather } from "../context/WeatherContext";
 import { getWeatherHistory, getWeatherHistorySummary } from "../services/weatherService";
 import { getFarmContext } from "../services/profileService";
-import { formatTemperature, formatWindSpeed, formatPrecipitation } from "../utils/units";
+import { formatTemperature, formatWindSpeed, formatPrecipitation, formatPressure, formatDistance } from "../utils/units";
 import WeatherChecklist from "../components/weather/WeatherChecklist";
 import EarlyWarningCountdown from "../components/weather/EarlyWarningCountdown";
 import WeatherNotificationSettings from "../components/weather/WeatherNotificationSettings";
@@ -173,8 +173,8 @@ function CurrentConditions({ weather, ctx }) {
     { icon: <Air sx={{ fontSize: 18 }} />, label: "Wind", value: current.windSpeed != null ? `${formatWindSpeed(current.windSpeed, ctx)} ${current.windDirection || ""}`.trim() : "—" },
     { icon: <Opacity sx={{ fontSize: 18 }} />, label: "Humidity", value: current.humidity != null ? `${current.humidity}%` : "—" },
     { icon: <WaterDrop sx={{ fontSize: 18 }} />, label: "Rainfall", value: current.rainfall != null ? formatPrecipitation(current.rainfall, ctx) : formatPrecipitation(0, ctx) },
-    { icon: <Speed sx={{ fontSize: 18 }} />, label: "Pressure", value: current.pressure ? `${current.pressure} hPa` : "—" },
-    { icon: <Visibility sx={{ fontSize: 18 }} />, label: "Visibility", value: current.visibility ? `${current.visibility} km` : "—" },
+    { icon: <Speed sx={{ fontSize: 18 }} />, label: "Pressure", value: current.pressure ? formatPressure(current.pressure, ctx) : "—" },
+    { icon: <Visibility sx={{ fontSize: 18 }} />, label: "Visibility", value: current.visibility ? formatDistance(current.visibility, ctx) : "—" },
     { icon: <WbSunny sx={{ fontSize: 18 }} />, label: "UV Index", value: current.uvIndex != null ? `${current.uvIndex}` : "—" },
     { icon: <DeviceThermostat sx={{ fontSize: 18 }} />, label: "Dew Point", value: current.dewPoint != null ? formatTemperature(current.dewPoint, ctx) : "—" },
   ];

@@ -169,7 +169,7 @@ export async function generateFarmSummaryReport(options = {}) {
     title: "Monthly Farm Summary",
     statistics,
     sections,
-    aiSummary: buildSummaryText(finance, health, crops, rainfall),
+    aiSummary: buildSummaryText(finance, health, crops, rainfall, ctx),
   };
 }
 
@@ -197,7 +197,7 @@ function buildMajorInputs(expenseGroups = {}, ctx) {
   return items;
 }
 
-function buildSummaryText(finance, health, crops, rainfall) {
+function buildSummaryText(finance, health, crops, rainfall, ctx = null) {
   const parts = [];
   if (finance?.financeData) {
     parts.push(finance.financeData.net >= 0 ? "The farm was profitable this period." : "Expenses exceeded income this period.");
@@ -209,7 +209,7 @@ function buildSummaryText(finance, health, crops, rainfall) {
     parts.push(`${crops.cropData.plantedThisPeriod} crop planting(s).`);
   }
   if (rainfall?.rainfallData?.entries) {
-    parts.push(`${rainfall.rainfallData.totalMm} mm rainfall recorded.`);
+    parts.push(`${formatPrecipitation(rainfall.rainfallData.totalMm, ctx)} rainfall recorded.`);
   }
   return parts.length ? parts.join(" ") : "No recorded activity for this period.";
 }

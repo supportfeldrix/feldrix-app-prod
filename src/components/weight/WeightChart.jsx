@@ -10,6 +10,8 @@ import {
 
 import { Line } from "react-chartjs-2";
 import { format } from "date-fns";
+import { kgToLb, unitLabel, isUsCustomary } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 ChartJS.register(
   CategoryScale,
@@ -21,7 +23,13 @@ ChartJS.register(
 );
 
 export default function WeightChart({ records = [] }) {
+  const farmCtx = useFarmContext();
   if (!records || records.length === 0) return null;
+
+  // Display unit: convert canonical kg -> lb for US farms; label accordingly.
+  const us = isUsCustomary(farmCtx);
+  const massUnit = unitLabel("mass", farmCtx);
+  const toDisplay = (kg) => (us ? kgToLb(Number(kg)) : Number(kg));
 
   // Sort oldest to newest
   const sorted = [...records].sort(
@@ -34,8 +42,8 @@ export default function WeightChart({ records = [] }) {
     ),
     datasets: [
       {
-        label: "Weight (kg)",
-        data: sorted.map((record) => Number(record.weight)),
+        label: `Weight (${massUnit})`,
+        data: sorted.map((record) => toDisplay(record.weight)),
         borderColor: "#16a34a",
         backgroundColor: "#16a34a",
         borderWidth: 3,
@@ -79,7 +87,7 @@ export default function WeightChart({ records = [] }) {
           color: "#f1f5f9",
         },
         ticks: {
-          callback: (value) => `${value} kg`,
+          callback: (value) => `${value} ${massUnit}`,
         },
       },
     },

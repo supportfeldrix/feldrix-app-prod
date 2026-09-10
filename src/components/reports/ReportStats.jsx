@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import StatCard from "../ui/StatCard";
 
 import { getFarmReport } from "../../services/reportService";
+import { formatCurrency as formatMoney } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function ReportStats() {
+  const farmCtx = useFarmContext();
   const [stats, setStats] = useState({
     totalAnimals: 0,
     totalIncome: 0,
@@ -25,11 +28,7 @@ export default function ReportStats() {
     }
   }
 
-  const formatCurrency = (value) =>
-    `R ${Number(value || 0).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+  const formatCurrency = (value) => formatMoney(value || 0, farmCtx);
 
   return (
     <div

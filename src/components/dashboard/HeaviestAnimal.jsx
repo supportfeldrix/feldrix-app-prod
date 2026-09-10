@@ -1,6 +1,9 @@
 import StatCard from "../ui/StatCard";
+import { formatMass } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function HeaviestAnimal({ animals = [] }) {
+  const farmCtx = useFarmContext();
   if (animals.length === 0) {
     return (
       <StatCard
@@ -21,7 +24,7 @@ export default function HeaviestAnimal({ animals = [] }) {
   return (
     <StatCard
       title="Heaviest Animal"
-      value={`${heaviest.weight || 0} kg`}
+      value={formatMass(heaviest.weight || 0, farmCtx)}
       icon="🏆"
       color="#F59E0B"
     >

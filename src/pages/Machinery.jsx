@@ -34,8 +34,11 @@ import {
 } from "../services/machineryService";
 
 import { generateMachineryAnalytics } from "../utils/machineryAnalytics";
+import { formatCurrency } from "../utils/currency";
+import useFarmContext from "../hooks/useFarmContext";
 
 export default function Machinery() {
+  const farmCtx = useFarmContext();
   const navigate = useNavigate();
 
   const [machines, setMachines] = useState([]);
@@ -160,7 +163,7 @@ export default function Machinery() {
           />
           <PremiumStatCard
             label="Fleet Value"
-            value={`R ${fleetValue.toLocaleString("en-ZA")}`}
+            value={formatCurrency(fleetValue, farmCtx)}
             subtitle="Total asset value"
             icon={<AccountBalanceWalletIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(106,27,154,0.12)"

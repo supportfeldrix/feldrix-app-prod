@@ -1,10 +1,13 @@
 import { Grid } from "@mui/material";
 
 import StatCard from "../ui/StatCard";
+import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function FinanceStats({
   records = [],
 }) {
+  const farmCtx = useFarmContext();
   const income = records
     .filter(
       (record) =>
@@ -29,20 +32,14 @@ export default function FinanceStats({
 
   const profit = income - expenses;
 
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat("en-ZA", {
-      style: "currency",
-      currency: "ZAR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Number(value || 0));
+  const fmt = (value) => formatCurrency(value, farmCtx);
 
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
         <StatCard
           title="Total Income"
-          value={formatCurrency(income)}
+          value={fmt(income)}
           icon="💰"
           color="#16A34A"
         />
@@ -51,7 +48,7 @@ export default function FinanceStats({
       <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
         <StatCard
           title="Total Expenses"
-          value={formatCurrency(expenses)}
+          value={fmt(expenses)}
           icon="💸"
           color="#DC2626"
         />
@@ -60,7 +57,7 @@ export default function FinanceStats({
       <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
         <StatCard
           title="Net Profit"
-          value={formatCurrency(profit)}
+          value={fmt(profit)}
           icon={
             profit >= 0
               ? "📈"

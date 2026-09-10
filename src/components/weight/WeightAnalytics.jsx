@@ -1,27 +1,32 @@
 import { calculateWeightAnalytics } from "../../utils/weightAnalytics";
+import { formatMass, unitLabel } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function WeightAnalytics({
   records = [],
 }) {
+  const farmCtx = useFarmContext();
   const analytics =
     calculateWeightAnalytics(records);
 
   if (!analytics) return null;
 
+  const massUnit = unitLabel("mass", farmCtx);
+
   const cards = [
     {
       title: "Highest Weight",
-      value: `${analytics.highestWeight} kg`,
+      value: formatMass(analytics.highestWeight, farmCtx),
       color: "#16A34A",
     },
     {
       title: "Lowest Weight",
-      value: `${analytics.lowestWeight} kg`,
+      value: formatMass(analytics.lowestWeight, farmCtx),
       color: "#2563EB",
     },
     {
       title: "Weight Gain",
-      value: `${analytics.totalGain >= 0 ? "+" : ""}${analytics.totalGain} kg`,
+      value: `${analytics.totalGain >= 0 ? "+" : "-"}${formatMass(Math.abs(analytics.totalGain), farmCtx)}`,
       color:
         analytics.totalGain >= 0
           ? "#16A34A"
@@ -36,9 +41,7 @@ export default function WeightAnalytics({
     },
     {
       title: "Avg Daily Gain",
-      value: `${analytics.averageDailyGain.toFixed(
-        2
-      )} kg/day`,
+      value: `${formatMass(analytics.averageDailyGain, farmCtx, { withUnit: false })} ${massUnit}/day`,
       color: "#0891B2",
     },
     {

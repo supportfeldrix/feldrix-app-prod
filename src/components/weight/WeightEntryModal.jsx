@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { addWeight } from "../../services/weightService";
+import { lbToKg, unitLabel, isUsCustomary } from "../../utils/units";
+import useFarmContext from "../../hooks/useFarmContext";
 
 export default function WeightEntryModal({
   animal,
@@ -7,6 +9,7 @@ export default function WeightEntryModal({
   onClose,
   onSaved,
 }) {
+  const farmCtx = useFarmContext();
   const [weight, setWeight] = useState("");
   const [recordedAt, setRecordedAt] = useState(
     new Date().toISOString().split("T")[0]
@@ -27,9 +30,15 @@ export default function WeightEntryModal({
     try {
       setSaving(true);
 
+      // The input is entered in the farm's display unit (lb for US farms).
+      // Convert back to canonical kilograms before persisting so stored
+      // values remain metric regardless of the farm's measurement system.
+      const entered = Number(weight);
+      const canonicalKg = isUsCustomary(farmCtx) ? lbToKg(entered) : entered;
+
       await addWeight({
         animal_id: animal.id,
-        weight: Number(weight),
+        weight: canonicalKg,
         recorded_at: recordedAt,
         notes,
       });
@@ -78,7 +87,7 @@ export default function WeightEntryModal({
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
-            <label>Weight (kg)</label>
+            <label>Weight ({unitLabel("mass", farmCtx)})</label>
 
             <input
               type="number"

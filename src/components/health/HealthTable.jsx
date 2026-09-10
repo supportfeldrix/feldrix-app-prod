@@ -25,6 +25,8 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import { deleteHealthRecord } from "../../services/healthService";
 import { radius, transitions } from "../../design/tokens";
+import { formatCurrency } from "../../utils/currency";
+import useFarmContext from "../../hooks/useFarmContext";
 
 function getStatus(record) {
   // Completed takes precedence over any date-based status. A completed
@@ -52,6 +54,7 @@ function formatDate(date) {
 }
 
 export default function HealthTable({ records = [], onEdit, refreshRecords }) {
+  const farmCtx = useFarmContext();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
@@ -207,7 +210,7 @@ export default function HealthTable({ records = [], onEdit, refreshRecords }) {
 
                     <TableCell sx={dataCell} align="right">
                       <Typography variant="body2" fontWeight={600} color="text.primary">
-                        R {Number(record.cost || 0).toFixed(2)}
+                        {formatCurrency(record.cost || 0, farmCtx)}
                       </Typography>
                     </TableCell>
 
