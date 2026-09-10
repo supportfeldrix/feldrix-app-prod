@@ -608,7 +608,7 @@ function AlertsPanel({ alerts }) {
 // WEATHER HISTORY PANEL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function WeatherHistoryPanel() {
+function WeatherHistoryPanel({ ctx }) {
   const history = getWeatherHistory();
   const summary = getWeatherHistorySummary();
 
@@ -651,9 +651,9 @@ function WeatherHistoryPanel() {
               </Typography>
               {last24h.length > 0 ? (
                 <Stack spacing={1} sx={{ mt: 1.5 }}>
-                  <HistoryRow label="Temperature" value={`${degOrDash(last24hSummary.minTemp, farmCtx)} – ${degOrDash(last24hSummary.maxTemp, farmCtx)}`} icon="🌡️" />
-                  <HistoryRow label="Rainfall" value={formatPrecipitation(last24hSummary.totalRainfall, farmCtx)} icon="🌧️" />
-                  <HistoryRow label="Wind" value={`Avg ${windOrDash(last24hSummary.avgWind, farmCtx)}`} icon="💨" />
+                  <HistoryRow label="Temperature" value={`${degOrDash(last24hSummary.minTemp, ctx)} – ${degOrDash(last24hSummary.maxTemp, ctx)}`} icon="🌡️" />
+                  <HistoryRow label="Rainfall" value={formatPrecipitation(last24hSummary.totalRainfall, ctx)} icon="🌧️" />
+                  <HistoryRow label="Wind" value={`Avg ${windOrDash(last24hSummary.avgWind, ctx)}`} icon="💨" />
                   <HistoryRow label="Humidity" value={`Avg ${last24hSummary.avgHumidity}%`} icon="💧" />
                 </Stack>
               ) : (
@@ -669,11 +669,11 @@ function WeatherHistoryPanel() {
                 Last {summary.periodDays} Day{summary.periodDays !== 1 ? "s" : ""}
               </Typography>
               <Stack spacing={1} sx={{ mt: 1.5 }}>
-                <HistoryRow label="Temperature" value={`${degOrDash(summary.minTemp, farmCtx)} – ${degOrDash(summary.maxTemp, farmCtx)}`} icon="🌡️" />
-                <HistoryRow label="Total Rainfall" value={formatPrecipitation(summary.totalRainfall, farmCtx)} icon="🌧️" />
-                <HistoryRow label="Avg Wind" value={windOrDash(summary.avgWind, farmCtx)} icon="💨" />
+                <HistoryRow label="Temperature" value={`${degOrDash(summary.minTemp, ctx)} – ${degOrDash(summary.maxTemp, ctx)}`} icon="🌡️" />
+                <HistoryRow label="Total Rainfall" value={formatPrecipitation(summary.totalRainfall, ctx)} icon="🌧️" />
+                <HistoryRow label="Avg Wind" value={windOrDash(summary.avgWind, ctx)} icon="💨" />
                 <HistoryRow label="Avg Humidity" value={`${summary.avgHumidity ?? "—"}%`} icon="💧" />
-                <HistoryRow label="Avg Temperature" value={summary.avgTemp != null && summary.avgTemp !== "—" ? formatTemperature(summary.avgTemp, farmCtx) : "—"} icon="📊" />
+                <HistoryRow label="Avg Temperature" value={summary.avgTemp != null && summary.avgTemp !== "—" ? formatTemperature(summary.avgTemp, ctx) : "—"} icon="📊" />
               </Stack>
             </Box>
           </Grid>
@@ -972,7 +972,7 @@ export default function Weather() {
 
         {/* WEATHER HISTORY */}
         <PremiumDashboardSection title="Weather History" description="Historical weather data for your farm">
-          <WeatherHistoryPanel />
+          <WeatherHistoryPanel ctx={farmCtx} />
         </PremiumDashboardSection>
 
         {/* RAINFALL LOG (farmer-recorded rainfall — separate from weather API) */}
