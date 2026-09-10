@@ -6,6 +6,11 @@ import { generateCropReport } from "./cropReport";
 import { generateMachineryReport } from "./machineryReport";
 import { generateRainfallReport } from "./rainfallReport";
 import { zar } from "./_period";
+import { unitLabel, trimNumber } from "../../constants/financeUnits";
+
+// Input categories highlighted in the Major Inputs section (existing
+// standardised transaction_type values — no new categories introduced).
+const MAJOR_INPUT_TYPES = ["Diesel", "Fuel", "Fertilizer", "Seed", "Feed", "Hay", "Silage"];
 
 /**
  * ============================================================
@@ -53,7 +58,15 @@ export async function generateFarmSummaryReport(options = {}) {
       ],
     });
 
-    // Expenses by category (reuse the finance report's own breakdown).
+    // Major Inputs — quantity + spend for key input categories (only those
+    // present in the period). Quantities shown only when actually recorded;
+    // mixed units listed separately; never combined; never fabricated.
+    const majorInputs = buildMajorInputs(f.expenseGroups);
+    if (majorInputs.length) {
+      sections.push({ title: "Major Inputs", items: majorInputs });
+    }
+
+    // Full expenses-by-category breakdown (reuse the finance report's own).
     const expenseSection = finance.sections?.find((s) => s.title === "Expenses by Category");
     if (expenseSection) {
       sections.push({ title: "Expenses by Category", items: expenseSection.items });
@@ -156,6 +169,30 @@ export async function generateFarmSummaryReport(options = {}) {
     sections,
     aiSummary: buildSummaryText(finance, health, crops, rainfall),
   };
+}
+
+/**
+ * Major Inputs lines from the finance expenseGroups.
+ * Value shows "<qty lines> — R amount" when a quantity was recorded, else
+ * just the spend. Mixed units are listed separately; "recorded" is appended
+ * when only some transactions in the category carried a quantity.
+ */
+function buildMajorInputs(expenseGroups = {}) {
+  const items = [];
+  for (const type of MAJOR_INPUT_TYPES) {
+    const g = expenseGroups[type];
+    if (!g) continue;
+
+    const units = Object.keys(g.quantitiesByUnit || {});
+    const partial = g.qtyRecordedCount > 0 && g.qtyRecordedCount < g.count;
+    const qtyStr = units
+      .map((u) => `${trimNumber(g.quantitiesByUnit[u])} ${unitLabel(u)}${partial ? " recorded" : ""}`)
+      .join(", ");
+
+    const value = qtyStr ? `${qtyStr} — ${zar(g.amount)}` : zar(g.amount);
+    items.push({ label: type, value });
+  }
+  return items;
 }
 
 function buildSummaryText(finance, health, crops, rainfall) {

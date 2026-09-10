@@ -23,6 +23,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
 import { deleteFinanceRecord } from "../../services/financeService";
 import { radius, transitions } from "../../design/tokens";
+import { formatQuantity } from "../../constants/financeUnits";
 
 function getAppliesToLabel(record) {
   const scope = record.applies_to || (record.animal_id ? "animal" : "farm");
@@ -55,7 +56,8 @@ export default function FinanceTable({ records = [], onEdit, refreshRecords }) {
       (record.animal?.tag || "").toLowerCase().includes(term) ||
       (record.transaction_type || "").toLowerCase().includes(term) ||
       (record.category || "").toLowerCase().includes(term) ||
-      (record.description || "").toLowerCase().includes(term)
+      (record.description || "").toLowerCase().includes(term) ||
+      (record.supplier || "").toLowerCase().includes(term)
     );
   });
 
@@ -168,6 +170,18 @@ export default function FinanceTable({ records = [], onEdit, refreshRecords }) {
                     <Typography variant="body2" fontWeight={600} color="text.primary">
                       {record.transaction_type}
                     </Typography>
+                    {/* Phase 2: show quantity + unit only when recorded (no fake zeros). */}
+                    {formatQuantity(record.quantity, record.unit) && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                        {formatQuantity(record.quantity, record.unit)}
+                      </Typography>
+                    )}
+                    {/* Supplier only when supplied. */}
+                    {record.supplier && (
+                      <Typography variant="caption" color="text.disabled" sx={{ display: "block" }}>
+                        {record.supplier}
+                      </Typography>
+                    )}
                   </TableCell>
 
                   <TableCell sx={dataCell}>

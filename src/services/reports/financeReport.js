@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
 import { inPeriod, zar } from "./_period";
+import { formatQuantity, unitLabel, trimNumber } from "../../constants/financeUnits";
 
 /**
  * ============================================================
@@ -90,17 +91,54 @@ export async function generateFinanceReport({ from, to } = {}) {
 }
 
 /**
- * Groups records by transaction_type, returning { type: { count, amount } }.
+ * Groups records by transaction_type.
+ * Returns { type: { count, amount, quantitiesByUnit, qtyRecordedCount } }.
+ *
+ * quantitiesByUnit sums quantities ONLY within the SAME stored unit, so
+ * incompatible units (e.g. litre vs kg) are never combined. Units are never
+ * auto-converted. qtyRecordedCount tracks how many transactions in the
+ * category actually carried a quantity, so the report can say "recorded"
+ * when the quantity data is only partial (and never fabricate the rest).
  */
 function groupByType(records) {
   const grouped = {};
   for (const r of records) {
     const type = r.transaction_type || "Other";
-    if (!grouped[type]) grouped[type] = { count: 0, amount: 0 };
+    if (!grouped[type]) {
+      grouped[type] = { count: 0, amount: 0, quantitiesByUnit: {}, qtyRecordedCount: 0 };
+    }
     grouped[type].count += 1;
     grouped[type].amount += Number(r.amount || 0);
+
+    // Only aggregate a quantity when BOTH a positive quantity and a unit
+    // were recorded. Money (amount) is never derived from quantity.
+    const qty = Number(r.quantity);
+    if (Number.isFinite(qty) && qty > 0 && r.unit) {
+      grouped[type].quantitiesByUnit[r.unit] = (grouped[type].quantitiesByUnit[r.unit] || 0) + qty;
+      grouped[type].qtyRecordedCount += 1;
+    }
   }
   return grouped;
+}
+
+/**
+ * Builds display line(s) for a category's recorded quantities.
+ * One line per distinct unit (mixed units are shown separately, never
+ * combined). Appends "recorded" when only some transactions in the
+ * category carried a quantity, so the total is not presented as complete.
+ * Returns [] when no quantities were recorded.
+ */
+function quantityLines(group) {
+  const units = Object.keys(group.quantitiesByUnit || {});
+  if (units.length === 0) return [];
+
+  const partial = group.qtyRecordedCount < group.count;
+  const suffix = partial ? " recorded" : "";
+
+  return units.map((u) => {
+    const total = group.quantitiesByUnit[u];
+    return `${trimNumber(total)} ${unitLabel(u)}${suffix}`;
+  });
 }
 
 /**
@@ -133,5 +171,23 @@ function buildOrderedItems(groups, preferredOrder) {
 
 function formatItem(label, group) {
   const txnWord = group.count === 1 ? "transaction" : "transactions";
-  return { label, value: `${group.count} ${txnWord} · ${zar(group.amount)}` };
+  const parts = [`${group.count} ${txnWord}`];
+
+  // Insert recorded quantity line(s) between count and amount, when present.
+  for (const qLine of quantityLines(group)) parts.push(qLine);
+
+  parts.push(zar(group.amount));
+
+  return {
+    label,
+    value: parts.join(" · "),
+    // Structured metadata for exporters (Excel columns) — optional; the
+    // string `value` above remains the single source for PDF/preview.
+    meta: {
+      count: group.count,
+      amount: group.amount,
+      quantitiesByUnit: group.quantitiesByUnit,
+      qtyPartial: group.qtyRecordedCount > 0 && group.qtyRecordedCount < group.count,
+    },
+  };
 }

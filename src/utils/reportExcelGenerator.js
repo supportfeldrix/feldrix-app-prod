@@ -50,15 +50,53 @@ export function generateReportExcel(report) {
   // --- Section Sheets ---
   if (report.sections?.length > 0) {
     for (const section of report.sections) {
-      const sectionRows = [[section.title], ["Label", "Value"]];
-      if (section.items?.length > 0) {
+      // If any item in this section carries structured quantity metadata
+      // (Phase 2 finance breakdowns), render explicit columns:
+      // Category | Purchases | Quantity | Unit | Amount. Mixed units are
+      // written on separate rows so incompatible units are never combined.
+      // Otherwise fall back to the original generic Label | Value layout,
+      // keeping every existing report unchanged.
+      const hasMeta = (section.items || []).some((it) => it && it.meta);
+
+      let sectionRows;
+      let cols;
+
+      if (hasMeta) {
+        sectionRows = [[section.title], ["Category", "Purchases", "Quantity", "Unit", "Amount"]];
         for (const item of section.items) {
-          sectionRows.push([item.label, String(item.value)]);
+          const m = item.meta || {};
+          const amount = m.amount != null ? m.amount : "";
+          const units = Object.keys(m.quantitiesByUnit || {});
+          if (units.length === 0) {
+            sectionRows.push([item.label, m.count ?? "", "", "", amount]);
+          } else {
+            // One row per unit; amount + purchases only on the first row to
+            // avoid double-counting money across unit rows.
+            units.forEach((u, idx) => {
+              sectionRows.push([
+                idx === 0 ? item.label : "",
+                idx === 0 ? (m.count ?? "") : "",
+                Number(m.quantitiesByUnit[u]),
+                u,
+                idx === 0 ? amount : "",
+              ]);
+            });
+          }
         }
+        cols = [{ wch: 22 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 16 }];
+      } else {
+        sectionRows = [[section.title], ["Label", "Value"]];
+        if (section.items?.length > 0) {
+          for (const item of section.items) {
+            sectionRows.push([item.label, String(item.value)]);
+          }
+        }
+        cols = [{ wch: 30 }, { wch: 25 }];
       }
+
       const sheetName = section.title.slice(0, 31); // Excel sheet name max 31 chars
       const ws = XLSX.utils.aoa_to_sheet(sectionRows);
-      ws["!cols"] = [{ wch: 30 }, { wch: 25 }];
+      ws["!cols"] = cols;
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     }
   }

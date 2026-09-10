@@ -62,9 +62,36 @@ export default function ReportPreviewDialog({ open, report, onClose, onDownloadP
               <Typography variant="subtitle2" fontWeight={700}>{section.title}</Typography>
               <Stack spacing={0.5}>
                 {section.items?.map((item, i) => (
-                  <Stack key={i} direction="row" justifyContent="space-between" sx={{ py: 0.5 }}>
-                    <Typography variant="body2" color="text.secondary">{item.label}</Typography>
-                    <Typography variant="body2" fontWeight={700}>{item.value}</Typography>
+                  <Stack
+                    key={i}
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="baseline"
+                    spacing={2}
+                    sx={{
+                      py: 0.5,
+                      borderBottom: "1px dashed",
+                      borderColor: "divider",
+                      "&:last-of-type": { borderBottom: "none" },
+                    }}
+                  >
+                    {/* Label: allowed to wrap; flexes to fill available space. */}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ flex: 1, minWidth: 0, wordBreak: "break-word", pr: 1 }}
+                    >
+                      {item.label}
+                    </Typography>
+                    {/* Value: right-aligned, never collides with the label,
+                        does not shrink below its content width. */}
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      sx={{ flexShrink: 0, textAlign: "right", whiteSpace: "nowrap" }}
+                    >
+                      {item.value}
+                    </Typography>
                   </Stack>
                 ))}
               </Stack>

@@ -9,6 +9,8 @@ import {
   getAnimals,
 } from "../../services/livestockService";
 
+import { FINANCE_UNITS, suggestedUnitForType } from "../../constants/financeUnits";
+
 const EXPENSE_TYPES = [
   "Feed",
   "Hay",
@@ -56,6 +58,10 @@ const initialState = {
     .toISOString()
     .split("T")[0],
   description: "",
+  // Phase 2 — all optional. Empty strings are coerced to NULL on save.
+  quantity: "",
+  unit: "",
+  supplier: "",
 };
 
 export default function FinanceForm({
@@ -76,6 +82,11 @@ export default function FinanceForm({
       setForm({
         ...record,
         applies_to: record.applies_to || (record.animal_id ? "animal" : "farm"),
+        // Existing rows have NULL quantity/unit/supplier — show as empty,
+        // editable. Values persist correctly when re-saved.
+        quantity: record.quantity ?? "",
+        unit: record.unit ?? "",
+        supplier: record.supplier ?? "",
       });
     } else {
       setForm(initialState);
@@ -102,6 +113,14 @@ export default function FinanceForm({
         updated.transaction_type = value === "Income" ? "Animal Sale" : "Feed";
       }
 
+      // Context-aware convenience: suggest a sensible default unit for the
+      // chosen expense type, but ONLY when the farmer hasn't picked a unit.
+      // Never forces quantity/unit and never overrides an explicit choice.
+      if (name === "transaction_type" && !prev.unit) {
+        const suggested = suggestedUnitForType(value);
+        if (suggested) updated.unit = suggested;
+      }
+
       // Clear animal_id when scope changes away from animal
       if (name === "applies_to" && value !== "animal") {
         updated.animal_id = "";
@@ -119,13 +138,41 @@ export default function FinanceForm({
       return;
     }
 
+    // ── Phase 2: optional quantity/unit validation ──────────────
+    const hasQuantity = form.quantity !== "" && form.quantity !== null && form.quantity !== undefined;
+    const qtyNum = hasQuantity ? Number(form.quantity) : null;
+
+    if (hasQuantity) {
+      if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
+        alert("Quantity must be a number greater than 0. Leave it blank if you are not recording a quantity.");
+        return;
+      }
+      if (!form.unit) {
+        alert("Please choose a unit for the quantity (e.g. Litres, Kilograms).");
+        return;
+      }
+    }
+
+    // A unit on its own (no quantity) carries no information — clear it so we
+    // never store a dangling unit. This is the "safely handled" path.
+    const cleanQuantity = hasQuantity ? qtyNum : null;
+    const cleanUnit = hasQuantity ? form.unit : null;
+    const cleanSupplier = form.supplier?.trim() ? form.supplier.trim() : null;
+
+    const payload = {
+      ...form,
+      quantity: cleanQuantity,
+      unit: cleanUnit,
+      supplier: cleanSupplier,
+    };
+
     setSaving(true);
 
     try {
       if (record) {
-        await updateFinanceRecord(record.id, form);
+        await updateFinanceRecord(record.id, payload);
       } else {
-        await addFinanceRecord(form);
+        await addFinanceRecord(payload);
       }
 
       await refreshRecords();
@@ -244,6 +291,56 @@ export default function FinanceForm({
         </div>
       </div>
 
+      {/* Row 3: Quantity + Unit (both optional) */}
+      <div style={grid2}>
+        <div>
+          <label style={label}>
+            Quantity <span style={optionalHint}>(optional)</span>
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            name="quantity"
+            value={form.quantity}
+            onChange={handleChange}
+            placeholder="e.g. 500"
+            style={input}
+          />
+        </div>
+
+        <div>
+          <label style={label}>
+            Unit <span style={optionalHint}>(optional)</span>
+          </label>
+          <select
+            name="unit"
+            value={form.unit}
+            onChange={handleChange}
+            style={input}
+          >
+            <option value="">— None —</option>
+            {FINANCE_UNITS.map((u) => (
+              <option key={u.value} value={u.value}>{u.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Supplier (optional) */}
+      <div style={{ marginTop: 18 }}>
+        <label style={label}>
+          Supplier <span style={optionalHint}>(optional)</span>
+        </label>
+        <input
+          name="supplier"
+          value={form.supplier}
+          onChange={handleChange}
+          placeholder="e.g. ABC Fuel Supplies"
+          style={input}
+        />
+      </div>
+
       {/* Description */}
       <div style={{ marginTop: 18 }}>
         <label style={label}>Description</label>
@@ -283,6 +380,12 @@ const label = {
   fontSize: 13,
   fontWeight: 600,
   color: "#475569",
+};
+
+const optionalHint = {
+  fontWeight: 400,
+  fontSize: 12,
+  color: "#94A3B8",
 };
 
 const grid3 = {

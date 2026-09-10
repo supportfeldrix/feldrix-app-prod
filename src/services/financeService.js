@@ -52,7 +52,7 @@ export async function addFinanceRecord(record) {
   } = await supabase.auth.getUser();
 
   // Clean up animal_id — set to null if not an animal-specific transaction
-  const cleanRecord = { ...record, user_id: user.id };
+  const cleanRecord = normalizeQuantityFields({ ...record, user_id: user.id });
 
   if (!cleanRecord.applies_to) {
     cleanRecord.applies_to = cleanRecord.animal_id ? "animal" : "farm";
@@ -73,8 +73,30 @@ export async function addFinanceRecord(record) {
   return data;
 }
 
+/**
+ * Phase 2 — normalise optional quantity/unit/supplier so we never send an
+ * empty string (which would violate the numeric column / unit CHECK) and
+ * never persist a dangling unit without a quantity. Fields left undefined
+ * are untouched so partial updates keep working. Money is never touched.
+ */
+function normalizeQuantityFields(record) {
+  const out = { ...record };
+
+  if ("quantity" in out || "unit" in out || "supplier" in out) {
+    const hasQty = out.quantity !== "" && out.quantity !== null && out.quantity !== undefined;
+    const qty = hasQty ? Number(out.quantity) : null;
+    const validQty = Number.isFinite(qty) && qty > 0 ? qty : null;
+
+    out.quantity = validQty;
+    out.unit = validQty && out.unit ? out.unit : null; // unit only meaningful with a quantity
+    out.supplier = out.supplier && String(out.supplier).trim() ? String(out.supplier).trim() : null;
+  }
+
+  return out;
+}
+
 export async function updateFinanceRecord(id, updates) {
-  const cleanUpdates = { ...updates };
+  const cleanUpdates = normalizeQuantityFields({ ...updates });
 
   if (!cleanUpdates.applies_to) {
     cleanUpdates.applies_to = cleanUpdates.animal_id ? "animal" : "farm";
