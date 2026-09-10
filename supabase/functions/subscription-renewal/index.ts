@@ -145,13 +145,19 @@ Deno.serve(async (req: Request) => {
         updated_at
       `;
 
-    // Category 1 — Scheduled cancellation (existing behaviour, unchanged).
-    // User requested cancellation; the subscription ends at the billing boundary.
+    // Category 1 — Scheduled cancellation.
+    // User requested cancellation; the subscription ends when its paid period
+    // ends. Business rule: PRO is valid THROUGH renewal_date, so a
+    // Pending Cancellation row becomes eligible only once renewal_date < today
+    // (i.e. from the day AFTER renewal_date). Using `lt` (not `lte`) so a user
+    // whose renewal_date IS today is NOT expired a day early — this matches the
+    // frontend getEffectivePlan() boundary and the natural-expiry query below.
     const { data: cancellationSubs, error: cancelQueryError } = await supabase
       .from("subscriptions")
       .select(SELECT_COLS)
       .eq("status", "Pending Cancellation")
-      .lte("renewal_date", today);
+      .not("renewal_date", "is", null)
+      .lt("renewal_date", today);
 
     if (cancelQueryError) {
       return json({ success: false, error: `Query failed (cancellations): ${cancelQueryError.message}` }, 500, cors);
@@ -331,8 +337,12 @@ async function processSubscription(supabase: any, sub: any): Promise<ProcessResu
         .not("renewal_date", "is", null)
         .lt("renewal_date", today);
     } else {
-      // Scheduled cancellation (Pending Cancellation): renewal_date reached.
-      updateQuery = updateQuery.lte("renewal_date", today);
+      // Scheduled cancellation (Pending Cancellation): paid period ended.
+      // `lt` (not `lte`) keeps the subscription valid THROUGH renewal_date,
+      // matching the SELECT above and the frontend effective-plan boundary.
+      updateQuery = updateQuery
+        .not("renewal_date", "is", null)
+        .lt("renewal_date", today);
     }
 
     const { data: updatedRows, error: updateError } = await updateQuery.select("id");

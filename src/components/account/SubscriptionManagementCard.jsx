@@ -22,6 +22,7 @@ import BillingHistory from "./BillingHistory";
 
 import {
   getSubscription,
+  getEffectivePlan,
   upgradeToPro,
   cancelSubscription,
   reactivateSubscription,
@@ -88,7 +89,9 @@ export default function SubscriptionManagementCard() {
     );
   }
 
-  const plan = subscription?.plan || "Starter";
+  // Effective plan (centralized): an expired PRO resolves to Starter here too,
+  // so the displayed plan and the action buttons never present PRO after expiry.
+  const plan = getEffectivePlan(subscription);
   const status = subscription?.status || "Active";
   const billingCycle = subscription?.billing_cycle || "Monthly";
 
@@ -115,7 +118,11 @@ export default function SubscriptionManagementCard() {
   ];
 
   const isStarter = plan.toLowerCase() === "starter";
-  const isPendingCancellation = status === "Pending Cancellation";
+  // Only treat as "pending cancellation" (offering free reactivation) while the
+  // subscription is still EFFECTIVELY PRO — i.e. before renewal_date passes.
+  // Once expired, effective plan is Starter, so we show the upgrade path instead
+  // and never offer a no-payment reactivate on an already-expired period.
+  const isPendingCancellation = status === "Pending Cancellation" && !isStarter;
   const isProActive = !isStarter && status === "Active";
 
   return (

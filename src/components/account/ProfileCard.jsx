@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSubscription } from "../../services/subscriptionService";
+import { getSubscription, getEffectivePlan } from "../../services/subscriptionService";
 import {
   Avatar,
   Box,
@@ -52,7 +52,10 @@ export default function ProfileCard() {
         .toUpperCase()
     : "";
 
-  const plan = subscription?.plan || "Starter";
+  // Use the centralized EFFECTIVE plan so an expired PRO (renewal_date passed)
+  // displays as Starter here too, even before the server job reconciles the DB.
+  // Single source of truth — no expiration logic is duplicated in this component.
+  const plan = getEffectivePlan(subscription);
   const isPro = String(plan).toLowerCase() === "pro";
 
   const memberSince = profile?.created_at
