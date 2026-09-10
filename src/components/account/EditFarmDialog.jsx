@@ -126,6 +126,15 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
       // cross-country values (SA province vs US state).
       province: cfg.code === "ZA" ? prev.province : "",
       region_state: cfg.code === "US" ? prev.region_state : "",
+      // Clear stale LOCATION data from the previous country. A SA
+      // weather_location (e.g. "Stellenbosch,ZA") must not survive a switch to
+      // the US, and vice-versa. These are re-established on save from the new
+      // country's inputs (after successful geocoding).
+      weather_location: "",
+      city: "",
+      zip: "",
+      latitude: null,
+      longitude: null,
       // Apply country defaults for the new settings (still editable/optional).
       measurement_system: cfg.defaultMeasurementSystem || "",
       currency: cfg.defaultCurrency || "",
@@ -141,12 +150,15 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
   function buildGeocodeQuery() {
     const suffix = config.geocodeSuffix ? `,${config.geocodeSuffix}` : "";
     if (isUS) {
-      // Prefer ZIP (most precise), else city + state.
-      if (form.zip && US_ZIP_RE.test(form.zip.trim())) {
-        return `${form.zip.trim()},${config.geocodeSuffix}`;
-      }
-      const parts = [form.city, form.region_state].filter(Boolean).join(",");
-      return parts ? `${parts}${suffix}` : "";
+      // The existing geocoder uses OpenWeatherMap's /geo/1.0/direct endpoint,
+      // which resolves "City,State,Country" queries but does NOT geocode bare
+      // ZIP codes (that needs the separate /geo/1.0/zip endpoint). So for the
+      // US we build a City,State,US query — e.g. "Amarillo,Texas,US". ZIP is
+      // still captured for display/precision but is only appended as extra
+      // context after city (kept out of the primary query to avoid the direct
+      // endpoint returning no result).
+      const parts = [form.city, form.region_state, config.geocodeSuffix].filter(Boolean);
+      return parts.length ? parts.join(",") : "";
     }
     // SA / other: reuse the chosen weather_location or a typed city.
     if (form.weather_location) return form.weather_location;
@@ -162,28 +174,46 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
       return;
     }
 
+    // For a US farm, require at least a city or ZIP so we can resolve a
+    // location. (Optional overall — a farmer can leave location blank — but if
+    // they intend a US location they must give us something to geocode.)
+    const hasUsLocationInput = isUS && (form.city.trim() || form.zip.trim());
+
     setSaving(true);
     try {
-      // Resolve coordinates (best-effort) via existing geocoding.
       let latitude = form.latitude;
       let longitude = form.longitude;
       let weatherLocation = form.weather_location;
 
       const query = buildGeocodeQuery();
+
       if (query) {
+        let coords = null;
         try {
-          const coords = await geocodeLocation(query);
-          if (coords) {
-            latitude = coords.lat;
-            longitude = coords.lon;
-            // Store a usable weather_location string so weather keeps working.
-            weatherLocation = isUS
-              ? [coords.name || form.city, config.geocodeSuffix].filter(Boolean).join(",")
-              : (form.weather_location || query);
-          }
+          coords = await geocodeLocation(query);
         } catch {
-          // Geocoding is best-effort in USA-1; save the rest regardless.
+          coords = null;
         }
+
+        if (coords) {
+          // SUCCESS — replace coordinates and the weather_location string.
+          latitude = coords.lat;
+          longitude = coords.lon;
+          weatherLocation = isUS
+            ? [coords.name || form.city, form.region_state].filter(Boolean).join(", ")
+            : (form.weather_location || query);
+        } else if (isUS && hasUsLocationInput) {
+          // FAILURE for an intended US location: do NOT save stale/garbage.
+          // Never invent coordinates and never keep the previous country's
+          // location. Abort with a clear message so the farmer can correct it.
+          setError(
+            "Could not find that US location. Please check the City and State (and ZIP), e.g. City \u201CAmarillo\u201D, State \u201CTexas\u201D."
+          );
+          setSaving(false);
+          return;
+        }
+        // For SA/other with a failed geocode, keep the explicitly-chosen
+        // weather_location (the SA selector value is itself valid) — unchanged.
       }
 
       // NOTE: OpenWeatherMap geocoding does not return a reliable IANA
