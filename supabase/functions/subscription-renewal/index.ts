@@ -6,14 +6,37 @@
 //
 // SCHEDULED: Daily at 07:05 SAST (05:05 UTC) via pg_cron
 //
-// Process:
-//   1. Find subscriptions with status='Pending Cancellation' AND renewal_date <= today
-//   2. For each:
+// Process (two categories, both handled by the same idempotent downgrade path):
+//   1. SCHEDULED CANCELLATION
+//      Subscriptions with status='Pending Cancellation' AND renewal_date <= today.
+//      (User asked to cancel; ends at the current billing period boundary.)
+//   2. NATURAL EXPIRY  ← Sprint 51 fix
+//      PRO subscriptions with status='Active' AND renewal_date < today.
+//      (Paid PRO whose period ended and was never renewed or cancelled.
+//       Previously nothing transitioned these — they stayed PRO forever.)
+//   For each match:
 //      a. Downgrade to Starter (plan=Starter, status=Cancelled, price=0, billing_cycle=None)
 //      b. Send email notification
 //      c. Create in-app notification
 //      d. Write audit log entry
 //   3. Report results
+//
+// Date boundary semantics (renewal_date is a DATE column):
+//   A subscription is valid THROUGH its renewal_date (inclusive of that day).
+//   It becomes eligible for natural expiry only once renewal_date < today,
+//   i.e. from the day AFTER renewal_date. This matches the requirement:
+//   "valid through Sept 7 → Starter from Sept 8".
+//
+// Renewed-user protection:
+//   renewal_date always reflects the latest paid period (payfast-itn and
+//   renewSubscription move it forward). There is exactly one subscription row
+//   per user (UNIQUE(user_id)). A renewed user therefore has a future
+//   renewal_date and is naturally excluded from both queries.
+//
+// Idempotency:
+//   The natural-expiry query filters plan IN ('Pro','pro') AND status='Active'.
+//   Once a row is downgraded to plan='Starter'/status='Cancelled' it no longer
+//   matches, so re-running the job makes no further changes.
 //
 // Request Types:
 //   - "process"    (default) — Run full renewal processing
@@ -107,11 +130,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // ─── Find subscriptions due for downgrade ───────────────────
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD (UTC calendar day)
 
-    const { data: pendingSubs, error: queryError } = await supabase
-      .from("subscriptions")
-      .select(`
+    const SELECT_COLS = `
         id,
         user_id,
         plan,
@@ -122,13 +143,42 @@ Deno.serve(async (req: Request) => {
         payment_provider,
         payment_reference,
         updated_at
-      `)
+      `;
+
+    // Category 1 — Scheduled cancellation (existing behaviour, unchanged).
+    // User requested cancellation; the subscription ends at the billing boundary.
+    const { data: cancellationSubs, error: cancelQueryError } = await supabase
+      .from("subscriptions")
+      .select(SELECT_COLS)
       .eq("status", "Pending Cancellation")
       .lte("renewal_date", today);
 
-    if (queryError) {
-      return json({ success: false, error: `Query failed: ${queryError.message}` }, 500, cors);
+    if (cancelQueryError) {
+      return json({ success: false, error: `Query failed (cancellations): ${cancelQueryError.message}` }, 500, cors);
     }
+
+    // Category 2 — Natural expiry (Sprint 51 fix).
+    // PRO that is still marked Active but whose paid period ended (renewal_date < today).
+    // These were never renewed and never cancelled, so nothing previously moved them.
+    // Using `lt` (not `lte`) keeps the subscription valid THROUGH the renewal day.
+    const { data: expiredProSubs, error: expiredQueryError } = await supabase
+      .from("subscriptions")
+      .select(SELECT_COLS)
+      .eq("status", "Active")
+      .in("plan", ["Pro", "pro", "PRO"])
+      .not("renewal_date", "is", null)
+      .lt("renewal_date", today);
+
+    if (expiredQueryError) {
+      return json({ success: false, error: `Query failed (expired PRO): ${expiredQueryError.message}` }, 500, cors);
+    }
+
+    // Merge both categories, de-duplicating by subscription id (defensive; the two
+    // queries are mutually exclusive on status but we guard against overlap anyway).
+    const byId = new Map<string, any>();
+    for (const s of cancellationSubs || []) byId.set(s.id, s);
+    for (const s of expiredProSubs || []) if (!byId.has(s.id)) byId.set(s.id, s);
+    const pendingSubs = Array.from(byId.values());
 
     if (!pendingSubs || pendingSubs.length === 0) {
       return json({
@@ -152,6 +202,8 @@ Deno.serve(async (req: Request) => {
           .eq("id", sub.user_id)
           .single();
 
+        const reason = expiryReason(sub);
+
         simResults.push({
           userId: sub.user_id,
           email: profile?.email || "unknown",
@@ -159,9 +211,11 @@ Deno.serve(async (req: Request) => {
           currentPlan: sub.plan,
           currentStatus: sub.status,
           renewalDate: sub.renewal_date,
+          reason,
           actions: [
+            `Reason: ${reason}`,
             "Would downgrade: Pro → Starter",
-            "Would set status: Pending Cancellation → Cancelled",
+            `Would set status: ${sub.status} → Cancelled`,
             "Would set price: R0",
             "Would set billing_cycle: None",
             "Would send email: 'Your PRO subscription has ended'",
@@ -248,7 +302,16 @@ async function processSubscription(supabase: any, sub: any): Promise<ProcessResu
     }
 
     // ─── Step 2: Downgrade Subscription ───────────────────────────────────────
-    const { error: updateError } = await supabase
+    // Guarded, idempotent update. We re-assert the pre-downgrade state at write
+    // time so that:
+    //   • A renewal that landed between the SELECT and this UPDATE (moving
+    //     renewal_date into the future) causes the guard to match 0 rows and
+    //     we DO NOT downgrade a freshly-renewed user (renewed-user protection).
+    //   • Re-running the job after a successful downgrade matches 0 rows
+    //     (row is now plan=Starter/status=Cancelled) — idempotent, no churn.
+    const today = new Date().toISOString().split("T")[0];
+
+    let updateQuery = supabase
       .from("subscriptions")
       .update({
         plan: "Starter",
@@ -258,11 +321,35 @@ async function processSubscription(supabase: any, sub: any): Promise<ProcessResu
         updated_at: new Date().toISOString(),
       })
       .eq("id", sub.id)
-      .eq("user_id", sub.user_id); // Safety: ensure correct user
+      .eq("user_id", sub.user_id) // Safety: ensure correct user (tenant isolation)
+      .eq("status", sub.status);  // Guard: status unchanged since we read it
+
+    if (sub.status === "Active") {
+      // Natural expiry: only downgrade PRO whose renewal_date is still in the past.
+      updateQuery = updateQuery
+        .in("plan", ["Pro", "pro", "PRO"])
+        .not("renewal_date", "is", null)
+        .lt("renewal_date", today);
+    } else {
+      // Scheduled cancellation (Pending Cancellation): renewal_date reached.
+      updateQuery = updateQuery.lte("renewal_date", today);
+    }
+
+    const { data: updatedRows, error: updateError } = await updateQuery.select("id");
 
     if (updateError) {
       result.error = `Downgrade failed: ${updateError.message}`;
       await logAudit(supabase, sub, result, "FAILED");
+      return result;
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      // Guard matched nothing → the row was renewed/changed concurrently, or was
+      // already downgraded. This is a safe no-op, NOT a failure. Skip side effects
+      // (no email/notification/audit) so we never spam a still-valid PRO user.
+      result.success = true;
+      result.downgraded = false;
+      result.payfastResult = "skipped_no_longer_eligible";
       return result;
     }
     result.downgraded = true;
@@ -322,6 +409,24 @@ async function processSubscription(supabase: any, sub: any): Promise<ProcessResu
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// CLASSIFY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Human-readable reason for the downgrade, used in audit logs and simulation.
+ * Distinguishes user-initiated cancellation from natural (unrenewed) expiry.
+ */
+function expiryReason(sub: any): string {
+  if (sub.status === "Pending Cancellation") {
+    return "Scheduled cancellation processed at billing period end";
+  }
+  if (sub.status === "Active") {
+    return "PRO subscription expired (renewal_date passed, not renewed)";
+  }
+  return "Automatic Renewal Processing";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // EMAIL
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -369,7 +474,7 @@ async function logAudit(supabase: any, sub: any, result: ProcessResult, outcome:
         payfast_result: result.payfastResult,
         email_sent: result.emailSent,
         notification_created: result.notificationCreated,
-        reason: "Automatic Renewal Processing",
+        reason: expiryReason(sub),
         outcome,
         error: result.error || null,
       },

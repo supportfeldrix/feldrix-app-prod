@@ -10,6 +10,7 @@ import {
 
 import {
   getSubscription,
+  getEffectivePlan,
   upgradeToPro,
   cancelSubscription,
   reactivateSubscription,
@@ -123,8 +124,10 @@ export default function SubscriptionCard() {
     );
   }
 
+  // Use the EFFECTIVE plan so an expired PRO renders the Starter card even if
+  // the stored plan column has not yet been reconciled by the daily job.
   const isStarter =
-    subscription.plan?.toLowerCase() === "starter";
+    getEffectivePlan(subscription)?.toLowerCase() === "starter";
 
   return (
     <>

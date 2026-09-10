@@ -50,6 +50,74 @@ function normalizePlan(plan) {
 
 /*
 |--------------------------------------------------------------------------
+| Expiry / Effective Plan (Sprint 51)
+|--------------------------------------------------------------------------
+| The server-side subscription-renewal Edge Function (daily cron) is the
+| authoritative process that transitions expired PRO subscriptions to
+| Starter in the database. These frontend helpers are a defensive layer so
+| that a session that is already open, or a user who opens the app before
+| the daily job has run, never receives PRO entitlements past the expiry
+| boundary. They compute an EFFECTIVE plan from the same fields; they do
+| not weaken the server-side source of truth.
+|
+| Date boundary: renewal_date is a DATE. A subscription is valid THROUGH
+| its renewal_date (inclusive). It is considered expired only once the
+| current local day is strictly AFTER renewal_date — i.e. "valid through
+| Sept 7 → Starter from Sept 8". This matches the Edge Function's `lt`
+| comparison and the existing canReactivateWithoutPayment semantics.
+*/
+
+/**
+ * True when a PRO subscription's paid period has ended (renewal_date is in
+ * the past) and it has not been renewed. Starter plans and subscriptions
+ * with no renewal_date are never "expired".
+ */
+export function isSubscriptionExpired(subscription) {
+  if (!subscription) return false;
+
+  // Starter / free never expires into anything.
+  if (normalizePlan(subscription.plan) !== "pro") return false;
+
+  // Already terminal — treat as not-PRO via effective plan below, not here.
+  if (subscription.status === "Cancelled") return true;
+
+  if (!subscription.renewal_date) return false;
+
+  const renewal = new Date(subscription.renewal_date);
+  if (Number.isNaN(renewal.getTime())) return false;
+
+  // Compare on calendar-day boundaries in local time. Valid through the
+  // renewal day; expired from the day after.
+  const renewalDay = new Date(
+    renewal.getFullYear(),
+    renewal.getMonth(),
+    renewal.getDate()
+  );
+  const today = new Date();
+  const todayDay = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  return renewalDay < todayDay;
+}
+
+/**
+ * The plan the user is actually entitled to right now. An expired PRO
+ * subscription resolves to "Starter" even if the stored plan column still
+ * says "Pro" (e.g. the daily reconciliation job has not run yet).
+ */
+export function getEffectivePlan(subscription) {
+  if (!subscription) return "Starter";
+
+  if (isSubscriptionExpired(subscription)) return "Starter";
+
+  return subscription.plan || "Starter";
+}
+
+/*
+|--------------------------------------------------------------------------
 | Core Subscription
 |--------------------------------------------------------------------------
 */
@@ -181,7 +249,8 @@ export async function isPro() {
 
   if (!subscription) return false;
 
-  return normalizePlan(subscription.plan) === "pro";
+  // Use the EFFECTIVE plan so an expired PRO no longer reports as PRO.
+  return normalizePlan(getEffectivePlan(subscription)) === "pro";
 }
 
 export async function isStarter() {
@@ -189,7 +258,7 @@ export async function isStarter() {
 
   if (!subscription) return true;
 
-  return normalizePlan(subscription.plan) === "starter";
+  return normalizePlan(getEffectivePlan(subscription)) === "starter";
 }
 
 export async function isActive() {
@@ -219,7 +288,9 @@ export async function hasFeature(feature) {
 
   if (!subscription) return false;
 
-  const plan = normalizePlan(subscription.plan);
+  // Gate on the EFFECTIVE plan so PRO-only features are withdrawn the moment
+  // the subscription is expired, even before the server job downgrades it.
+  const plan = normalizePlan(getEffectivePlan(subscription));
 
   const features =
     PLAN_FEATURES[plan] || PLAN_FEATURES.starter;
@@ -232,7 +303,7 @@ export async function getAvailableFeatures() {
 
   if (!subscription) return [];
 
-  const plan = normalizePlan(subscription.plan);
+  const plan = normalizePlan(getEffectivePlan(subscription));
 
   return PLAN_FEATURES[plan] || PLAN_FEATURES.starter;
 }
@@ -246,7 +317,7 @@ export async function getAvailableFeatures() {
 export async function getCurrentPlan() {
   const subscription = await getSubscription();
 
-  return subscription?.plan ?? "Starter";
+  return getEffectivePlan(subscription);
 }
 
 export async function getSubscriptionStatus() {
