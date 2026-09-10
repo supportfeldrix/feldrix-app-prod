@@ -20,6 +20,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import GrassIcon from "@mui/icons-material/Grass";
 import BuildIcon from "@mui/icons-material/Build";
+import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -62,6 +63,7 @@ const REPORT_TEMPLATES = [
   { id: "health-summary", title: "Animal Health Report", description: "Vaccination coverage, treatments and disease tracking", icon: <LocalHospitalIcon sx={{ fontSize: 22 }} />, color: "error.main" },
   { id: "crop-perf", title: "Crop Performance Report", description: "Yield analysis, growth stages and harvest forecasts", icon: <GrassIcon sx={{ fontSize: 22 }} />, color: "success.light" },
   { id: "machinery-cost", title: "Machinery Cost Report", description: "Running costs, service history and fleet utilisation", icon: <BuildIcon sx={{ fontSize: 22 }} />, color: "warning.main" },
+  { id: "rainfall-summary", title: "Rainfall Report", description: "Farmer-recorded rainfall totals for the period", icon: <WaterDropIcon sx={{ fontSize: 22 }} />, color: "info.light" },
   { id: "farm-summary", title: "Farm Summary Report", description: "Complete farm overview for stakeholders and banks", icon: <SummarizeIcon sx={{ fontSize: 22 }} />, color: "info.main" },
 ];
 

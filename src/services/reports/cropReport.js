@@ -1,25 +1,76 @@
 import { supabase } from "../supabase";
+import { inPeriod } from "./_period";
 
-export async function generateCropReport() {
+/**
+ * ============================================================
+ * Crop Performance Report — Phase 1
+ *
+ * Cleanly separates PERIOD ACTIVITY from CURRENT STATE:
+ *  - Period activity uses business dates (planting_date,
+ *    expected_harvest) that fall inside the selected range.
+ *  - Current crop status is a snapshot and is labelled as such so it
+ *    is never mistaken for monthly activity.
+ *
+ * Uses existing crops fields only (status, area, planting_date,
+ * expected_harvest). No new data, no quantity inference.
+ * ============================================================
+ */
+
+export async function generateCropReport({ from, to } = {}) {
   const { data } = await supabase.from("crops").select("*");
   const crops = data || [];
-  const growing = crops.filter((c) => c.status === "Growing").length;
-  const harvested = crops.filter((c) => c.status === "Harvested").length;
-  const totalArea = crops.reduce((s, c) => s + Number(c.area || 0), 0);
+
+  // ── Period activity (business dates within range) ──────────────
+  const plantedInPeriod = crops.filter((c) => c.planting_date && inPeriod(c.planting_date, from, to));
+  const harvestExpectedInPeriod = crops.filter((c) => c.expected_harvest && inPeriod(c.expected_harvest, from, to));
+  const harvestedInPeriod = crops.filter(
+    (c) => c.status === "Harvested" && c.expected_harvest && inPeriod(c.expected_harvest, from, to)
+  );
+
+  const areaPlanted = plantedInPeriod.reduce((s, c) => s + Number(c.area || 0), 0);
+
+  // ── Current state (snapshot, NOT period activity) ──────────────
+  const growingNow = crops.filter((c) => c.status === "Growing").length;
+  const harvestedTotal = crops.filter((c) => c.status === "Harvested").length;
+  const totalAreaNow = crops.reduce((s, c) => s + Number(c.area || 0), 0);
 
   return {
     title: "Crop Performance Report",
-    statistics: { totalCrops: crops.length, growing, harvested, totalArea: `${totalArea.toFixed(1)} ha` },
+    statistics: {
+      plantedThisPeriod: plantedInPeriod.length,
+      harvestExpectedThisPeriod: harvestExpectedInPeriod.length,
+      areaPlantedThisPeriod: `${areaPlanted.toFixed(1)} ha`,
+      currentlyGrowing: growingNow,
+    },
     sections: [
-      { title: "Crop Status", items: summarizeByField(crops, "status") },
-      { title: "Crop Types", items: summarizeByField(crops, "crop_name") },
+      {
+        title: "Crop Activity (this period)",
+        items: [
+          { label: "Crops planted", value: plantedInPeriod.length },
+          { label: "Area planted", value: `${areaPlanted.toFixed(1)} ha` },
+          { label: "Harvests expected", value: harvestExpectedInPeriod.length },
+          { label: "Harvested (expected date in period)", value: harvestedInPeriod.length },
+        ],
+      },
+      {
+        title: "Current State (snapshot)",
+        items: [
+          { label: "Total crops on record", value: crops.length },
+          { label: "Currently growing", value: growingNow },
+          { label: "Harvested (all-time)", value: harvestedTotal },
+          { label: "Total area on record", value: `${totalAreaNow.toFixed(1)} ha` },
+        ],
+      },
     ],
-    aiSummary: growing > 0 ? `${growing} crops actively growing.` : "No active crops. Consider planning next season.",
+    cropData: {
+      plantedThisPeriod: plantedInPeriod.length,
+      harvestExpectedThisPeriod: harvestExpectedInPeriod.length,
+      areaPlanted,
+      currentlyGrowing: growingNow,
+    },
+    aiSummary:
+      plantedInPeriod.length > 0
+        ? `${plantedInPeriod.length} crop(s) planted this period (${areaPlanted.toFixed(1)} ha).`
+        : "No new plantings recorded for this period.",
   };
-}
-
-function summarizeByField(records, field) {
-  const grouped = {};
-  for (const r of records) { const k = r[field] || "Unknown"; grouped[k] = (grouped[k] || 0) + 1; }
-  return Object.entries(grouped).map(([label, value]) => ({ label, value }));
 }

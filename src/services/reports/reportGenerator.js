@@ -12,6 +12,7 @@ import { generateBreedingReport } from "./breedingReport";
 import { generateHealthReport } from "./healthReport";
 import { generateCropReport } from "./cropReport";
 import { generateMachineryReport } from "./machineryReport";
+import { generateRainfallReport } from "./rainfallReport";
 import { generateFarmSummaryReport } from "./farmSummaryReport";
 
 const PROVIDERS = {
@@ -21,6 +22,7 @@ const PROVIDERS = {
   "health-summary": generateHealthReport,
   "crop-perf": generateCropReport,
   "machinery-cost": generateMachineryReport,
+  "rainfall-summary": generateRainfallReport,
   "farm-summary": generateFarmSummaryReport,
 };
 
