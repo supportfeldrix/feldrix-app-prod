@@ -9,7 +9,6 @@ import {
   DialogTitle,
   Grid,
   MenuItem,
-  Stack,
   TextField,
   Typography,
 } from "@mui/material";
@@ -325,12 +324,27 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
                 <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 700 }}>
                   Detected Farm Context
                 </Typography>
-                <Stack direction="row" flexWrap="wrap" gap={3} sx={{ mt: 1 }}>
+                <Box
+                  sx={{
+                    mt: 1.5,
+                    display: "grid",
+                    // Desktop: multiple clearly separated columns; ~768px: 2 columns;
+                    // mobile: single column. auto-fit + minmax guarantees the items
+                    // never collapse into each other and never overflow horizontally.
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(2, minmax(0, 1fr))",
+                      md: "repeat(4, minmax(0, 1fr))",
+                    },
+                    columnGap: 3,
+                    rowGap: 2,
+                  }}
+                >
                   <DetItem label="Measurement" value={form.measurement_system || (isUS ? "us_customary" : "metric")} />
                   <DetItem label="Currency" value={form.currency || (isUS ? "USD" : "ZAR")} />
                   <DetItem label="Coordinates" value={form.latitude != null && form.longitude != null ? `${Number(form.latitude).toFixed(3)}, ${Number(form.longitude).toFixed(3)}` : "Resolves on save"} />
                   <DetItem label="Timezone" value={form.timezone || (isSA ? "Africa/Johannesburg" : "Auto (later)")} />
-                </Stack>
+                </Box>
               </Box>
             </Grid>
           )}
@@ -349,11 +363,24 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
 
 function DetItem({ label, value }) {
   return (
-    <Box>
-      <Typography variant="caption" color="text.disabled" sx={{ display: "block", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase" }}>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography
+        variant="caption"
+        color="text.disabled"
+        sx={{
+          display: "block",
+          mb: 0.25,
+          fontSize: "0.65rem",
+          fontWeight: 700,
+          letterSpacing: 0.5,
+          textTransform: "uppercase",
+        }}
+      >
         {label}
       </Typography>
-      <Typography variant="body2" fontWeight={600}>{value}</Typography>
+      <Typography variant="body2" fontWeight={600} sx={{ wordBreak: "break-word" }}>
+        {value}
+      </Typography>
     </Box>
   );
 }
