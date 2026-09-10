@@ -18,6 +18,7 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import { getProfile, updateFarmContext } from "../../services/profileService";
 import { geocodeLocation } from "../../services/weatherService";
+import { unitLabel, haToAcres, acresToHa } from "../../utils/units";
 import {
   COUNTRIES,
   US_STATES,
@@ -77,6 +78,10 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
   const config = useMemo(() => getCountryConfig(form.country), [form.country]);
   const isUS = config.code === "US";
   const isSA = config.code === "ZA";
+  // Display unit for the farm-size field ("ha" metric / "acres" US). The value
+  // is CONVERTED for display and converted back to canonical hectares on save.
+  const measurementSystem = config.defaultMeasurementSystem || "metric";
+  const areaUnitLabel = unitLabel("area", measurementSystem);
 
   useEffect(() => {
     if (open) loadProfile();
@@ -96,7 +101,14 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
       region_state: profile.region_state || "",
       zip: "",
       city: "",
-      farm_size: profile.farm_size ?? "",
+      // farm_size is stored canonically in hectares; show it in the farm's
+      // display unit (acres for US). Converted back to ha on save.
+      farm_size:
+        profile.farm_size === null || profile.farm_size === undefined
+          ? ""
+          : (getCountryConfig(profile.country).defaultMeasurementSystem === "us_customary"
+              ? Math.round(haToAcres(profile.farm_size) * 100) / 100
+              : profile.farm_size),
       preferred_units: profile.preferred_units || "Metric",
       weather_location: profile.weather_location || "",
       latitude: profile.latitude ?? null,
@@ -119,9 +131,25 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
   function handleCountryChange(e) {
     const country = e.target.value;
     const cfg = getCountryConfig(country);
-    setForm((prev) => ({
+    const prevUS = config.code === "US";
+    const nextUS = cfg.code === "US";
+    setForm((prev) => {
+      // Keep the displayed farm size physically consistent when the display
+      // unit changes (ha <-> acres). The canonical stored value is unaffected;
+      // this only adjusts the number shown in the input for the new unit.
+      let farmSize = prev.farm_size;
+      if (farmSize !== "" && farmSize !== null && prevUS !== nextUS) {
+        const asNumber = Number(farmSize);
+        if (Number.isFinite(asNumber)) {
+          farmSize = nextUS
+            ? Math.round(haToAcres(asNumber) * 100) / 100   // ha shown -> acres shown
+            : Math.round(acresToHa(asNumber) * 100) / 100;  // acres shown -> ha shown
+        }
+      }
+      return {
       ...prev,
       country,
+      farm_size: farmSize,
       // Clear the administrative region on country switch to avoid stale
       // cross-country values (SA province vs US state).
       province: cfg.code === "ZA" ? prev.province : "",
@@ -139,7 +167,8 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
       measurement_system: cfg.defaultMeasurementSystem || "",
       currency: cfg.defaultCurrency || "",
       preferred_units: cfg.code === "US" ? "Imperial" : "Metric",
-    }));
+      };
+    });
   }
 
   /**
@@ -226,7 +255,13 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
         country: form.country,
         province: isSA ? form.province : (form.province || null),
         region_state: isUS ? form.region_state : (form.region_state || null),
-        farm_size: form.farm_size === "" ? null : Number(form.farm_size),
+        // Convert the display-unit farm size back to canonical hectares.
+        farm_size:
+          form.farm_size === "" || form.farm_size === null
+            ? null
+            : (isUS
+                ? Math.round(acresToHa(Number(form.farm_size)) * 1e6) / 1e6
+                : Number(form.farm_size)),
         preferred_units: form.preferred_units,
         weather_location: weatherLocation || null,
         latitude,
@@ -338,7 +373,19 @@ export default function EditFarmDialog({ open, onClose, onSaved }) {
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField fullWidth type="number" label="Farm Size (ha)" name="farm_size" value={form.farm_size} onChange={handleChange} />
+            <TextField
+              fullWidth
+              type="number"
+              label={`Farm Size (${areaUnitLabel})`}
+              name="farm_size"
+              value={form.farm_size}
+              onChange={handleChange}
+              helperText={
+                isUS
+                  ? "Stored internally in hectares; entered/shown here in the unit label."
+                  : undefined
+              }
+            />
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>

@@ -9,7 +9,8 @@ import {
   getAnimals,
 } from "../../services/livestockService";
 
-import { FINANCE_UNITS, suggestedUnitForType } from "../../constants/financeUnits";
+import { getFarmContext } from "../../services/profileService";
+import { suggestedUnitForType, unitOptionsForSystem } from "../../constants/financeUnits";
 
 const EXPENSE_TYPES = [
   "Feed",
@@ -72,9 +73,15 @@ export default function FinanceForm({
   const [form, setForm] = useState(initialState);
   const [animals, setAnimals] = useState([]);
   const [saving, setSaving] = useState(false);
+  // Farm measurement system drives which quantity units are OFFERED (metric
+  // vs US). Defaults to metric until the context loads (SA-safe).
+  const [measurementSystem, setMeasurementSystem] = useState("metric");
 
   useEffect(() => {
     loadAnimals();
+    getFarmContext()
+      .then((ctx) => { if (ctx?.measurementSystem) setMeasurementSystem(ctx.measurementSystem); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -117,7 +124,7 @@ export default function FinanceForm({
       // chosen expense type, but ONLY when the farmer hasn't picked a unit.
       // Never forces quantity/unit and never overrides an explicit choice.
       if (name === "transaction_type" && !prev.unit) {
-        const suggested = suggestedUnitForType(value);
+        const suggested = suggestedUnitForType(value, measurementSystem);
         if (suggested) updated.unit = suggested;
       }
 
@@ -320,7 +327,7 @@ export default function FinanceForm({
             style={input}
           >
             <option value="">— None —</option>
-            {FINANCE_UNITS.map((u) => (
+            {unitOptionsForSystem(measurementSystem).map((u) => (
               <option key={u.value} value={u.value}>{u.label}</option>
             ))}
           </select>

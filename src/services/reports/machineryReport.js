@@ -24,7 +24,8 @@ import { zar } from "./_period";
  * ============================================================
  */
 
-export async function generateMachineryReport({ from, to } = {}) {
+export async function generateMachineryReport({ from, to, farmContext } = {}) {
+  const ctx = farmContext || null;
   // ── Current fleet snapshot (not period activity) ───────────────
   const { data: machinesData } = await supabase.from("machinery").select("*");
   const machines = machinesData || [];
@@ -55,9 +56,9 @@ export async function generateMachineryReport({ from, to } = {}) {
     title: "Machinery Cost Report",
     statistics: {
       servicesThisPeriod: servicesCount,
-      machineryExpenditure: zar(machinerySpend),
+      machineryExpenditure: zar(machinerySpend, ctx),
       activeMachines: activeNow,
-      fleetValue: zar(fleetValue),
+      fleetValue: zar(fleetValue, ctx),
     },
     sections: [
       {
@@ -65,14 +66,14 @@ export async function generateMachineryReport({ from, to } = {}) {
         items: servicesCount
           ? [
               { label: "Services performed", value: servicesCount },
-              { label: "Recorded service cost (may overlap Finance)", value: zar(servicesRecordedCost) },
+              { label: "Recorded service cost (may overlap Finance)", value: zar(servicesRecordedCost, ctx) },
             ]
           : [{ label: "No services recorded in period", value: "—" }],
       },
       {
         title: "Machinery Expenditure (from Finance — source of truth)",
         items: [
-          { label: "Machinery Repair + Service spend", value: zar(machinerySpend) },
+          { label: "Machinery Repair + Service spend", value: zar(machinerySpend, ctx) },
         ],
       },
       {
@@ -80,7 +81,7 @@ export async function generateMachineryReport({ from, to } = {}) {
         items: [
           { label: "Total machines", value: machines.length },
           { label: "Active", value: activeNow },
-          { label: "Fleet value", value: zar(fleetValue) },
+          { label: "Fleet value", value: zar(fleetValue, ctx) },
         ],
       },
     ],

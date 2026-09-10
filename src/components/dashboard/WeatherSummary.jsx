@@ -21,6 +21,7 @@
  *   - Link to full Weather Intelligence page
  */
 
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -39,12 +40,21 @@ import { radius } from "../../design/tokens";
 
 import { useWeather } from "../../context/WeatherContext";
 import { getWeatherAtmosphere, isDaytime } from "../../utils/weatherBackground";
+import { getFarmContext } from "../../services/profileService";
+import { formatTemperature, formatWindSpeed, formatPrecipitation } from "../../utils/units";
 
 export default function WeatherSummary({ weather: legacyWeather }) {
   const navigate = useNavigate();
 
   // Use WeatherContext for intelligence data (existing behaviour)
   const { weather: contextWeather, risk, alerts } = useWeather();
+
+  // Farm context drives display units (weather API values are canonical
+  // metric: °C / km/h / mm). Defaults to metric until loaded (SA-safe).
+  const [farmCtx, setFarmCtx] = useState(null);
+  useEffect(() => {
+    getFarmContext().then(setFarmCtx).catch(() => {});
+  }, []);
 
   // Prefer context data, fallback to prop for backwards compatibility
   const weather = contextWeather || legacyWeather;
@@ -96,7 +106,7 @@ export default function WeatherSummary({ weather: legacyWeather }) {
     <Card
       elevation={0}
       onClick={() => navigate("/weather")}
-      aria-label={`Weather: ${current?.condition || "unknown"}, ${current?.temperature}°C, ${isDay ? "day" : "night"}. Open Weather Intelligence.`}
+      aria-label={`Weather: ${current?.condition || "unknown"}, ${formatTemperature(current?.temperature, farmCtx)}, ${isDay ? "day" : "night"}. Open Weather Intelligence.`}
       sx={{
         borderRadius: radius.card,
         height: "100%",
@@ -388,14 +398,14 @@ export default function WeatherSummary({ weather: legacyWeather }) {
             {current?.icon || "\u2600\uFE0F"}
           </Typography>
           <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1.1, color: atmosphere.textColor }}>
-            {current?.temperature}°C
+            {formatTemperature(current?.temperature, farmCtx)}
           </Typography>
           <Typography variant="body2" fontWeight={600} sx={{ color: atmosphere.subTextColor }}>
             {current?.condition}
           </Typography>
           {current?.feelsLike != null && current.feelsLike !== current.temperature && (
             <Typography variant="caption" sx={{ color: atmosphere.subTextColor }}>
-              Feels like {current.feelsLike}°
+              Feels like {formatTemperature(current.feelsLike, farmCtx, { withUnit: false })}°
             </Typography>
           )}
         </Stack>
@@ -411,7 +421,7 @@ export default function WeatherSummary({ weather: legacyWeather }) {
             <GlassStat
               atmosphere={atmosphere}
               icon={<AirIcon sx={{ fontSize: 15 }} />}
-              label={`${current.windSpeed} km/h`}
+              label={formatWindSpeed(current.windSpeed, farmCtx)}
             />
           )}
           {current?.humidity != null && (
@@ -425,7 +435,7 @@ export default function WeatherSummary({ weather: legacyWeather }) {
             <GlassStat
               atmosphere={atmosphere}
               icon={<span aria-hidden>{"\uD83C\uDF27\uFE0F"}</span>}
-              label={`${current.rainfall} mm`}
+              label={formatPrecipitation(current.rainfall, farmCtx)}
             />
           )}
         </Stack>
@@ -496,7 +506,7 @@ export default function WeatherSummary({ weather: legacyWeather }) {
             <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.25 }}>
               <Typography aria-hidden sx={{ fontSize: 20 }}>{tomorrow.icon}</Typography>
               <Typography variant="body2" fontWeight={700} sx={{ color: atmosphere.textColor }}>
-                {(tomorrow.temperatureMax ?? tomorrow.temperature)}° / {tomorrow.temperatureMin ?? "\u2014"}°
+                {formatTemperature(tomorrow.temperatureMax ?? tomorrow.temperature, farmCtx, { withUnit: false })}° / {tomorrow.temperatureMin != null ? formatTemperature(tomorrow.temperatureMin, farmCtx, { withUnit: false }) : "\u2014"}°
               </Typography>
               <Typography variant="body2" sx={{ color: atmosphere.subTextColor, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {tomorrow.condition}

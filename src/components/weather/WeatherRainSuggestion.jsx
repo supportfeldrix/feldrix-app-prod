@@ -16,11 +16,13 @@
  *   - Reuses existing weather data — no extra weather API request.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Box, Button, Card, CardContent, Stack, Typography } from "@mui/material";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 
 import { useWeather } from "../../context/WeatherContext";
+import { getFarmContext } from "../../services/profileService";
+import { formatPrecipitation } from "../../utils/units";
 
 // Minimum precipitation (mm) worth suggesting — avoids nagging for a
 // cloudy sky with trace/zero precipitation.
@@ -38,6 +40,13 @@ export default function WeatherRainSuggestion({ logs = [], onLog }) {
   const { weather } = useWeather();
   const todayISO = localTodayISO();
   const dismissKey = `feldrix_rain_suggestion_dismissed_${todayISO}`;
+
+  // Display units follow the farm; the threshold comparison below stays in
+  // canonical mm (never compare inches against a mm threshold).
+  const [farmCtx, setFarmCtx] = useState(null);
+  useEffect(() => {
+    getFarmContext().then(setFarmCtx).catch(() => {});
+  }, []);
 
   const [dismissed, setDismissed] = useState(() => {
     try {
@@ -94,7 +103,7 @@ export default function WeatherRainSuggestion({ logs = [], onLog }) {
               🌧️ Rain detected
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              Weather data indicates approximately <strong>{suggestedMm} mm</strong> of
+              Weather data indicates approximately <strong>{formatPrecipitation(suggestedMm, farmCtx)}</strong> of
               precipitation around your farm today. Did rain actually fall on your farm?
             </Typography>
 
@@ -106,7 +115,7 @@ export default function WeatherRainSuggestion({ logs = [], onLog }) {
                 onClick={() => onLog?.({ amount: suggestedMm, prefillAmount: true })}
                 sx={{ fontWeight: 700, borderRadius: 2, textTransform: "none" }}
               >
-                Log {suggestedMm} mm
+                Log {formatPrecipitation(suggestedMm, farmCtx)}
               </Button>
               <Button
                 size="small"

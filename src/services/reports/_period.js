@@ -41,9 +41,31 @@ export function inPeriod(recordDate, from, to) {
   return true;
 }
 
-/** Human-readable ZAR amount matching existing report formatting. */
-export function zar(amount) {
+import { formatCurrency } from "../../utils/currency";
+import { formatArea as fmtArea } from "../../utils/units";
+
+/**
+ * Farm-aware monetary formatting for reports.
+ *   zar(amount)        → ZAR / en-ZA (unchanged legacy behaviour, SA-safe)
+ *   zar(amount, ctx)   → farm operating currency/locale from getFarmContext()
+ * Named `zar` for backward compatibility with existing call-sites; when a
+ * farm context is passed it delegates to the central formatCurrency.
+ */
+export function zar(amount, ctx) {
+  if (ctx) return formatCurrency(amount, ctx);
+  // Legacy default: exact previous SA output.
   return `R ${Number(amount || 0).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`;
+}
+
+/**
+ * Farm-aware area formatting for reports. Canonical value is hectares.
+ *   area(ha)        → "X ha" (metric default, SA-safe)
+ *   area(ha, ctx)   → hectares or acres per farm measurement system
+ */
+export function area(valueHa, ctx) {
+  if (ctx) return fmtArea(valueHa, ctx);
+  const n = Number(valueHa || 0);
+  return `${(Math.round(n * 100) / 100).toLocaleString("en-ZA", { maximumFractionDigits: 2 })} ha`;
 }
 
 /**

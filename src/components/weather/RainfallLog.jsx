@@ -25,6 +25,8 @@ import {
 
 import { getRainfallLogs, getRainfallSummary } from "../../services/rainfallService";
 import { getCrops } from "../../services/cropService";
+import { getFarmContext } from "../../services/profileService";
+import { formatPrecipitation } from "../../utils/units";
 import RainfallForm from "./RainfallForm";
 import RainfallHistory from "./RainfallHistory";
 import RainfallTrend from "./RainfallTrend";
@@ -52,6 +54,8 @@ export default function RainfallLog() {
   const [selectedLog, setSelectedLog] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Display units follow the farm; summary values are canonical mm.
+  const [farmCtx, setFarmCtx] = useState(null);
 
   async function loadRainfall() {
     try {
@@ -78,6 +82,7 @@ export default function RainfallLog() {
   useEffect(() => {
     loadRainfall();
     loadFieldOptions();
+    getFarmContext().then(setFarmCtx).catch(() => {});
   }, []);
 
   // Open the form from a weather-service suggestion. Prefills today's date,
@@ -139,7 +144,7 @@ export default function RainfallLog() {
                       {c.label}
                     </Typography>
                     <Typography variant="h5" fontWeight={800} sx={{ color: "#1976D2", mt: 0.5 }}>
-                      {c.value} mm
+                      {formatPrecipitation(c.value, farmCtx)}
                     </Typography>
                   </Box>
                 </Grid>
@@ -172,7 +177,7 @@ export default function RainfallLog() {
 
                 <Stack direction="row" alignItems="baseline" spacing={1.5}>
                   <Typography variant="h3" fontWeight={800} sx={{ color: "#1976D2", lineHeight: 1 }}>
-                    {Number(latest.amount_mm)} mm
+                    {formatPrecipitation(latest.amount_mm, farmCtx)}
                   </Typography>
                   <Typography variant="body1" color="text.secondary" fontWeight={600}>
                     {fmtDate(latest.rainfall_date)}

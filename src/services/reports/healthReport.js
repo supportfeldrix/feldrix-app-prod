@@ -24,7 +24,8 @@ import { inPeriod, zar } from "./_period";
 
 const ACTIVITY_TYPES = ["Vaccination", "Deworming", "Medication", "Treatment", "Veterinary Visit"];
 
-export async function generateHealthReport({ from, to } = {}) {
+export async function generateHealthReport({ from, to, farmContext } = {}) {
+  const ctx = farmContext || null;
   // Health activity — filter by treatment_date (business/event date).
   let healthQuery = supabase.from("animal_health").select("*");
   if (from) healthQuery = healthQuery.gte("treatment_date", from.split("T")[0]);
@@ -63,7 +64,7 @@ export async function generateHealthReport({ from, to } = {}) {
       dewormings: counts["Deworming"] || 0,
       treatments: (counts["Treatment"] || 0) + (counts["Medication"] || 0),
       animalsTreated,
-      healthExpenditure: zar(healthSpend),
+      healthExpenditure: zar(healthSpend, ctx),
     },
     sections: [
       {
@@ -82,7 +83,7 @@ export async function generateHealthReport({ from, to } = {}) {
       {
         title: "Health Expenditure (from Finance — source of truth)",
         items: [
-          { label: "Veterinary + Medication spend", value: zar(healthSpend) },
+          { label: "Veterinary + Medication spend", value: zar(healthSpend, ctx) },
         ],
       },
     ],

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Box,
@@ -22,8 +22,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
 import { deleteFinanceRecord } from "../../services/financeService";
+import { getFarmContext } from "../../services/profileService";
 import { radius, transitions } from "../../design/tokens";
 import { formatQuantity } from "../../constants/financeUnits";
+import { formatCurrency } from "../../utils/currency";
 
 function getAppliesToLabel(record) {
   const scope = record.applies_to || (record.animal_id ? "animal" : "farm");
@@ -40,14 +42,22 @@ function formatDate(date) {
   } catch { return "\u2014"; }
 }
 
-function formatAmount(value, category) {
-  const num = Number(value || 0);
-  const formatted = `R ${Math.abs(num).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Farm-aware amount. A record's currency is its own (if ever set) else the
+// farm operating currency; with no context it falls back to ZAR/en-ZA — the
+// exact previous behaviour — so SA is unchanged.
+function formatAmount(value, category, ctx, record) {
+  const currencyCtx = record?.currency || ctx || undefined;
+  const formatted = formatCurrency(Math.abs(Number(value || 0)), currencyCtx);
   return category === "Income" ? `+${formatted}` : `-${formatted}`;
 }
 
 export default function FinanceTable({ records = [], onEdit, refreshRecords }) {
   const [search, setSearch] = useState("");
+  const [farmCtx, setFarmCtx] = useState(null);
+
+  useEffect(() => {
+    getFarmContext().then(setFarmCtx).catch(() => {});
+  }, []);
 
   const filtered = records.filter((record) => {
     const term = search.toLowerCase();
@@ -211,7 +221,7 @@ export default function FinanceTable({ records = [], onEdit, refreshRecords }) {
                       fontWeight={700}
                       sx={{ color: record.category === "Income" ? "success.main" : "error.main" }}
                     >
-                      {formatAmount(record.amount, record.category)}
+                      {formatAmount(record.amount, record.category, farmCtx, record)}
                     </Typography>
                   </TableCell>
 

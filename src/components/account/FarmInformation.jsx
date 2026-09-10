@@ -16,6 +16,7 @@ import EditIcon from "@mui/icons-material/Edit";
 
 import { getProfile, getFarmContext } from "../../services/profileService";
 import { getCountryConfig } from "../../constants/locations";
+import { formatArea, unitLabel } from "../../utils/units";
 import EditFarmDialog from "./EditFarmDialog";
 
 export default function FarmInformation() {
@@ -70,12 +71,13 @@ export default function FarmInformation() {
       value: profile?.country || "Not Set",
     },
     {
+      // Canonical stored value is hectares; display converts for US farms.
       label: "Farm Size",
       value:
         profile?.farm_size !== null &&
         profile?.farm_size !== undefined
-          ? `${profile.farm_size} ha`
-          : "-- ha",
+          ? formatArea(profile.farm_size, context)
+          : `-- ${unitLabel("area", context)}`,
     },
     {
       label: "Preferred Units",

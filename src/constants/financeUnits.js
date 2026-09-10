@@ -13,6 +13,7 @@
  * ============================================================
  */
 
+// Metric / universal units (original Phase 2 set — unchanged order/values).
 export const FINANCE_UNITS = [
   { value: "litre", label: "Litres" },
   { value: "kg", label: "Kilograms" },
@@ -24,9 +25,38 @@ export const FINANCE_UNITS = [
   { value: "hour", label: "Hours" },
 ];
 
-export const FINANCE_UNIT_VALUES = FINANCE_UNITS.map((u) => u.value);
+// US customary units (USA-2). Additive — stored values, never auto-converted.
+// The DB CHECK constraint is widened to allow these in migration
+// 20260911100000_finance_units_us.sql.
+export const FINANCE_UNITS_US = [
+  { value: "gallon", label: "Gallons" },
+  { value: "lb", label: "Pounds" },
+  { value: "ton", label: "Tons" },
+  { value: "acre", label: "Acres" },
+  { value: "inch", label: "Inches" },
+];
 
-const LABEL_BY_VALUE = FINANCE_UNITS.reduce((acc, u) => {
+export const ALL_FINANCE_UNITS = [...FINANCE_UNITS, ...FINANCE_UNITS_US];
+
+export const FINANCE_UNIT_VALUES = ALL_FINANCE_UNITS.map((u) => u.value);
+
+/**
+ * The unit options to OFFER in the UI for a given measurement system.
+ * Metric farms see metric + universal; US farms see US + universal (bag,
+ * bale, head, unit, hour are universal and shown in both). Existing stored
+ * values remain valid regardless of the current system.
+ */
+export function unitOptionsForSystem(measurementSystem) {
+  const universal = FINANCE_UNITS.filter((u) =>
+    ["unit", "bag", "bale", "head", "hour"].includes(u.value)
+  );
+  if (measurementSystem === "us_customary") {
+    return [...FINANCE_UNITS_US, ...universal];
+  }
+  return [...FINANCE_UNITS, ...universal.filter((u) => !FINANCE_UNITS.includes(u))];
+}
+
+const LABEL_BY_VALUE = ALL_FINANCE_UNITS.reduce((acc, u) => {
   acc[u.value] = u.label;
   return acc;
 }, {});
@@ -48,15 +78,16 @@ export function unitLabel(unit) {
  * Suggested default unit for a transaction_type. Purely a UI convenience —
  * the farmer can always change it, and quantity/unit remain optional.
  */
-export function suggestedUnitForType(transactionType) {
+export function suggestedUnitForType(transactionType, measurementSystem) {
+  const us = measurementSystem === "us_customary";
   switch (transactionType) {
     case "Diesel":
     case "Fuel":
-      return "litre";
+      return us ? "gallon" : "litre";
     case "Fertilizer":
     case "Seed":
     case "Feed":
-      return "kg";
+      return us ? "lb" : "kg";
     case "Hay":
     case "Silage":
       return "bale";

@@ -5,7 +5,8 @@ import { generateHealthReport } from "./healthReport";
 import { generateCropReport } from "./cropReport";
 import { generateMachineryReport } from "./machineryReport";
 import { generateRainfallReport } from "./rainfallReport";
-import { zar } from "./_period";
+import { zar, area } from "./_period";
+import { formatPrecipitation } from "../../utils/units";
 import { unitLabel, trimNumber } from "../../constants/financeUnits";
 
 // Input categories highlighted in the Major Inputs section (existing
@@ -31,8 +32,9 @@ const MAJOR_INPUT_TYPES = ["Diesel", "Fuel", "Fertilizer", "Seed", "Feed", "Hay"
  */
 
 export async function generateFarmSummaryReport(options = {}) {
-  const { from, to } = options;
-  const period = { from, to };
+  const { from, to, farmContext } = options;
+  const ctx = farmContext || null;
+  const period = { from, to, farmContext: ctx };
 
   const [finance, livestock, breeding, health, crops, machinery, rainfall] = await Promise.all([
     generateFinanceReport(period).catch(() => null),
@@ -52,16 +54,16 @@ export async function generateFarmSummaryReport(options = {}) {
     sections.push({
       title: "Financial Summary",
       items: [
-        { label: "Total income", value: zar(f.income) },
-        { label: "Total expenses", value: zar(f.expenses) },
-        { label: "Net position", value: zar(f.net) },
+        { label: "Total income", value: zar(f.income, ctx) },
+        { label: "Total expenses", value: zar(f.expenses, ctx) },
+        { label: "Net position", value: zar(f.net, ctx) },
       ],
     });
 
     // Major Inputs — quantity + spend for key input categories (only those
     // present in the period). Quantities shown only when actually recorded;
     // mixed units listed separately; never combined; never fabricated.
-    const majorInputs = buildMajorInputs(f.expenseGroups);
+    const majorInputs = buildMajorInputs(f.expenseGroups, ctx);
     if (majorInputs.length) {
       sections.push({ title: "Major Inputs", items: majorInputs });
     }
@@ -85,7 +87,7 @@ export async function generateFarmSummaryReport(options = {}) {
         { label: "Veterinary visits", value: h.counts?.["Veterinary Visit"] || 0 },
         { label: "Animals treated (distinct)", value: h.animalsTreated },
         // From Finance — a subset of Total expenses, NOT added on top.
-        { label: "Health expenditure (from Finance)", value: zar(h.healthSpend) },
+        { label: "Health expenditure (from Finance)", value: zar(h.healthSpend, ctx) },
       ],
     });
   }
@@ -97,7 +99,7 @@ export async function generateFarmSummaryReport(options = {}) {
       title: "Crops",
       items: [
         { label: "Planted this period", value: c.plantedThisPeriod },
-        { label: "Area planted", value: `${Number(c.areaPlanted || 0).toFixed(1)} ha` },
+        { label: "Area planted", value: area(c.areaPlanted || 0, ctx) },
         { label: "Harvests expected this period", value: c.harvestExpectedThisPeriod },
         { label: "Currently growing (snapshot)", value: c.currentlyGrowing },
       ],
@@ -112,7 +114,7 @@ export async function generateFarmSummaryReport(options = {}) {
       items: [
         { label: "Services this period", value: m.servicesThisPeriod },
         // From Finance — a subset of Total expenses, NOT added on top.
-        { label: "Machinery expenditure (from Finance)", value: zar(m.machinerySpend) },
+        { label: "Machinery expenditure (from Finance)", value: zar(m.machinerySpend, ctx) },
         { label: "Active machines (snapshot)", value: m.activeMachines },
       ],
     });
@@ -149,7 +151,7 @@ export async function generateFarmSummaryReport(options = {}) {
     sections.push({
       title: "Weather",
       items: [
-        { label: "Recorded rainfall", value: `${r.totalMm} mm` },
+        { label: "Recorded rainfall", value: formatPrecipitation(r.totalMm, ctx) },
         { label: "Rainfall log entries", value: r.entries },
       ],
     });
@@ -157,10 +159,10 @@ export async function generateFarmSummaryReport(options = {}) {
 
   // Top-level KPI cards — all Finance-sourced money figures.
   const statistics = {
-    totalIncome: zar(finance?.financeData?.income || 0),
-    totalExpenses: zar(finance?.financeData?.expenses || 0),
-    netPosition: zar(finance?.financeData?.net || 0),
-    rainfall: `${rainfall?.rainfallData?.totalMm || 0} mm`,
+    totalIncome: zar(finance?.financeData?.income || 0, ctx),
+    totalExpenses: zar(finance?.financeData?.expenses || 0, ctx),
+    netPosition: zar(finance?.financeData?.net || 0, ctx),
+    rainfall: formatPrecipitation(rainfall?.rainfallData?.totalMm || 0, ctx),
   };
 
   return {
@@ -177,7 +179,7 @@ export async function generateFarmSummaryReport(options = {}) {
  * just the spend. Mixed units are listed separately; "recorded" is appended
  * when only some transactions in the category carried a quantity.
  */
-function buildMajorInputs(expenseGroups = {}) {
+function buildMajorInputs(expenseGroups = {}, ctx) {
   const items = [];
   for (const type of MAJOR_INPUT_TYPES) {
     const g = expenseGroups[type];
@@ -189,7 +191,7 @@ function buildMajorInputs(expenseGroups = {}) {
       .map((u) => `${trimNumber(g.quantitiesByUnit[u])} ${unitLabel(u)}${partial ? " recorded" : ""}`)
       .join(", ");
 
-    const value = qtyStr ? `${qtyStr} — ${zar(g.amount)}` : zar(g.amount);
+    const value = qtyStr ? `${qtyStr} — ${zar(g.amount, ctx)}` : zar(g.amount, ctx);
     items.push({ label: type, value });
   }
   return items;

@@ -59,10 +59,28 @@ import {
 
 import { useWeather } from "../context/WeatherContext";
 import { getWeatherHistory, getWeatherHistorySummary } from "../services/weatherService";
+import { getFarmContext } from "../services/profileService";
+import { formatTemperature, formatWindSpeed, formatPrecipitation } from "../utils/units";
 import WeatherChecklist from "../components/weather/WeatherChecklist";
 import EarlyWarningCountdown from "../components/weather/EarlyWarningCountdown";
 import WeatherNotificationSettings from "../components/weather/WeatherNotificationSettings";
 import RainfallLog from "../components/weather/RainfallLog";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DISPLAY HELPERS (canonical → farm units; canonical values are unchanged)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Temperature that appends its own "°"; "—" placeholders pass through unchanged.
+function degOrDash(valueC, ctx) {
+  if (valueC == null || valueC === "—") return "—°";
+  return `${formatTemperature(valueC, ctx, { withUnit: false })}°`;
+}
+
+// Wind with unit; "—" placeholders pass through unchanged.
+function windOrDash(valueKmh, ctx) {
+  if (valueKmh == null || valueKmh === "—") return "—";
+  return formatWindSpeed(valueKmh, ctx);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SUB-COMPONENTS
@@ -129,7 +147,7 @@ function RiskBanner({ risk }) {
   );
 }
 
-function CurrentConditions({ weather }) {
+function CurrentConditions({ weather, ctx }) {
   const current = weather?.current;
   if (!current || !current.updatedAt) return null;
 
@@ -151,14 +169,14 @@ function CurrentConditions({ weather }) {
   const iconColor = isDay ? "text.disabled" : "#64748B";
 
   const details = [
-    { icon: <Thermostat sx={{ fontSize: 18 }} />, label: "Feels Like", value: current.feelsLike != null ? `${current.feelsLike}°C` : "—" },
-    { icon: <Air sx={{ fontSize: 18 }} />, label: "Wind", value: current.windSpeed != null ? `${current.windSpeed} km/h ${current.windDirection || ""}` : "—" },
+    { icon: <Thermostat sx={{ fontSize: 18 }} />, label: "Feels Like", value: current.feelsLike != null ? formatTemperature(current.feelsLike, ctx) : "—" },
+    { icon: <Air sx={{ fontSize: 18 }} />, label: "Wind", value: current.windSpeed != null ? `${formatWindSpeed(current.windSpeed, ctx)} ${current.windDirection || ""}`.trim() : "—" },
     { icon: <Opacity sx={{ fontSize: 18 }} />, label: "Humidity", value: current.humidity != null ? `${current.humidity}%` : "—" },
-    { icon: <WaterDrop sx={{ fontSize: 18 }} />, label: "Rainfall", value: current.rainfall != null ? `${current.rainfall} mm` : "0 mm" },
+    { icon: <WaterDrop sx={{ fontSize: 18 }} />, label: "Rainfall", value: current.rainfall != null ? formatPrecipitation(current.rainfall, ctx) : formatPrecipitation(0, ctx) },
     { icon: <Speed sx={{ fontSize: 18 }} />, label: "Pressure", value: current.pressure ? `${current.pressure} hPa` : "—" },
     { icon: <Visibility sx={{ fontSize: 18 }} />, label: "Visibility", value: current.visibility ? `${current.visibility} km` : "—" },
     { icon: <WbSunny sx={{ fontSize: 18 }} />, label: "UV Index", value: current.uvIndex != null ? `${current.uvIndex}` : "—" },
-    { icon: <DeviceThermostat sx={{ fontSize: 18 }} />, label: "Dew Point", value: current.dewPoint != null ? `${current.dewPoint}°C` : "—" },
+    { icon: <DeviceThermostat sx={{ fontSize: 18 }} />, label: "Dew Point", value: current.dewPoint != null ? formatTemperature(current.dewPoint, ctx) : "—" },
   ];
 
   return (
@@ -195,7 +213,7 @@ function CurrentConditions({ weather }) {
           <Box sx={{ flex: 1 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1, color: textPrimary }}>
-                {current.temperature}°C
+                {formatTemperature(current.temperature, ctx)}
               </Typography>
               <Chip
                 label={isDay ? "☀️ DAY" : "🌙 NIGHT"}
@@ -253,7 +271,7 @@ function CurrentConditions({ weather }) {
   );
 }
 
-function HourlyForecast({ hourly, sunrise, sunset }) {
+function HourlyForecast({ hourly, sunrise, sunset, ctx }) {
   if (!hourly || hourly.length === 0) return null;
 
   // Show next 24 hours
@@ -318,7 +336,7 @@ function HourlyForecast({ hourly, sunrise, sunset }) {
                 </Typography>
                 <Typography sx={{ fontSize: 22, my: 0.5 }}>{hour.icon}</Typography>
                 <Typography sx={{ fontSize: "0.85rem", fontWeight: 700 }}>
-                  {hour.temperature}°
+                  {formatTemperature(hour.temperature, ctx, { withUnit: false })}°
                 </Typography>
                 {hour.pop != null && hour.pop > 0 && (
                   <Typography sx={{ fontSize: "0.6rem", opacity: 0.7, mt: 0.5 }}>
@@ -334,7 +352,7 @@ function HourlyForecast({ hourly, sunrise, sunset }) {
   );
 }
 
-function DailyForecast({ forecast }) {
+function DailyForecast({ forecast, ctx }) {
   if (!forecast || forecast.length === 0) return null;
 
   const days = forecast.slice(0, 7);
@@ -382,7 +400,7 @@ function DailyForecast({ forecast }) {
                   </Typography>
                 )}
                 <Typography sx={{ fontSize: "0.82rem", fontWeight: 700, width: 40, textAlign: "right" }}>
-                  {day.temperatureMax}°
+                  {formatTemperature(day.temperatureMax, ctx, { withUnit: false })}°
                 </Typography>
                 <Box sx={{ width: 60, mx: 1.5 }}>
                   <LinearProgress
@@ -400,7 +418,7 @@ function DailyForecast({ forecast }) {
                   />
                 </Box>
                 <Typography sx={{ fontSize: "0.82rem", fontWeight: 500, width: 40, color: "text.secondary" }}>
-                  {day.temperatureMin}°
+                  {formatTemperature(day.temperatureMin, ctx, { withUnit: false })}°
                 </Typography>
               </Stack>
             );
@@ -633,9 +651,9 @@ function WeatherHistoryPanel() {
               </Typography>
               {last24h.length > 0 ? (
                 <Stack spacing={1} sx={{ mt: 1.5 }}>
-                  <HistoryRow label="Temperature" value={`${last24hSummary.minTemp}° – ${last24hSummary.maxTemp}°`} icon="🌡️" />
-                  <HistoryRow label="Rainfall" value={`${last24hSummary.totalRainfall} mm`} icon="🌧️" />
-                  <HistoryRow label="Wind" value={`Avg ${last24hSummary.avgWind} km/h`} icon="💨" />
+                  <HistoryRow label="Temperature" value={`${degOrDash(last24hSummary.minTemp, farmCtx)} – ${degOrDash(last24hSummary.maxTemp, farmCtx)}`} icon="🌡️" />
+                  <HistoryRow label="Rainfall" value={formatPrecipitation(last24hSummary.totalRainfall, farmCtx)} icon="🌧️" />
+                  <HistoryRow label="Wind" value={`Avg ${windOrDash(last24hSummary.avgWind, farmCtx)}`} icon="💨" />
                   <HistoryRow label="Humidity" value={`Avg ${last24hSummary.avgHumidity}%`} icon="💧" />
                 </Stack>
               ) : (
@@ -651,11 +669,11 @@ function WeatherHistoryPanel() {
                 Last {summary.periodDays} Day{summary.periodDays !== 1 ? "s" : ""}
               </Typography>
               <Stack spacing={1} sx={{ mt: 1.5 }}>
-                <HistoryRow label="Temperature" value={`${summary.minTemp ?? "—"}° – ${summary.maxTemp ?? "—"}°`} icon="🌡️" />
-                <HistoryRow label="Total Rainfall" value={`${summary.totalRainfall} mm`} icon="🌧️" />
-                <HistoryRow label="Avg Wind" value={`${summary.avgWind ?? "—"} km/h`} icon="💨" />
+                <HistoryRow label="Temperature" value={`${degOrDash(summary.minTemp, farmCtx)} – ${degOrDash(summary.maxTemp, farmCtx)}`} icon="🌡️" />
+                <HistoryRow label="Total Rainfall" value={formatPrecipitation(summary.totalRainfall, farmCtx)} icon="🌧️" />
+                <HistoryRow label="Avg Wind" value={windOrDash(summary.avgWind, farmCtx)} icon="💨" />
                 <HistoryRow label="Avg Humidity" value={`${summary.avgHumidity ?? "—"}%`} icon="💧" />
-                <HistoryRow label="Avg Temperature" value={`${summary.avgTemp ?? "—"}°C`} icon="📊" />
+                <HistoryRow label="Avg Temperature" value={summary.avgTemp != null && summary.avgTemp !== "—" ? formatTemperature(summary.avgTemp, farmCtx) : "—"} icon="📊" />
               </Stack>
             </Box>
           </Grid>
@@ -720,6 +738,14 @@ export default function Weather() {
     isOffline,
     confidence,
   } = useWeather();
+
+  // Farm context drives DISPLAY units only. Weather data stays canonical
+  // metric (°C / mm / km/h); we convert at the presentation boundary.
+  // Defaults to metric until loaded (SA-safe).
+  const [farmCtx, setFarmCtx] = useState(null);
+  useEffect(() => {
+    getFarmContext().then(setFarmCtx).catch(() => {});
+  }, []);
 
   // Deep-link scrolling — scroll to alerts section when navigated from notification
   const routerLocation = useRouterLocation();
@@ -926,13 +952,13 @@ export default function Weather() {
         )}
 
         {/* CURRENT CONDITIONS */}
-        <CurrentConditions weather={weather} />
+        <CurrentConditions weather={weather} ctx={farmCtx} />
 
         {/* HOURLY FORECAST */}
-        <HourlyForecast hourly={weather.hourly} sunrise={weather.current?.sunrise} sunset={weather.current?.sunset} />
+        <HourlyForecast hourly={weather.hourly} sunrise={weather.current?.sunrise} sunset={weather.current?.sunset} ctx={farmCtx} />
 
         {/* 7-DAY FORECAST */}
-        <DailyForecast forecast={weather.forecast} />
+        <DailyForecast forecast={weather.forecast} ctx={farmCtx} />
 
         {/* RECOMMENDATIONS */}
         <RecommendationsPanel recommendations={recommendations} />

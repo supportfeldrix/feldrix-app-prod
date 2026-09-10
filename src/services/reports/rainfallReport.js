@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { formatPrecipitation } from "../../utils/units";
 
 /**
  * ============================================================
@@ -13,7 +14,8 @@ import { supabase } from "../supabase";
  * ============================================================
  */
 
-export async function generateRainfallReport({ from, to } = {}) {
+export async function generateRainfallReport({ from, to, farmContext } = {}) {
+  const ctx = farmContext || null;
   let query = supabase
     .from("rainfall_logs")
     .select("amount_mm, rainfall_date, field_name, measurement_source");
@@ -37,12 +39,12 @@ export async function generateRainfallReport({ from, to } = {}) {
   }
   const fieldItems = Object.entries(byField)
     .sort((a, b) => b[1] - a[1])
-    .map(([label, mm]) => ({ label, value: `${round1(mm)} mm` }));
+    .map(([label, mm]) => ({ label, value: formatPrecipitation(mm, ctx) }));
 
   return {
     title: "Rainfall Report",
     statistics: {
-      recordedRainfall: `${round1(totalMm)} mm`,
+      recordedRainfall: formatPrecipitation(totalMm, ctx),
       logEntries: entries,
       latestReading: latestDate || "—",
     },
@@ -50,7 +52,7 @@ export async function generateRainfallReport({ from, to } = {}) {
       {
         title: "Rainfall (this period)",
         items: [
-          { label: "Total recorded rainfall", value: `${round1(totalMm)} mm` },
+          { label: "Total recorded rainfall", value: formatPrecipitation(totalMm, ctx) },
           { label: "Log entries", value: entries },
           { label: "Latest reading", value: latestDate || "—" },
         ],

@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
 import { inPeriod } from "./_period";
+import { formatMass } from "../../utils/units";
 
 /**
  * ============================================================
@@ -21,7 +22,8 @@ import { inPeriod } from "./_period";
  * ============================================================
  */
 
-export async function generateLivestockReport({ from, to } = {}) {
+export async function generateLivestockReport({ from, to, farmContext } = {}) {
+  const ctx = farmContext || null;
   const { data: animals } = await supabase.from("livestock").select("*");
   const list = animals || [];
 
@@ -40,7 +42,7 @@ export async function generateLivestockReport({ from, to } = {}) {
       animalsPurchasedThisPeriod: purchasedInPeriod.length,
       currentHerdSize: list.length,
       activeNow: active,
-      averageWeight: `${avgWeight} kg`,
+      averageWeight: formatMass(avgWeight, ctx),
     },
     sections: [
       {
@@ -56,7 +58,7 @@ export async function generateLivestockReport({ from, to } = {}) {
           { label: "Active", value: active },
           { label: "Pregnant", value: pregnant },
           { label: "Sold (all-time)", value: sold },
-          { label: "Average weight", value: `${avgWeight} kg` },
+          { label: "Average weight", value: formatMass(avgWeight, ctx) },
         ],
       },
     ],

@@ -8,7 +8,7 @@
  * Uses ONLY rainfall_logs data passed in. Never weather-service data.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box, Card, CardContent, Chip, Grid, Stack, Typography,
 } from "@mui/material";
@@ -16,6 +16,9 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
+
+import { getFarmContext } from "../../services/profileService";
+import { isUsCustomary, unitLabel, mmToInches } from "../../utils/units";
 
 const RANGES = [
   { key: 7, label: "7 Days" },
@@ -39,6 +42,19 @@ function shortLabel(iso) {
 
 export default function RainfallTrend({ logs = [] }) {
   const [rangeDays, setRangeDays] = useState(30);
+  // Display units follow the farm; ALL aggregation stays in canonical mm and
+  // is only converted to the display unit at the end (never sum rounded
+  // display values).
+  const [farmCtx, setFarmCtx] = useState(null);
+  useEffect(() => {
+    getFarmContext().then(setFarmCtx).catch(() => {});
+  }, []);
+  const us = isUsCustomary(farmCtx);
+  const precipUnit = unitLabel("precipitation", farmCtx); // "in" | "mm"
+  const toDisplay = (mm) => {
+    const v = us ? mmToInches(mm) : mm;
+    return Math.round(v * 100) / 100;
+  };
 
   const { chartData, total, rainyDays, average, hasData } = useMemo(() => {
     const today = toDateOnly(new Date());
@@ -99,18 +115,19 @@ export default function RainfallTrend({ logs = [] }) {
           </Stack>
         </Stack>
 
-        {/* Totals */}
+        {/* Totals — canonical mm aggregated above, converted to display unit here. */}
         <Grid container spacing={2} sx={{ mb: 2 }}>
-          <TotalItem label="Total" value={`${total} mm`} />
+          <TotalItem label="Total" value={`${toDisplay(total)} ${precipUnit}`} />
           <TotalItem label="Rainy Days" value={`${rainyDays}`} />
-          <TotalItem label="Average" value={`${average} mm`} hint="per rainy day" />
+          <TotalItem label="Average" value={`${toDisplay(average)} ${precipUnit}`} hint="per rainy day" />
         </Grid>
 
-        {/* Chart or limited-data state */}
+        {/* Chart or limited-data state. Bars use the display unit (converted
+            from canonical mm per row); aggregation itself stayed canonical. */}
         {hasData ? (
           <Box sx={{ width: "100%", height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: -12 }}>
+              <BarChart data={chartData.map((r) => ({ ...r, value: toDisplay(r.mm) }))} margin={{ top: 8, right: 8, bottom: 4, left: -12 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF2F6" vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -128,11 +145,11 @@ export default function RainfallTrend({ logs = [] }) {
                   unit=""
                 />
                 <Tooltip
-                  formatter={(v) => [`${v} mm`, "Rainfall"]}
+                  formatter={(v) => [`${v} ${precipUnit}`, "Rainfall"]}
                   labelFormatter={(l) => l}
                   contentStyle={{ borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 12 }}
                 />
-                <Bar dataKey="mm" fill="#1976D2" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="value" fill="#1976D2" radius={[4, 4, 0, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </Box>

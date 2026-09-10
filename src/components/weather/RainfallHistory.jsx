@@ -13,7 +13,11 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
+import { useEffect, useState } from "react";
+
 import { deleteRainfallLog } from "../../services/rainfallService";
+import { getFarmContext } from "../../services/profileService";
+import { formatPrecipitation } from "../../utils/units";
 import { radius } from "../../design/tokens";
 
 function fmtDate(d) {
@@ -30,6 +34,12 @@ function fmtDate(d) {
 const val = (v) => (v == null || v === "" ? "—" : v);
 
 export default function RainfallHistory({ logs = [], onEdit, refreshLogs }) {
+  // Display units follow the farm; stored amount_mm is canonical (unchanged).
+  const [farmCtx, setFarmCtx] = useState(null);
+  useEffect(() => {
+    getFarmContext().then(setFarmCtx).catch(() => {});
+  }, []);
+
   async function handleDelete(e, id) {
     e.stopPropagation();
     if (!window.confirm("Delete this rainfall record? This cannot be undone.")) return;
@@ -92,7 +102,7 @@ export default function RainfallHistory({ logs = [], onEdit, refreshLogs }) {
                   </Stack>
                 </TableCell>
                 <TableCell sx={dataCell} align="right">
-                  <Typography variant="body2" fontWeight={700}>{Number(r.amount_mm)} mm</Typography>
+                  <Typography variant="body2" fontWeight={700}>{formatPrecipitation(r.amount_mm, farmCtx)}</Typography>
                 </TableCell>
                 <TableCell sx={dataCell}>{val(r.field_name)}</TableCell>
                 <TableCell sx={dataCell}>{val(r.measurement_source)}</TableCell>

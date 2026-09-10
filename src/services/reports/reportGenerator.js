@@ -50,7 +50,17 @@ export async function generateReport(reportId, options = {}) {
 
   const dateRange = resolveDateRange(options.dateRange, options.startDate, options.endDate);
 
-  const report = await provider({ ...options, ...dateRange });
+  // USA-2: resolve the farm context ONCE and pass it to every provider so
+  // report presentation (currency, units, locale) follows the farm. This does
+  // not change aggregation — providers only use it for formatting. SA farms
+  // (or a failed lookup) fall back to metric/ZAR inside the formatters.
+  let farmContext = null;
+  try {
+    const mod = await import("../profileService");
+    farmContext = await mod.getFarmContext();
+  } catch { /* formatters fall back to metric/ZAR */ }
+
+  const report = await provider({ ...options, ...dateRange, farmContext });
 
   return {
     ...report,

@@ -35,7 +35,8 @@ const KEY_EXPENSE_TYPES = [
   "Transport",
 ];
 
-export async function generateFinanceReport({ from, to } = {}) {
+export async function generateFinanceReport({ from, to, farmContext } = {}) {
+  const ctx = farmContext || null;
   let query = supabase.from("finance_records").select("*");
 
   if (from) query = query.gte("transaction_date", from.split("T")[0]);
@@ -59,16 +60,16 @@ export async function generateFinanceReport({ from, to } = {}) {
 
   // Ordered expense breakdown: key categories first (only if they exist),
   // then any remaining categories, all with count + amount.
-  const expenseItems = buildOrderedItems(expenseGroups, KEY_EXPENSE_TYPES);
-  const incomeItems = buildOrderedItems(incomeGroups, []);
+  const expenseItems = buildOrderedItems(expenseGroups, KEY_EXPENSE_TYPES, ctx);
+  const incomeItems = buildOrderedItems(incomeGroups, [], ctx);
 
   return {
     title: "Monthly Finance Report",
     statistics: {
       transactions: data.length,
-      income: zar(income),
-      expenses: zar(expenses),
-      netPosition: zar(income - expenses),
+      income: zar(income, ctx),
+      expenses: zar(expenses, ctx),
+      netPosition: zar(income - expenses, ctx),
       profitMargin: income > 0 ? (((income - expenses) / income) * 100).toFixed(1) + "%" : "0%",
     },
     sections: [
@@ -147,13 +148,13 @@ function quantityLines(group) {
  * "N purchase(s) · R amount" so quantity-of-transactions is visible
  * WITHOUT inventing physical quantities (litres/kg are Phase 2).
  */
-function buildOrderedItems(groups, preferredOrder) {
+function buildOrderedItems(groups, preferredOrder, ctx) {
   const seen = new Set();
   const items = [];
 
   for (const key of preferredOrder) {
     if (groups[key]) {
-      items.push(formatItem(key, groups[key]));
+      items.push(formatItem(key, groups[key], ctx));
       seen.add(key);
     }
   }
@@ -163,20 +164,20 @@ function buildOrderedItems(groups, preferredOrder) {
     .sort((a, b) => b[1].amount - a[1].amount);
 
   for (const [key, g] of remaining) {
-    items.push(formatItem(key, g));
+    items.push(formatItem(key, g, ctx));
   }
 
   return items;
 }
 
-function formatItem(label, group) {
+function formatItem(label, group, ctx) {
   const txnWord = group.count === 1 ? "transaction" : "transactions";
   const parts = [`${group.count} ${txnWord}`];
 
   // Insert recorded quantity line(s) between count and amount, when present.
   for (const qLine of quantityLines(group)) parts.push(qLine);
 
-  parts.push(zar(group.amount));
+  parts.push(zar(group.amount, ctx));
 
   return {
     label,
