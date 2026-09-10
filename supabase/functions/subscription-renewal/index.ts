@@ -280,10 +280,74 @@ interface ProcessResult {
   success: boolean;
   downgraded: boolean;
   emailSent: boolean;
+  // Distinguishes a timeout from a normal success/failure without exposing
+  // secrets: "not_attempted" | "skipped_no_email" | "sent" | "failed" | "timeout".
+  emailStatus: string;
   notificationCreated: boolean;
   auditLogged: boolean;
   payfastResult: string;
   error?: string;
+}
+
+// Hard cap for the best-effort email side effect. A stalled SMTP connection
+// inside email-send must never block the subscription reconciliation, the
+// per-subscription loop, or the function's HTTP response.
+const EMAIL_INVOKE_TIMEOUT_MS = 10_000;
+
+/**
+ * Invoke the email-send Edge Function with a bounded timeout.
+ * Returns a discriminated result so the caller can record "sent" | "failed"
+ * | "timeout" without ever throwing (no unhandled rejection) and without
+ * blocking longer than EMAIL_INVOKE_TIMEOUT_MS. The underlying invoke promise
+ * is allowed to settle on its own after a timeout; its rejection (if any) is
+ * swallowed so it cannot surface as an unhandled rejection.
+ */
+async function sendDowngradeEmailWithTimeout(
+  supabase: any,
+  to: string,
+  fullName: string,
+): Promise<{ status: "sent" | "failed" | "timeout"; error?: string }> {
+  let timer: number | undefined;
+
+  const invokePromise = (async () => {
+    const emailResult = await supabase.functions.invoke("email-send", {
+      body: {
+        to,
+        subject: "Your PRO subscription has ended",
+        text: buildDowngradeEmail(fullName),
+      },
+    });
+    return emailResult;
+  })();
+
+  // Prevent an eventual rejection of the invoke promise (after we've already
+  // timed out and moved on) from becoming an unhandled rejection.
+  invokePromise.catch(() => { /* swallowed — handled via race/logging below */ });
+
+  const timeoutPromise = new Promise<{ __timeout: true }>((resolve) => {
+    timer = setTimeout(() => resolve({ __timeout: true }), EMAIL_INVOKE_TIMEOUT_MS) as unknown as number;
+  });
+
+  try {
+    const raced = await Promise.race([invokePromise, timeoutPromise]);
+
+    if (raced && (raced as any).__timeout === true) {
+      console.warn(`[subscription-renewal] email-send timed out after ${EMAIL_INVOKE_TIMEOUT_MS}ms (best-effort, continuing).`);
+      return { status: "timeout" };
+    }
+
+    const emailResult = raced as any;
+    if (emailResult?.error) {
+      console.warn("[subscription-renewal] email-send returned an error (best-effort, continuing).");
+      return { status: "failed", error: String(emailResult.error?.message || emailResult.error) };
+    }
+    return { status: "sent" };
+  } catch (err) {
+    console.warn("[subscription-renewal] email-send threw (best-effort, continuing).");
+    return { status: "failed", error: String(err) };
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 async function processSubscription(supabase: any, sub: any): Promise<ProcessResult> {
@@ -292,6 +356,7 @@ async function processSubscription(supabase: any, sub: any): Promise<ProcessResu
     success: false,
     downgraded: false,
     emailSent: false,
+    emailStatus: "not_attempted",
     notificationCreated: false,
     auditLogged: false,
     payfastResult: "not_applicable",
@@ -364,7 +429,12 @@ async function processSubscription(supabase: any, sub: any): Promise<ProcessResu
     }
     result.downgraded = true;
 
-    // ─── Step 3: Send Email ───────────────────────────────────────────────────
+    // ─── Step 3: Send Email (best-effort, hard-timeout bounded) ───────────────
+    // The DB downgrade above has ALREADY committed. Email is best-effort only:
+    // it is wrapped in a 10s hard timeout so a stalled SMTP connection inside
+    // email-send can never hang this subscription, the sequential loop, or the
+    // function's HTTP response. A timeout is recorded distinctly from a normal
+    // failure. Never throws (no unhandled rejection); always continues.
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -373,18 +443,20 @@ async function processSubscription(supabase: any, sub: any): Promise<ProcessResu
         .single();
 
       if (profile?.email) {
-        const emailResult = await supabase.functions.invoke("email-send", {
-          body: {
-            to: profile.email,
-            subject: "Your PRO subscription has ended",
-            text: buildDowngradeEmail(profile.full_name || "Farmer"),
-          },
-        });
-        result.emailSent = !emailResult.error;
+        const emailOutcome = await sendDowngradeEmailWithTimeout(
+          supabase,
+          profile.email,
+          profile.full_name || "Farmer",
+        );
+        result.emailStatus = emailOutcome.status;         // "sent" | "failed" | "timeout"
+        result.emailSent = emailOutcome.status === "sent";
+      } else {
+        result.emailStatus = "skipped_no_email";
       }
     } catch {
-      // Email failure is non-blocking
+      // Any failure looking up the profile is non-blocking.
       result.emailSent = false;
+      result.emailStatus = "failed";
     }
 
     // ─── Step 4: In-App Notification ──────────────────────────────────────────
@@ -483,6 +555,7 @@ async function logAudit(supabase: any, sub: any, result: ProcessResult, outcome:
         downgrade_date: new Date().toISOString(),
         payfast_result: result.payfastResult,
         email_sent: result.emailSent,
+        email_status: result.emailStatus,
         notification_created: result.notificationCreated,
         reason: expiryReason(sub),
         outcome,
