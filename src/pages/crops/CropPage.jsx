@@ -28,6 +28,7 @@ import ViewToggle from "../../components/livestock/ViewToggle";
 import GroundSampleCard from "../../components/crops/GroundSampleCard";
 import GroundSamplingForm from "../../components/crops/GroundSamplingForm";
 import GroundSampleHistory from "../../components/crops/GroundSampleHistory";
+import SoilReferencePanel from "../../components/crops/SoilReferencePanel";
 
 import { getCrops } from "../../services/cropService";
 import { getGroundSamples } from "../../services/groundSamplingService";
@@ -254,6 +255,11 @@ export default function CropPage() {
               onAdd={() => { setSelectedSample(null); setShowSampleForm(true); }}
               onEdit={(sample) => { setSelectedSample(sample); setShowSampleForm(true); }}
             />
+
+            {/* USA-5: USDA SSURGO soil REFERENCE — shown separately from (and
+                never overwriting) the measured Ground Sample above. Renders
+                null for non-US farms, so SA is unaffected. */}
+            <SoilReferencePanel farmCtx={farmCtx} />
 
             {groundSamples.length > 0 && (
               <PremiumDashboardSection

@@ -61,6 +61,9 @@ export const hpaToInHg = (hpa) => Number(hpa) / CONVERSION.HPA_PER_INHG;
 export const inHgToHpa = (inhg) => Number(inhg) * CONVERSION.HPA_PER_INHG;
 export const kmToMiles = (km) => Number(km) / CONVERSION.KM_PER_MILE;
 export const milesToKm = (mi) => Number(mi) * CONVERSION.KM_PER_MILE;
+// USA-5: soil depth / small lengths use centimetres canonically (US shows inches).
+export const cmToInches = (cm) => Number(cm) / (CONVERSION.MM_PER_INCH / 10);
+export const inchesToCm = (inch) => Number(inch) * (CONVERSION.MM_PER_INCH / 10);
 
 // ─── Central display precision ───────────────────────────────
 
@@ -73,6 +76,7 @@ const PRECISION = {
   volume: 1,
   pressure: 2,
   distance: 1,
+  depth: 1,
 };
 
 /** Round to n decimals, drop trailing zeros, keep as a Number. */
@@ -90,8 +94,8 @@ function num(value, decimals, locale = "en-US") {
 // ─── Unit labels per system ──────────────────────────────────
 
 export const UNIT_LABELS = {
-  metric: { temperature: "\u00B0C", precipitation: "mm", wind: "km/h", area: "ha", mass: "kg", volume: "L", pressure: "hPa", distance: "km" },
-  us_customary: { temperature: "\u00B0F", precipitation: "in", wind: "mph", area: "acres", mass: "lb", volume: "gal", pressure: "inHg", distance: "mi" },
+  metric: { temperature: "\u00B0C", precipitation: "mm", wind: "km/h", area: "ha", mass: "kg", volume: "L", pressure: "hPa", distance: "km", depth: "cm" },
+  us_customary: { temperature: "\u00B0F", precipitation: "in", wind: "mph", area: "acres", mass: "lb", volume: "gal", pressure: "inHg", distance: "mi", depth: "in" },
 };
 
 export function unitLabel(kind, ctxOrSystem) {
@@ -177,6 +181,20 @@ export function formatDistance(valueKm, ctx, { withUnit = true } = {}) {
   const v = us ? kmToMiles(valueKm) : Number(valueKm);
   const s = num(v, PRECISION.distance);
   return withUnit ? `${s} ${us ? "mi" : "km"}` : s;
+}
+
+/**
+ * Soil depth / small length: canonical CENTIMETRES. US shows inches.
+ * Used for USA-5 soil-reference values such as available water capacity
+ * (e.g. "17.8 cm" → "7 in"). Canonical value stays cm; conversion only at
+ * the display boundary.
+ */
+export function formatDepth(valueCm, ctx, { withUnit = true } = {}) {
+  if (empty(valueCm)) return "\u2014";
+  const us = isUsCustomary(ctx);
+  const v = us ? cmToInches(valueCm) : Number(valueCm);
+  const s = num(v, PRECISION.depth);
+  return withUnit ? `${s} ${us ? "in" : "cm"}` : s;
 }
 
 /** The label to use for a farm-area field, e.g. "Farm Size (ha)" / "(acres)". */
