@@ -33,9 +33,10 @@ export function getCropNotifications(data = {}) {
       const name = crop.name || crop.crop_name || "Crop";
       const isHarvested = crop.status === "Harvested";
 
-      // Harvest notifications (skip harvested crops)
-      if (!isHarvested && crop.harvest_date) {
-        const harvestDate = new Date(crop.harvest_date);
+      // Harvest notifications (skip harvested crops).
+      // BUGFIX: crops use `expected_harvest`, not `harvest_date`.
+      if (!isHarvested && crop.expected_harvest) {
+        const harvestDate = new Date(crop.expected_harvest);
         harvestDate.setHours(0, 0, 0, 0);
 
         if (isOverdue(harvestDate, today)) {
@@ -150,6 +151,6 @@ function buildNotification(crop, priority, title, message, type) {
     module: "Crops",
     route: "/crops",
     read: false,
-    createdAt: crop.harvest_date || crop.planting_date || crop.created_at || new Date().toISOString(),
+    createdAt: crop.expected_harvest || crop.planting_date || crop.created_at || new Date().toISOString(),
   };
 }

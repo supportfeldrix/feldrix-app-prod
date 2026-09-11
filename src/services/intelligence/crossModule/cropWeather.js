@@ -7,7 +7,7 @@
  *
  * Expected data shape:
  * {
- *   crops: [],       // Array of crop objects with status, harvest_date, name/crop_name
+ *   crops: [],       // Array of crop objects with status, expected_harvest, name/crop_name
  *   weather: {
  *     available: true,
  *     current: { temperature, windSpeed, rainfall, condition },

@@ -149,9 +149,10 @@ function generateCropPredictions({ crops = [] } = {}) {
   for (const crop of crops) {
     const name = crop.name || crop.crop_name || "Crop";
 
-    // Harvest prediction
-    if (crop.harvest_date) {
-      const harvestDate = new Date(crop.harvest_date);
+    // Harvest prediction.
+    // BUGFIX: crops use `expected_harvest`, not `harvest_date`; skip Harvested.
+    if (crop.status !== "Harvested" && crop.expected_harvest) {
+      const harvestDate = new Date(crop.expected_harvest);
       harvestDate.setHours(0, 0, 0, 0);
 
       const daysUntil = Math.round((harvestDate - today) / (1000 * 60 * 60 * 24));

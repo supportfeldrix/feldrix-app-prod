@@ -7,7 +7,7 @@
  *
  * Expected data shape:
  * {
- *   crops: [],       // Array of crop objects with harvest_date, status, name/crop_name
+ *   crops: [],       // Array of crop objects with expected_harvest, status, name/crop_name
  *   weather: {       // Optional weather summary
  *     available: true,
  *     current: { rainfall, condition },
@@ -20,6 +20,8 @@
  */
 // USA-4: region-aware crop timing (US farms only; SA-safe no-op otherwise).
 import { generateRegionalCropTimingInsights } from "../../utils/cropIntelligence";
+// Soil analysis (US + SA): concise soil findings from the latest measured sample.
+import { analyzeSoil, buildSoilInsights } from "../soilAnalysisService";
 
 export function generateCropInsights(data = {}) {
   try {
@@ -35,6 +37,21 @@ export function generateCropInsights(data = {}) {
     try {
       const regional = generateRegionalCropTimingInsights(crops, farmContext, weather);
       if (Array.isArray(regional)) insights.push(...regional);
+    } catch { /* never break the provider */ }
+
+    // Soil analysis findings (US + SA, one engine). Concise — at most 2 — so the
+    // dashboard is never flooded, and NOT a duplicate of the full Soil Analysis
+    // panel. Only runs when a measured sample is present; no fabrication.
+    try {
+      const sample = data.latestSoilSample || null;
+      if (sample) {
+        const analysis = analyzeSoil({
+          sample,
+          crop: sample.crops?.crop_name || null,
+          farmCtx: farmContext,
+        });
+        insights.push(...buildSoilInsights(analysis));
+      }
     } catch { /* never break the provider */ }
 
     const activeCrops = crops.filter(

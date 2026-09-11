@@ -179,18 +179,19 @@ function buildActionCenter(planner, healthRecords, breedingRecords, cropRecords,
 
   // 5. Crop Tasks Due Within 7 Days
   for (const crop of cropRecords) {
-    if (!crop.harvest_date) continue;
+    // BUGFIX: crops use `expected_harvest`, not `harvest_date` (no such column).
+    if (crop.status === "Harvested" || !crop.expected_harvest) continue;
 
-    const harvestDate = new Date(crop.harvest_date);
+    const harvestDate = new Date(crop.expected_harvest);
     harvestDate.setHours(0, 0, 0, 0);
     if (harvestDate < todayDate || harvestDate > sevenDaysLater) continue;
 
     items.push({
       id: crop.id,
-      title: crop.name || crop.crop_type || "Crop Harvest",
+      title: crop.crop_name || crop.name || "Crop Harvest",
       module: "Crops",
       priority: "Medium",
-      due_date: crop.harvest_date,
+      due_date: crop.expected_harvest,
       source: "crops",
     });
   }
@@ -295,9 +296,10 @@ function countCropTasks(crops) {
   sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
 
   return (crops || []).filter((crop) => {
-    if (!crop.harvest_date) return false;
+    // BUGFIX: crops use `expected_harvest`, not `harvest_date`.
+    if (crop.status === "Harvested" || !crop.expected_harvest) return false;
 
-    const harvestDate = new Date(crop.harvest_date);
+    const harvestDate = new Date(crop.expected_harvest);
     harvestDate.setHours(0, 0, 0, 0);
 
     return harvestDate >= today && harvestDate <= sevenDaysLater;

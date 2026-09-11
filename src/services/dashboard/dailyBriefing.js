@@ -174,8 +174,8 @@ function generateHighlights(data) {
   // Crops
   const crops = data.crops?.crops || [];
   const harvestOverdue = crops.filter((c) => {
-    if (c.status === "Harvested" || !c.harvest_date) return false;
-    const d = new Date(c.harvest_date);
+    if (c.status === "Harvested" || !c.expected_harvest) return false;
+    const d = new Date(c.expected_harvest);
     d.setHours(0, 0, 0, 0);
     return d < today;
   }).length;
@@ -287,8 +287,8 @@ function generateRecommendation(data) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const harvestOverdue = crops.some((c) => {
-    if (c.status === "Harvested" || !c.harvest_date) return false;
-    const d = new Date(c.harvest_date);
+    if (c.status === "Harvested" || !c.expected_harvest) return false;
+    const d = new Date(c.expected_harvest);
     d.setHours(0, 0, 0, 0);
     return d < today;
   });

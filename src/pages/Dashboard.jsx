@@ -27,6 +27,7 @@ import { getDashboardStats } from "../services/dashboardService";
 import { getHealthRecords } from "../services/healthService";
 import { getNotifications } from "../services/notificationService";
 import { getWeatherSummary } from "../services/weatherService";
+import { getLatestGroundSample } from "../services/groundSamplingService";
 import { calculateFarmHealthScore } from "../utils/farmHealthScore";
 import { generateAIInsights } from "../utils/aiInsights";
 import { generateFarmTimeline } from "../utils/farmTimeline";
@@ -90,11 +91,12 @@ export default function Dashboard() {
         }
       } catch { /* non-blocking */ }
 
-      const [dash, health, notifs, weatherData] = await Promise.all([
+      const [dash, health, notifs, weatherData, latestSoilSample] = await Promise.all([
         getDashboardStats(),
         getHealthRecords(),
         getNotifications(),
         getWeatherSummary(weatherLocation || undefined),
+        getLatestGroundSample().catch(() => null),
       ]);
 
       setDashboard(dash);
@@ -136,6 +138,9 @@ export default function Dashboard() {
           weightRecords: dash?.weightRecords || [],
         },
         crops: dash?.crops || [],
+        // Latest measured soil sample so Farm Intelligence can surface concise
+        // soil findings (low pH / low N). Null when none exists (no analysis).
+        latestSoilSample,
         finance: { records: dash?.financeRecords || [] },
         machinery: {
           machines: dash?.machines || [],

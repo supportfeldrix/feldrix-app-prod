@@ -21,6 +21,7 @@
  */
 
 import { formatCurrency } from "../../utils/currency";
+import { getCropLifecycle } from "../../utils/cropLifecycle";
 
 /**
  * Generates smart dashboard cards from farm data.
@@ -145,10 +146,21 @@ function generateCropsCard(crops = {}) {
   let harvestSoon = 0;
 
   for (const crop of cropList) {
+    // Manually Harvested crops are done — never overdue/soon (preserved).
     if (crop.status === "Harvested") continue;
-    if (!crop.harvest_date) continue;
 
-    const harvestDate = new Date(crop.harvest_date);
+    // BUGFIX: the crops table has NO `harvest_date` column — the actual field
+    // is `expected_harvest`. Previously `if (!crop.harvest_date) continue;`
+    // silently skipped EVERY crop, so this card never reported harvests. We
+    // now resolve the effective harvest date via the lifecycle engine, which
+    // honours expected_harvest, expected_growing_days and the manual Harvested
+    // status (and stays consistent with USA-4 crop intelligence + SA defaults).
+    const lc = getCropLifecycle(crop);
+    const harvestIso = lc.estimatedHarvestDate || crop.expected_harvest;
+    if (!harvestIso) continue;
+
+    const harvestDate = new Date(harvestIso);
+    if (Number.isNaN(harvestDate.getTime())) continue;
     harvestDate.setHours(0, 0, 0, 0);
 
     if (harvestDate < today) harvestOverdue++;

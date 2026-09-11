@@ -29,6 +29,7 @@ import GroundSampleCard from "../../components/crops/GroundSampleCard";
 import GroundSamplingForm from "../../components/crops/GroundSamplingForm";
 import GroundSampleHistory from "../../components/crops/GroundSampleHistory";
 import SoilReferencePanel from "../../components/crops/SoilReferencePanel";
+import SoilAnalysisPanel from "../../components/crops/SoilAnalysisPanel";
 
 import { getCrops } from "../../services/cropService";
 import { getGroundSamples } from "../../services/groundSamplingService";
@@ -254,6 +255,16 @@ export default function CropPage() {
               previousCount={Math.max(0, groundSamples.length - 1)}
               onAdd={() => { setSelectedSample(null); setShowSampleForm(true); }}
               onEdit={(sample) => { setSelectedSample(sample); setShowSampleForm(true); }}
+            />
+
+            {/* Soil Analysis — interprets the latest MEASURED sample (US + SA,
+                one engine). Measured data stays authoritative; USDA reference
+                (US only) is shown as context inside the panel. */}
+            <SoilAnalysisPanel
+              latestSample={groundSamples[0] || null}
+              history={groundSamples}
+              crop={groundSamples[0]?.crops?.crop_name || null}
+              farmCtx={farmCtx}
             />
 
             {/* USA-5: USDA SSURGO soil REFERENCE — shown separately from (and
