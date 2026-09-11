@@ -5,13 +5,14 @@
 
 import { useEffect, useState } from "react";
 import {
-  Box, Button, Card, CardContent, Chip, Divider, Grid,
-  MenuItem, Stack, TextField, Typography,
+  Box, Button, Card, CardContent, Chip, Divider, FormControl, Grid,
+  InputLabel, ListSubheader, MenuItem, Select, Stack, TextField, Typography,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import { addAnimal, updateAnimal } from "../../services/livestockService";
 import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
 import { LIVESTOCK_STATUSES } from "../../constants/livestockStatus";
+import { SPECIES_CATALOG_GROUPS, OTHER_SPECIES, isOtherSpecies } from "../../constants/livestockSpecies";
 import useFarmContext from "../../hooks/useFarmContext";
 import { isUsCustomary, lbToKg, kgToLb, unitLabel } from "../../utils/units";
 import { resolveLocale, currencySymbol } from "../../utils/currency";
@@ -27,6 +28,9 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
   const [form, setForm] = useState({
     tag: "",
     animal_type: "Cattle",
+    // Custom free-text species, shown only when animal_type === "Other".
+    // Persisted to the existing livestock.category column (no migration).
+    custom_species: "",
     breed: "",
     gender: "Female",
     date_of_birth: "",
@@ -44,6 +48,8 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
       setForm({
         tag: animal.tag || "",
         animal_type: animal.animal_type || "Cattle",
+        // For "Other" animals the custom species lives in category.
+        custom_species: isOtherSpecies(animal.animal_type) ? (animal.category || "") : "",
         breed: animal.breed || "",
         gender: normalizeGender(animal.gender),
         date_of_birth: animal.date_of_birth || "",
@@ -74,11 +80,23 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
       alert("Breed is required.");
       return;
     }
+    if (isOtherSpecies(form.animal_type) && !form.custom_species.trim()) {
+      alert("Please enter the animal type / species for \u201COther\u201D.");
+      return;
+    }
 
     setSaving(true);
     try {
       // Persist canonical kg (convert the entered display value for US farms).
-      const payload = { ...form, weight: displayToKg(form.weight) };
+      // Structured custom species: store the free-text name in the existing
+      // `category` column when species is "Other"; clear it otherwise. The
+      // transient `custom_species` field is never sent to the database.
+      const { custom_species, ...rest } = form;
+      const payload = {
+        ...rest,
+        weight: displayToKg(form.weight),
+        category: isOtherSpecies(form.animal_type) ? custom_species.trim() : null,
+      };
       if (animal) {
         await updateAnimal(animal.id, payload);
       } else {
@@ -86,7 +104,7 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
       }
 
       setForm({
-        tag: "", animal_type: "Cattle", breed: "", gender: "Female",
+        tag: "", animal_type: "Cattle", custom_species: "", breed: "", gender: "Female",
         date_of_birth: "", purchase_date: "", weight: "",
         purchase_price: "", status: "Active", notes: "",
       });
@@ -134,22 +152,43 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <TextField
-                select
-                fullWidth
-                label="Species"
-                name="animal_type"
-                value={form.animal_type}
-                onChange={handleChange}
-                size="small"
-              >
-                <MenuItem value="Cattle">🐄 Cattle</MenuItem>
-                <MenuItem value="Sheep">🐑 Sheep</MenuItem>
-                <MenuItem value="Goats">🐐 Goats</MenuItem>
-                <MenuItem value="Pigs">🐖 Pigs</MenuItem>
-                <MenuItem value="Poultry">🐔 Poultry</MenuItem>
-              </TextField>
+              <FormControl fullWidth size="small">
+                <InputLabel id="species-label">Species</InputLabel>
+                <Select
+                  labelId="species-label"
+                  label="Species"
+                  name="animal_type"
+                  value={form.animal_type}
+                  onChange={handleChange}
+                >
+                  {SPECIES_CATALOG_GROUPS.flatMap((grp) => [
+                    <ListSubheader key={`hdr-${grp.group}`}>{grp.group}</ListSubheader>,
+                    ...grp.options.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        {opt.icon} {opt.label}
+                      </MenuItem>
+                    )),
+                  ])}
+                </Select>
+              </FormControl>
             </Grid>
+
+            {/* Custom species — only when "Other" is selected. */}
+            {isOtherSpecies(form.animal_type) && (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Animal Type / Species"
+                  name="custom_species"
+                  value={form.custom_species}
+                  onChange={handleChange}
+                  size="small"
+                  placeholder="e.g. Yak, Ostrich, Emu"
+                  helperText="Enter the specific animal type."
+                />
+              </Grid>
+            )}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth

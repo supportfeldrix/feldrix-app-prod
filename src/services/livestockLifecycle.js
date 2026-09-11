@@ -14,6 +14,8 @@
  * ============================================================
  */
 
+import { normalizeSpeciesKey } from "../constants/livestockSpecies";
+
 // ─── Lifecycle Definitions ──────────────────────────────────
 
 const CATTLE_STAGES = {
@@ -86,13 +88,18 @@ function classifyGender(gender) {
 
 // ─── Species → Stage Map ────────────────────────────────────
 
+// Only species with a VALIDATED stage model get lifecycle stages. Others (e.g.
+// horse, bison, rabbit, poultry, bee, custom "Other") return null so we never
+// mislabel them (a Bee must not show "Calf"). Uses the global catalog's
+// normalization so aliases/plurals resolve consistently.
 function getStagesForSpecies(animalType) {
-  switch (animalType) {
-    case "Cattle": return CATTLE_STAGES;
-    case "Sheep": return SHEEP_STAGES;
-    case "Goats": return GOAT_STAGES;
-    case "Pigs": return PIG_STAGES;
-    default: return CATTLE_STAGES; // fallback for unknown species
+  const key = normalizeSpeciesKey(animalType);
+  switch (key) {
+    case "cattle": return CATTLE_STAGES;
+    case "sheep": return SHEEP_STAGES;
+    case "goats": return GOAT_STAGES;
+    case "pigs": return PIG_STAGES;
+    default: return null; // no validated stage model → no lifecycle stage
   }
 }
 
@@ -151,6 +158,22 @@ export function getLifecycleStage(animal) {
   const animalType = animal.animal_type || "Cattle";
   const genderClass = classifyGender(animal.gender);
   const stagesMap = getStagesForSpecies(animalType);
+
+  // Species without a validated stage model: report age only, no stage label.
+  if (!stagesMap) {
+    const ageMonths = calculateAgeMonths(dob);
+    return {
+      stage: null,
+      ageMonths,
+      ageDays: calculateAgeDays(dob),
+      ageLabel: formatAge(ageMonths),
+      nextStage: null,
+      nextStageDate: null,
+      stageIndex: -1,
+      totalStages: 0,
+    };
+  }
+
   const stages = stagesMap[genderClass] || stagesMap.female;
 
   const ageMonths = calculateAgeMonths(dob);
@@ -201,6 +224,7 @@ export function getLifecycleStage(animal) {
  */
 export function getStagesFor(animalType, gender) {
   const stagesMap = getStagesForSpecies(animalType || "Cattle");
+  if (!stagesMap) return [];
   const genderClass = classifyGender(gender);
   return stagesMap[genderClass] || stagesMap.female;
 }

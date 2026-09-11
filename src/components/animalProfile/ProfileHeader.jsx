@@ -1,8 +1,7 @@
 import { Box, Chip, Stack, Typography } from "@mui/material";
 import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
 import { getStatusConfig } from "../../constants/livestockStatus";
-
-const SPECIES_ICON = { Cattle: "🐄", Sheep: "🐑", Goats: "🐐", Pigs: "🐖", Poultry: "🐔" };
+import { getSpeciesIcon, getSpeciesDisplayLabel } from "../../constants/livestockSpecies";
 
 export default function ProfileHeader({ animal }) {
   if (!animal) return null;
@@ -26,14 +25,14 @@ export default function ProfileHeader({ animal }) {
         {/* Icon + Tag + Breed */}
         <Stack direction="row" spacing={2.5} alignItems="center" sx={{ flex: 1 }}>
           <Typography sx={{ fontSize: { xs: 50, md: 64 }, lineHeight: 1 }}>
-            {SPECIES_ICON[animal.animal_type] || "🐄"}
+            {getSpeciesIcon(animal)}
           </Typography>
           <Box>
             <Typography sx={{ fontSize: { xs: "1.5rem", md: "2rem" }, fontWeight: 800, lineHeight: 1.1 }}>
               {animal.tag}
             </Typography>
             <Typography sx={{ opacity: 0.9, mt: 0.5, fontSize: "1rem" }}>
-              {animal.breed} &middot; {animal.animal_type} &middot; {animal.gender}
+              {animal.breed} &middot; {getSpeciesDisplayLabel(animal)} &middot; {animal.gender}
             </Typography>
           </Box>
         </Stack>

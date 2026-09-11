@@ -27,6 +27,7 @@ import { deleteAnimal } from "../../services/livestockService";
 import { radius, transitions } from "../../design/tokens";
 import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
 import { formatMass } from "../../utils/units";
+import { getSpeciesIcon, getSpeciesDisplayLabel } from "../../constants/livestockSpecies";
 import useFarmContext from "../../hooks/useFarmContext";
 
 function getStatusColor(status) {
@@ -37,16 +38,6 @@ function getStatusColor(status) {
     case "Injured": return "error";
     case "Sold": return "default";
     default: return "default";
-  }
-}
-
-function getSpeciesIcon(type) {
-  switch (type) {
-    case "Sheep": return "\uD83D\uDC11";
-    case "Goats": return "\uD83D\uDC10";
-    case "Pigs": return "\uD83D\uDC16";
-    case "Poultry": return "\uD83D\uDC14";
-    default: return "\uD83D\uDC04";
   }
 }
 
@@ -61,6 +52,7 @@ export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
     return (
       (animal.tag || "").toLowerCase().includes(term) ||
       (animal.animal_type || "Cattle").toLowerCase().includes(term) ||
+      getSpeciesDisplayLabel(animal).toLowerCase().includes(term) ||
       (animal.breed || "").toLowerCase().includes(term) ||
       (animal.gender || "").toLowerCase().includes(term) ||
       (animal.status || "").toLowerCase().includes(term) ||
@@ -186,10 +178,10 @@ export default function AnimalTable({ animals, onEdit, refreshAnimals }) {
                   <TableCell sx={dataCell}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Typography sx={{ fontSize: 20, lineHeight: 1 }}>
-                        {getSpeciesIcon(animal.animal_type)}
+                        {getSpeciesIcon(animal)}
                       </Typography>
                       <Typography variant="body2" color="text.primary">
-                        {animal.animal_type || "Cattle"}
+                        {getSpeciesDisplayLabel(animal)}
                       </Typography>
                     </Stack>
                   </TableCell>

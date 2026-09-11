@@ -1,3 +1,5 @@
+import { SPECIES_CATALOG_GROUPS } from "../../constants/livestockSpecies";
+
 export default function LivestockFilters({
   search,
   setSearch,
@@ -37,11 +39,13 @@ export default function LivestockFilters({
         style={inputStyle}
       >
         <option value="All">All Species</option>
-        <option>Cattle</option>
-        <option>Sheep</option>
-        <option>Goats</option>
-        <option>Pigs</option>
-        <option>Poultry</option>
+        {SPECIES_CATALOG_GROUPS.map((grp) => (
+          <optgroup key={grp.group} label={grp.group}>
+            {grp.options.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </optgroup>
+        ))}
       </select>
 
       {/* Status */}

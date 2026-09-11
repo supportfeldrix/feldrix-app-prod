@@ -21,6 +21,7 @@ import { getLifecycleStage, getStageColor } from "../../services/livestockLifecy
 import { getCoverPhoto, generateSignedUrl } from "../../services/photoService";
 import { formatMass } from "../../utils/units";
 import { formatCurrency } from "../../utils/currency";
+import { getSpeciesIcon, getSpeciesDisplayLabel } from "../../constants/livestockSpecies";
 import useFarmContext from "../../hooks/useFarmContext";
 
 function getStatusColor(status) {
@@ -31,17 +32,6 @@ function getStatusColor(status) {
     case "Injured": return "error";
     case "Sold": return "default";
     default: return "default";
-  }
-}
-
-function getSpeciesIcon(type) {
-  switch (type) {
-    case "Cattle": return "\uD83D\uDC04";
-    case "Sheep": return "\uD83D\uDC11";
-    case "Goats": return "\uD83D\uDC10";
-    case "Pigs": return "\uD83D\uDC16";
-    case "Poultry": return "\uD83D\uDC14";
-    default: return "\uD83D\uDC04";
   }
 }
 
@@ -90,7 +80,7 @@ export default function AnimalCard({ animal, onEdit, onDelete }) {
               </Box>
             ) : (
               <Box sx={{ fontSize: 44, lineHeight: 1 }}>
-                {getSpeciesIcon(animal.animal_type)}
+                {getSpeciesIcon(animal)}
               </Box>
             )}
             <Stack direction="row" spacing={0.5} alignItems="center">
@@ -131,7 +121,7 @@ export default function AnimalCard({ animal, onEdit, onDelete }) {
           >
             <AttrField label="Gender" value={animal.gender || "\u2014"} />
             <AttrField label="Weight" value={animal.weight ? formatMass(animal.weight, farmCtx) : "\u2014"} />
-            <AttrField label="Species" value={animal.animal_type || "\u2014"} />
+            <AttrField label="Species" value={getSpeciesDisplayLabel(animal)} />
             <AttrField label="Value" value={animal.purchase_price ? formatCurrency(animal.purchase_price, farmCtx) : "\u2014"} />
           </Box>
 

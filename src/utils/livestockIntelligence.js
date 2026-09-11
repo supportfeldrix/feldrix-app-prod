@@ -149,12 +149,20 @@ export function summarizeHerdIntelligence({ animals = [], weightRecords = [], he
   for (const a of animals) {
     if (a.status === "Sold" || a.status === "Deceased" || a.status === "Slaughtered" || a.status === "Archived") continue;
 
-    const wt = getWeightTrend(byAnimalWeights[a.id] || [], now);
-    if (wt.trend === "declining") declining.push(a.tag || "Unknown");
     const profile = getLivestockProfile(a.animal_type, farmCtx);
-    const staleDays = profile.weightObservationDays ?? STALE_WEIGHT_DAYS_DEFAULT;
-    if (staleDays != null && wt.daysSinceLast != null && wt.daysSinceLast > staleDays) {
-      staleWeights.push(a.tag || "Unknown");
+
+    // Weight intelligence only where individual-animal weight is meaningful.
+    // Hive/flock species (bee, poultry-type) set weightApplies=false and are
+    // never forced into a weight-driven model. Unknown "Other" species keep
+    // weightApplies=true but only surface a trend when a record actually exists
+    // (getWeightTrend returns "insufficient" with <2 points → no false signal).
+    if (profile.weightApplies !== false) {
+      const wt = getWeightTrend(byAnimalWeights[a.id] || [], now);
+      if (wt.trend === "declining") declining.push(a.tag || "Unknown");
+      const staleDays = profile.weightObservationDays ?? STALE_WEIGHT_DAYS_DEFAULT;
+      if (staleDays != null && wt.daysSinceLast != null && wt.daysSinceLast > staleDays) {
+        staleWeights.push(a.tag || "Unknown");
+      }
     }
 
     const rc = getRecordCompleteness(a, {

@@ -1,5 +1,6 @@
 import { formatMass } from "../../utils/units";
 import { formatCurrency } from "../../utils/currency";
+import { getSpeciesDisplayLabel } from "../../constants/livestockSpecies";
 import useFarmContext from "../../hooks/useFarmContext";
 
 export default function AnimalInfo({ animal }) {
@@ -40,7 +41,7 @@ export default function AnimalInfo({ animal }) {
 
         <InfoCard
           title="Species"
-          value={animal.animal_type}
+          value={getSpeciesDisplayLabel(animal)}
         />
 
         <InfoCard

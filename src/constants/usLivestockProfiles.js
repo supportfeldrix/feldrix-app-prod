@@ -22,8 +22,15 @@
  *     livestock.gender (sex), livestock.date_of_birth (birth), livestock.tag
  *     (identifier). There are no location/movement/RFID columns — see
  *     LIVESTOCK_TRACEABILITY_GAPS.
+ *   - The species LIST itself is GLOBAL (constants/livestockSpecies.js). This
+ *     file is the regional CAPABILITY layer: it maps global species keys to
+ *     capability flags + regional context. It does not define the selector.
  * ============================================================
  */
+
+// The species registry + normalization live in the GLOBAL catalog so US, SA and
+// future EU providers share one list (no country-specific species filtering).
+import { normalizeSpeciesKey as catalogNormalizeSpeciesKey, OTHER_SPECIES } from "./livestockSpecies";
 
 // ─── Broad US agricultural regions (reused concept from crops/soil) ───────────
 const STATE_TO_REGION = {
@@ -48,75 +55,63 @@ export function resolveUsLivestockRegion(regionState) {
   return STATE_TO_REGION[String(regionState).trim().toLowerCase()] || "United States";
 }
 
-// ─── Species normalization (maps free-text animal_type to a profile key) ──────
-const SPECIES_ALIASES = {
-  cattle: "cattle", cow: "cattle", cows: "cattle", beef: "cattle", dairy: "cattle", bovine: "cattle",
-  sheep: "sheep", lamb: "sheep", ewe: "sheep", ram: "sheep", ovine: "sheep",
-  goat: "goats", goats: "goats", caprine: "goats",
-  pig: "pigs", pigs: "pigs", hog: "pigs", swine: "pigs", porcine: "pigs",
-  poultry: "poultry", chicken: "poultry", chickens: "poultry", hen: "poultry", broiler: "poultry", layer: "poultry",
-};
-
-/** Normalise a free-text species to a supported profile key, or null. */
+// ─── Species normalization ────────────────────────────────────────────────────
+// Delegates to the global catalog so there is a SINGLE source of truth for the
+// species list + aliases. Re-exported for existing callers/tests.
 export function normalizeSpeciesKey(animalType) {
-  if (!animalType) return null;
-  const raw = String(animalType).trim().toLowerCase();
-  if (SPECIES_ALIASES[raw]) return SPECIES_ALIASES[raw];
-  for (const [alias, key] of Object.entries(SPECIES_ALIASES)) {
-    if (raw.includes(alias)) return key;
-  }
-  return null;
+  return catalogNormalizeSpeciesKey(animalType);
 }
 
 // ─── Species profiles ─────────────────────────────────────────────────────────
-// capabilities + which fields matter for RECORD COMPLETENESS (data quality only).
-// weightObservationDays: a gentle "consider re-weighing" horizon (canonical days).
+// Capabilities + which fields matter for RECORD COMPLETENESS (data quality only).
+//   breedingApplies       — does breeding/pregnancy tracking make sense?
+//   expectsBirthDate      — is an individual birth date meaningful?
+//   expectsIndividualId   — is the animal individually tagged (vs flock/colony)?
+//   weightApplies         — is individual-animal weight tracking meaningful?
+//   weightObservationDays — gentle "consider re-weighing" horizon (canonical days),
+//                           or null to disable the stale-weight nudge.
+// No gestation periods, growth curves, or vet protocols are encoded here.
 const SPECIES_PROFILES = {
-  cattle: {
-    label: "Cattle",
-    breedingApplies: true,
-    expectsBirthDate: true,
-    expectsIndividualId: true, // individually tagged
-    weightObservationDays: 120,
-  },
-  sheep: {
-    label: "Sheep",
-    breedingApplies: true,
-    expectsBirthDate: true,
-    expectsIndividualId: true,
-    weightObservationDays: 120,
-  },
-  goats: {
-    label: "Goats",
-    breedingApplies: true,
-    expectsBirthDate: true,
-    expectsIndividualId: true,
-    weightObservationDays: 120,
-  },
-  pigs: {
-    label: "Pigs",
-    breedingApplies: true,
-    expectsBirthDate: true,
-    expectsIndividualId: true,
-    weightObservationDays: 90,
-  },
-  poultry: {
-    label: "Poultry",
-    // Poultry are typically managed as flocks, not individually — do not punish
-    // missing individual birth dates / breeding records.
-    breedingApplies: false,
-    expectsBirthDate: false,
-    expectsIndividualId: false,
-    weightObservationDays: null,
-  },
+  cattle:        { label: "Cattle",         breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 120 },
+  horse:         { label: "Horse / Equine", breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 180 },
+  bison:         { label: "Bison",          breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 180 },
+  sheep:         { label: "Sheep",          breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 120 },
+  goats:         { label: "Goat",           breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 120 },
+  pigs:          { label: "Pig / Swine",    breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 90 },
+  water_buffalo: { label: "Water Buffalo",  breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 180 },
+  camelid:       { label: "Camelid",        breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 180 },
+  cervid:        { label: "Cervid",         breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 180 },
+  rabbit:        { label: "Rabbit",         breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 60 },
+  donkey:        { label: "Donkey",         breedingApplies: true,  expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 180 },
+  mule:          { label: "Mule",           breedingApplies: false, expectsBirthDate: true,  expectsIndividualId: true,  weightApplies: true,  weightObservationDays: 180 },
+
+  // Flock/colony poultry-type species: typically managed as groups, not
+  // individually — do not punish missing individual birth dates / breeding.
+  poultry:       { label: "Poultry",        breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: false, weightObservationDays: null },
+  turkey:        { label: "Turkey",         breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: false, weightObservationDays: null },
+  duck:          { label: "Duck",           breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: false, weightObservationDays: null },
+  goose:         { label: "Goose",          breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: false, weightObservationDays: null },
+  guinea_fowl:   { label: "Guinea Fowl",    breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: false, weightObservationDays: null },
+  quail:         { label: "Quail",          breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: false, weightObservationDays: null },
+  pigeon:        { label: "Pigeon",         breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: false, weightObservationDays: null },
+
+  // Hive-managed — individual-animal weight/birth/breeding are not meaningful.
+  bee:           { label: "Bee / Honey Bees", breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: false, weightObservationDays: null },
+
+  // Explicit "Other" sentinel → conservative generic behaviour (see DEFAULT).
+  other:         { label: OTHER_SPECIES,    breedingApplies: false, expectsBirthDate: false, expectsIndividualId: false, weightApplies: true,  weightObservationDays: null },
 };
 
+// Conservative fallback for unknown/unrecognised species: do NOT assume breeding
+// or birth date (so completeness never unfairly penalises), but allow weight
+// analysis if a weight record actually exists (weightApplies true, no nudge).
 const DEFAULT_PROFILE = {
   label: "Livestock",
-  breedingApplies: true,
-  expectsBirthDate: true,
-  expectsIndividualId: true,
-  weightObservationDays: 120,
+  breedingApplies: false,
+  expectsBirthDate: false,
+  expectsIndividualId: false,
+  weightApplies: true,
+  weightObservationDays: null,
 };
 
 /**
@@ -124,7 +119,7 @@ const DEFAULT_PROFILE = {
  * the SAME species profiles serve US and SA; only `region` (US-derived) and the
  * measurement system differ, and those are handled by the units layer.
  * @returns {object} { species, label, breedingApplies, expectsBirthDate,
- *   expectsIndividualId, weightObservationDays, region }
+ *   expectsIndividualId, weightApplies, weightObservationDays, region }
  */
 export function getLivestockProfile(animalType, farmCtx = null) {
   const key = normalizeSpeciesKey(animalType);
