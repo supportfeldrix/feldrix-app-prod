@@ -20,6 +20,8 @@
  * @module smartCards
  */
 
+import { formatCurrency } from "../../utils/currency";
+
 /**
  * Generates smart dashboard cards from farm data.
  *
@@ -29,15 +31,18 @@
  * @param {object} data.crops - Crops data with crops array
  * @param {object} data.machinery - Machinery data with machines and maintenancePlans arrays
  * @param {object} data.finance - Finance data with records array
+ * @param {object} [ctx] - Farm context (measurementSystem/currency) from getFarmContext().
+ *   Passed through so currency values use the farm's operating currency.
+ *   Omitted → formatCurrency defaults to the SA baseline (ZAR).
  * @returns {Array} Array of card objects
  */
-export function getSmartDashboardCards(data = {}) {
+export function getSmartDashboardCards(data = {}, ctx = null) {
   return [
     generatePlannerCard(data.planner),
     generateLivestockCard(data.livestock),
     generateCropsCard(data.crops),
     generateMachineryCard(data.machinery),
-    generateFinanceCard(data.finance),
+    generateFinanceCard(data.finance, ctx),
   ];
 }
 
@@ -217,7 +222,7 @@ function generateMachineryCard(machinery = {}) {
 /**
  * Generates the Finance KPI card.
  */
-function generateFinanceCard(finance = {}) {
+function generateFinanceCard(finance = {}, ctx = null) {
   const records = Array.isArray(finance.records) ? finance.records : [];
 
   if (records.length === 0) {
@@ -225,7 +230,7 @@ function generateFinanceCard(finance = {}) {
       id: "card-finance",
       module: "Finance",
       title: "Finance",
-      value: "R 0",
+      value: formatCurrency(0, ctx),
       subtitle: "No records",
       status: "good",
       actionLabel: "View Finance",
@@ -281,7 +286,7 @@ function generateFinanceCard(finance = {}) {
     id: "card-finance",
     module: "Finance",
     title: "Finance",
-    value: `R ${Math.abs(profit).toLocaleString()}`,
+    value: formatCurrency(Math.abs(profit), ctx),
     subtitle,
     status,
     actionLabel: "View Finance",

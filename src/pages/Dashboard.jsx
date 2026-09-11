@@ -37,7 +37,7 @@ import { getSmartDashboardCards } from "../services/dashboard/smartCards";
 import { getDailyFarmBriefing } from "../services/dashboard/dailyBriefing";
 import { useNotificationBadge } from "../context/NotificationContext";
 import { useOnboarding } from "../hooks/useOnboarding";
-import { getCurrentUser, getProfile } from "../services/profileService";
+import { getCurrentUser, getProfile, getFarmContext } from "../services/profileService";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -66,6 +66,7 @@ export default function Dashboard() {
     try {
       // Load user name for personalised greeting
       let weatherLocation = "";
+      let ctx = null; // resolved farm context (function-scoped so it's fresh below)
       try {
         const user = await getCurrentUser();
         if (user) {
@@ -77,8 +78,15 @@ export default function Dashboard() {
             || "Farmer";
           setUserName(name);
           setFarmName(profile?.farm_name || "");
-          setFarmRegion(profile?.province || "South Africa");
           weatherLocation = profile?.weather_location || "";
+
+          // Resolve the SAME farm context the Weather page uses (measurement
+          // system / currency / country) so the Dashboard never falls back to
+          // a hard-coded SA/ZAR default. The region label shown in the Hero is
+          // derived from the resolved context: prefer the admin region
+          // (region_state / province), otherwise show the resolved country.
+          ctx = await getFarmContext(profile).catch(() => null);
+          setFarmRegion(ctx?.region || ctx?.country || "");
         }
       } catch { /* non-blocking */ }
 
@@ -149,8 +157,10 @@ export default function Dashboard() {
       setEngineNotifications(engineNotifs);
       setUnreadCount(engineNotifs.filter((n) => !n.read).length);
 
-      // Smart Card Engine
-      setSmartCards(getSmartDashboardCards(farmData));
+      // Smart Card Engine — pass the resolved farm context (fresh local `ctx`,
+      // not the async state) so currency values use the farm's operating
+      // currency (USD/$ for US, ZAR/R for SA).
+      setSmartCards(getSmartDashboardCards(farmData, ctx));
 
       // Daily Briefing Engine
       const briefing = getDailyFarmBriefing({
