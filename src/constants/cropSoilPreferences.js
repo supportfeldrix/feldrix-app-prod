@@ -100,10 +100,14 @@ export function getPreferredPhRange(cropName) {
 export const NPK_BANDS = {
   // Soil nitrate/available N is highly transient & method-dependent; bands are
   // intentionally coarse and flagged low-confidence by the engine.
+  // Available/mineral soil N is transient and method-dependent. General guides
+  // commonly treat available N below ~15 mg/kg (ppm) as low for demanding row
+  // crops, so the low/adequate boundary is 15 (was 10). Still APPROXIMATE — the
+  // engine always states the extraction-method/units uncertainty caveat.
   nitrogen: [
-    { status: "low", max: 10 },
-    { status: "adequate", min: 10, max: 25 },
-    { status: "elevated", min: 25, max: 50 },
+    { status: "low", max: 15 },
+    { status: "adequate", min: 15, max: 30 },
+    { status: "elevated", min: 30, max: 50 },
     { status: "high", min: 50 },
   ],
   phosphorus: [

@@ -15,6 +15,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
 import { deleteGroundSample } from "../../services/groundSamplingService";
 import { radius } from "../../design/tokens";
+import { formatDepthRange } from "../../utils/units";
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -29,7 +30,7 @@ function fmtDate(d) {
 
 const val = (v) => (v == null || v === "" ? "—" : v);
 
-export default function GroundSampleHistory({ samples = [], onEdit, refreshSamples }) {
+export default function GroundSampleHistory({ samples = [], onEdit, refreshSamples, farmCtx = null }) {
   async function handleDelete(e, id) {
     e.stopPropagation();
     if (!window.confirm("Delete this ground sample? This cannot be undone.")) return;
@@ -97,7 +98,7 @@ export default function GroundSampleHistory({ samples = [], onEdit, refreshSampl
                 </TableCell>
                 <TableCell sx={dataCell}>{val(s.field_name || s.crops?.field_name)}</TableCell>
                 <TableCell sx={dataCell}>{val(s.crops?.crop_name)}</TableCell>
-                <TableCell sx={dataCell}>{val(s.sampling_depth)}</TableCell>
+                <TableCell sx={dataCell}>{s.sampling_depth ? formatDepthRange(s.sampling_depth, farmCtx) : "—"}</TableCell>
                 <TableCell sx={dataCell} align="right">{val(s.ph)}</TableCell>
                 <TableCell sx={dataCell} align="right">{val(s.nitrogen)}</TableCell>
                 <TableCell sx={dataCell} align="right">{val(s.phosphorus)}</TableCell>

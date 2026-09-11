@@ -13,6 +13,8 @@ import ScienceIcon from "@mui/icons-material/Science";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 
+import { formatDepthRange } from "../../utils/units";
+
 function fmtDate(d) {
   if (!d) return "—";
   try {
@@ -30,7 +32,7 @@ function metric(label, value, unit) {
   return { label, shown };
 }
 
-export default function GroundSampleCard({ latest, previousCount = 0, onAdd, onEdit }) {
+export default function GroundSampleCard({ latest, previousCount = 0, onAdd, onEdit, farmCtx = null }) {
   // ── Empty state ─────────────────────────────────────────────
   if (!latest) {
     return (
@@ -100,7 +102,7 @@ export default function GroundSampleCard({ latest, previousCount = 0, onAdd, onE
           <MetaItem label="Field" value={fieldName} />
           <MetaItem label="Crop" value={cropName || "Field-level"} />
           <MetaItem label="Sample Date" value={fmtDate(latest.sample_date)} />
-          <MetaItem label="Depth" value={latest.sampling_depth || "—"} />
+          <MetaItem label="Depth" value={latest.sampling_depth ? formatDepthRange(latest.sampling_depth, farmCtx) : "—"} />
         </Grid>
 
         <Divider sx={{ my: 1.5 }} />

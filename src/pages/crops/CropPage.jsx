@@ -255,6 +255,7 @@ export default function CropPage() {
               previousCount={Math.max(0, groundSamples.length - 1)}
               onAdd={() => { setSelectedSample(null); setShowSampleForm(true); }}
               onEdit={(sample) => { setSelectedSample(sample); setShowSampleForm(true); }}
+              farmCtx={farmCtx}
             />
 
             {/* Soil Analysis — interprets the latest MEASURED sample (US + SA,
@@ -281,6 +282,7 @@ export default function CropPage() {
                   samples={groundSamples}
                   onEdit={(sample) => { setSelectedSample(sample); setShowSampleForm(true); }}
                   refreshSamples={loadGroundSamples}
+                  farmCtx={farmCtx}
                 />
               </PremiumDashboardSection>
             )}

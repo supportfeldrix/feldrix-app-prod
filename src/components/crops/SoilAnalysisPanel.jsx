@@ -25,6 +25,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import { analyzeSoil } from "../../services/soilAnalysisService";
 import { getSoilReference } from "../../services/soilIntelligenceService";
+import { formatDepthRange } from "../../utils/units";
 
 const OVERALL = {
   good: { label: "Good", color: "#15803D", bg: "#DCFCE7" },
@@ -131,7 +132,7 @@ export default function SoilAnalysisPanel({ latestSample = null, history = null,
               <Stack direction="row" spacing={3} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
                 <SourceField label="Measured (laboratory / farmer)" value={[
                   analysis.sampleDate ? `Sample ${analysis.sampleDate}` : null,
-                  analysis.depth || null,
+                  analysis.depth ? formatDepthRange(analysis.depth, farmCtx) : null,
                   analysis.laboratory || null,
                 ].filter(Boolean).join(" • ") || "Recorded"} />
                 {analysis.soilConditions?.referenceComparison && (

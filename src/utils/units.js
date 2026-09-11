@@ -197,6 +197,43 @@ export function formatDepth(valueCm, ctx, { withUnit = true } = {}) {
   return withUnit ? `${s} ${us ? "in" : "cm"}` : s;
 }
 
+/**
+ * Localise a STORED soil sampling-depth RANGE string for display.
+ *
+ * Ground Sampling stores depth canonically as a free-text cm range chosen from
+ * a fixed list (e.g. "0–15 cm", "15–30 cm"). Storage stays in cm; this converts
+ * ONLY for display. For US (us_customary) farms it converts the cm bounds to
+ * whole inches and renders e.g. "approximately 0–6 in"; for metric farms it
+ * returns the original string unchanged ("0–15 cm").
+ *
+ * Safety: if the string is not a recognisable cm range (empty, already in
+ * inches, or free text), it is returned as-is — never double-converted.
+ *
+ * @param {string} stored - the stored depth string (canonical cm range)
+ * @param {object|string} ctxOrSystem - farm context / measurement system
+ * @returns {string}
+ */
+export function formatDepthRange(stored, ctxOrSystem) {
+  if (stored == null || stored === "") return "\u2014";
+  const raw = String(stored).trim();
+  if (!isUsCustomary(ctxOrSystem)) return raw; // metric: unchanged (SA-safe)
+
+  // Only convert values explicitly expressed in centimetres. Match one or two
+  // numbers followed by "cm", tolerating hyphen or en/em dashes and "to".
+  if (!/cm\b/i.test(raw)) return raw; // already inches / non-cm → do not touch
+  const nums = raw.match(/\d+(?:\.\d+)?/g);
+  if (!nums || nums.length === 0) return raw;
+
+  const toIn = (cm) => Math.round(cmToInches(cm)); // whole inches for a range label
+  if (nums.length === 1) {
+    return `approximately ${toIn(nums[0])} in`;
+  }
+  // Range: convert first two bounds; preserve order.
+  const lo = toIn(nums[0]);
+  const hi = toIn(nums[1]);
+  return `approximately ${lo}\u2013${hi} in`;
+}
+
 /** The label to use for a farm-area field, e.g. "Farm Size (ha)" / "(acres)". */
 export function areaFieldLabel(base, ctxOrSystem) {
   return `${base} (${unitLabel("area", ctxOrSystem)})`;
