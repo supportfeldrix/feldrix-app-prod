@@ -1,6 +1,44 @@
 import { supabase } from "./supabase";
 import { offlineCapture } from "./offline/offlineCapture";
 
+/**
+ * Real, WRITABLE columns of public.finance_records (per the schema/migrations).
+ * `animal_id` is the animal relationship column; `animal` is ONLY a read-time
+ * PostgREST embedded-relationship alias (see getFinanceRecords' select of
+ * `animal:livestock(...)`) and is NOT a column. When a record loaded for
+ * editing is sent back to update()/insert(), that nested `animal` object — plus
+ * any other join/computed artifacts (`id`, `created_at`, ...) — must be
+ * stripped, otherwise PostgREST reports:
+ *   "Could not find the 'animal' column of 'finance_records' in the schema cache"
+ * Whitelisting the payload guarantees only real columns are written.
+ */
+const FINANCE_WRITABLE_COLUMNS = [
+  "user_id",
+  "animal_id",
+  "applies_to",
+  "category",
+  "transaction_type",
+  "amount",
+  "transaction_date",
+  "description",
+  "quantity",
+  "unit",
+  "supplier",
+];
+
+/**
+ * Keep only real finance_records columns from a payload, dropping read-only
+ * join objects (e.g. the `animal` relationship alias) and computed fields.
+ * Undefined keys are omitted so partial updates keep working.
+ */
+function sanitizeFinancePayload(record) {
+  const out = {};
+  for (const key of FINANCE_WRITABLE_COLUMNS) {
+    if (record[key] !== undefined) out[key] = record[key];
+  }
+  return out;
+}
+
 export async function getFinanceRecords() {
   const { data, error } = await supabase
     .from("finance_records")
@@ -62,9 +100,12 @@ export async function addFinanceRecord(record) {
     cleanRecord.animal_id = null;
   }
 
+  // Whitelist to real columns — never send the read-only `animal` join alias.
+  const insertRecord = sanitizeFinancePayload(cleanRecord);
+
   const { data, error } = await supabase
     .from("finance_records")
-    .insert([cleanRecord])
+    .insert([insertRecord])
     .select()
     .single();
 
@@ -106,9 +147,14 @@ export async function updateFinanceRecord(id, updates) {
     cleanUpdates.animal_id = null;
   }
 
+  // Whitelist to real columns — strips the read-only `animal` relationship
+  // object (and id/created_at/etc.) that comes along when a loaded record is
+  // edited and re-saved, which is what caused the PostgREST schema-cache error.
+  const updateRecord = sanitizeFinancePayload(cleanUpdates);
+
   const { data, error } = await supabase
     .from("finance_records")
-    .update(cleanUpdates)
+    .update(updateRecord)
     .eq("id", id)
     .select()
     .single();
