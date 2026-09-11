@@ -125,6 +125,13 @@ export function WeatherProvider({ children }) {
   const [earlyWarnings, setEarlyWarnings] = useState([]);
   const [notifications, setNotifications] = useState([]);
 
+  // USA-3: OFFICIAL external weather alerts (NWS/NOAA) — kept DISTINCT from the
+  // Feldrix agricultural-intelligence `alerts` above. Empty for non-US farms.
+  const [officialAlerts, setOfficialAlerts] = useState([]);
+  // Farm-authoritative IANA timezone (from the NWS /points response for US
+  // farms; farm profile timezone otherwise). Used for farm-local weather time.
+  const [timezone, setTimezone] = useState(null);
+
   // Refs for interval management
   const intervalRef = useRef(null);
   const lastRefreshRef = useRef(0);
@@ -186,9 +193,20 @@ export function WeatherProvider({ children }) {
       setError(null);
       setRefreshStatus("refreshing");
 
-      // Fetch complete weather data
-      const weatherData = await getWeatherForIntelligence(location || undefined);
+      // Fetch complete weather data. USA-3: pass the resolved farm context so
+      // the SERVICE LAYER can select the provider (US farms → NWS/NOAA, all
+      // others → existing OpenWeatherMap). Components stay provider-neutral.
+      const fc = farmCtxRef.current;
+      const providerOpts = fc
+        ? { country: fc.country, latitude: fc.latitude, longitude: fc.longitude, timezone: fc.timezone }
+        : null;
+      const weatherData = await getWeatherForIntelligence(location || undefined, providerOpts);
       setWeather(weatherData);
+
+      // USA-3: surface official NWS alerts + the farm-authoritative timezone.
+      // These are always present on the summary (defaulted in the service).
+      setOfficialAlerts(Array.isArray(weatherData?.official) ? weatherData.official : []);
+      setTimezone(weatherData?.timezone || fc?.timezone || null);
 
       // Record for history (PRO analytics)
       if (weatherData?.current?.updatedAt) {
@@ -199,7 +217,12 @@ export function WeatherProvider({ children }) {
       const updateTime = new Date().toISOString();
       setLastUpdated(updateTime);
       setNextRefresh(new Date(Date.now() + REFRESH_INTERVAL_MS).toISOString());
-      setProvider(weatherData?.source === "openweathermap-onecall" ? "OpenWeatherMap (OneCall)" : weatherData?.source === "openweathermap" ? "OpenWeatherMap" : "OpenWeatherMap");
+      setProvider(
+        weatherData?.source === "nws" ? "National Weather Service (NOAA)"
+          : weatherData?.source === "openweathermap-onecall" ? "OpenWeatherMap (OneCall)"
+            : weatherData?.source === "openweathermap" ? "OpenWeatherMap"
+              : "OpenWeatherMap"
+      );
 
       // Determine if using cached/offline data
       if (weatherData?.available) {
@@ -227,10 +250,36 @@ export function WeatherProvider({ children }) {
         setInsight(insightResult);
         setChecklists(checklistResult);
         setEarlyWarnings(warningsResult);
-        setNotifications(notifsResult);
 
-        // Dispatch push notifications for critical weather alerts
-        processWeatherAlerts(notifsResult, { farmName });
+        // USA-3: represent OFFICIAL NWS alerts as notifications DISTINCTLY from
+        // Feldrix intelligence (distinct id/type prefixes so they never collide
+        // or dedupe against Feldrix alerts). They reuse the same push pipeline
+        // (processWeatherAlerts) whose per-type cooldown prevents duplicate
+        // sends on every refresh.
+        const official = Array.isArray(weatherData?.official) ? weatherData.official : [];
+        const officialNotifs = official.map((a) => ({
+          id: `weather-official-${a.id}`,
+          type: `nws_${String(a.type || "alert").toLowerCase()}`,
+          priority: a.priority,
+          title: a.event,
+          message: a.headline || a.event,
+          module: "Weather",
+          route: "/weather#official-weather-alerts",
+          read: false,
+          createdAt: new Date().toISOString(),
+          icon: a.icon,
+          actionable: true,
+          source: "nws",
+          pushEligible: a.priority === "Critical",
+        }));
+
+        // Combine Feldrix intelligence + official NWS notifications for the
+        // notification list, keeping both channels represented.
+        setNotifications([...officialNotifs, ...notifsResult]);
+
+        // Dispatch push notifications for critical/high weather alerts
+        // (Feldrix intelligence + official NWS). Cooldown dedupes per type.
+        processWeatherAlerts([...officialNotifs, ...notifsResult], { farmName });
       } else {
         // Using cached/offline data or truly unavailable
         setIsOffline(true);
@@ -246,6 +295,8 @@ export function WeatherProvider({ children }) {
         setChecklists([]);
         setEarlyWarnings([]);
         setNotifications([]);
+        // Official NWS alerts are only meaningful with live data.
+        setOfficialAlerts([]);
       }
 
       lastRefreshRef.current = now;
@@ -370,6 +421,10 @@ export function WeatherProvider({ children }) {
       earlyWarnings,
       notifications,
 
+      // USA-3: official external (NWS/NOAA) alerts + farm timezone
+      officialAlerts,
+      timezone,
+
       // Location & farm info
       location,
       farmName,
@@ -392,6 +447,7 @@ export function WeatherProvider({ children }) {
     [
       weather, loading, error,
       risk, alerts, recommendations, banner, insight, checklists, earlyWarnings, notifications,
+      officialAlerts, timezone,
       location, farmName, setLocation, setUserName,
       refreshStatus, lastUpdated, nextRefresh, provider, isOffline, confidence,
       refresh, forceRefresh,
@@ -442,6 +498,20 @@ export function useWeatherRisk() {
 export function useWeatherAlerts() {
   const { alerts } = useContext(WeatherContext);
   return alerts || [];
+}
+
+/**
+ * USA-3 — Access OFFICIAL external weather alerts (NWS/NOAA), kept distinct
+ * from Feldrix agricultural intelligence (`useWeatherAlerts`). Empty for
+ * non-US farms.
+ *
+ * @example
+ * const official = useWeatherOfficialAlerts();
+ * // official = [{ id, source:"nws", event, headline, description, priority, color, icon, onset, expires }]
+ */
+export function useWeatherOfficialAlerts() {
+  const { officialAlerts } = useContext(WeatherContext);
+  return officialAlerts || [];
 }
 
 /**

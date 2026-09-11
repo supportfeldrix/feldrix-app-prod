@@ -33,6 +33,11 @@ const CACHE_MINUTES = parseInt(import.meta.env.VITE_WEATHER_CACHE_MINUTES || "30
 const OWM_BASE = "https://api.openweathermap.org/data/2.5";
 const OWM_ONECALL = "https://api.openweathermap.org/data/3.0/onecall";
 
+// USA-3: NWS/NOAA is the primary provider for US farms. The provider decision
+// lives HERE in the service layer (never scattered as if (country === "US")
+// across components). Non-US farms continue to use OpenWeatherMap unchanged.
+import { fetchNwsWeather, clearNwsCache } from "./nwsProvider";
+
 // SAWS API placeholder — will be connected when API access is granted
 const SAWS_BASE = "https://api.weathersa.co.za/v1";
 
@@ -139,6 +144,28 @@ export function clearWeatherCache() {
       }
     }
   } catch { /* unavailable */ }
+  // Also clear the NWS provider's in-memory cache (USA-3).
+  try { clearNwsCache(); } catch { /* no-op */ }
+}
+
+/**
+ * USA-3 — Decide whether a farm should use the NWS provider.
+ * US farms with valid coordinates use NWS; everyone else keeps the existing
+ * (OpenWeatherMap) provider. Kept in the service layer so components stay
+ * provider-neutral.
+ * @param {object} [opts] - farm context { country, latitude, longitude }
+ */
+function shouldUseNws(opts) {
+  if (!opts) return false;
+  const country = String(opts.country || "").toLowerCase();
+  const isUs = country === "united states" || country === "us" || country === "usa";
+  // Coordinates are REQUIRED. Guard against null/undefined explicitly —
+  // Number(null) === 0 would otherwise pass Number.isFinite and send a US farm
+  // with no saved coordinates to NWS at (0,0) (a wasted, doomed request).
+  if (opts.latitude == null || opts.longitude == null) return false;
+  const lat = Number(opts.latitude);
+  const lon = Number(opts.longitude);
+  return isUs && Number.isFinite(lat) && Number.isFinite(lon);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -725,9 +752,12 @@ export async function getForecast(location) {
  * @param {string} [location] - Optional location override (e.g. "Stellenbosch,ZA")
  * @returns {object} Complete weather summary
  */
-export async function getWeatherSummary(location) {
+export async function getWeatherSummary(location, opts = null) {
   const loc = location || DEFAULT_LOCATION;
-  const cacheKey = `summary_${loc}`;
+  // Cache key is provider-aware so a US (NWS) farm and a non-US (OWM) farm at
+  // the same location string never share a cached summary.
+  const useNws = shouldUseNws(opts);
+  const cacheKey = `summary_${useNws ? "nws_" : ""}${loc}`;
 
   // Check full summary cache first (reduces API calls)
   const cached = getCached(cacheKey);
@@ -738,7 +768,7 @@ export async function getWeatherSummary(location) {
     return pendingRequests.get(cacheKey);
   }
 
-  const requestPromise = _fetchWeatherSummary(loc, cacheKey);
+  const requestPromise = _fetchWeatherSummary(loc, cacheKey, opts);
   pendingRequests.set(cacheKey, requestPromise);
 
   try {
@@ -749,7 +779,29 @@ export async function getWeatherSummary(location) {
 }
 
 /** Internal: actual fetch logic for getWeatherSummary (separated for deduplication) */
-async function _fetchWeatherSummary(loc, cacheKey) {
+async function _fetchWeatherSummary(loc, cacheKey, opts = null) {
+
+  // USA-3: US farms → NWS/NOAA primary. On ANY NWS failure we fall through to
+  // the existing OpenWeatherMap path below, so a provider outage never blanks
+  // the Weather page. Non-US farms skip this block entirely (SA unchanged).
+  if (shouldUseNws(opts)) {
+    try {
+      const nws = await fetchNwsWeather(opts.latitude, opts.longitude, {
+        locationName: loc,
+        timezone: opts.timezone,
+      });
+      if (nws && nws.available && nws.current) {
+        setCache(cacheKey, nws);
+        setCache(`current_nws_${loc}`, nws.current);
+        setCache(`hourly_nws_${loc}`, nws.hourly);
+        setCache(`forecast_nws_${loc}`, nws.forecast);
+        return nws;
+      }
+    } catch (err) {
+      console.warn("[Weather] NWS provider failed, falling back to OpenWeatherMap:", err);
+    }
+    // NWS unavailable → continue to OWM fallback below (transparent to caller).
+  }
 
   // Try OneCall API first (single request for everything)
   if (API_KEY) {
@@ -830,12 +882,22 @@ async function _fetchWeatherSummary(loc, cacheKey) {
  * @param {string} [location] - Optional location override
  * @returns {object} Complete weather data ready for intelligence engine
  */
-export async function getWeatherForIntelligence(location) {
-  const summary = await getWeatherSummary(location);
+export async function getWeatherForIntelligence(location, opts = null) {
+  const summary = await getWeatherSummary(location, opts);
 
   // Ensure hourly data exists (even if empty, the engine handles it gracefully)
   if (!summary.hourly) {
     summary.hourly = [];
+  }
+
+  // Normalise USA-3 fields so consumers can rely on them regardless of provider:
+  //   official  → official external alerts (NWS). OWM path has none.
+  //   timezone  → farm-authoritative IANA tz when the provider supplies one.
+  if (!Array.isArray(summary.official)) {
+    summary.official = [];
+  }
+  if (summary.timezone === undefined) {
+    summary.timezone = null;
   }
 
   return summary;

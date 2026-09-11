@@ -38,7 +38,7 @@ import AirIcon from "@mui/icons-material/Air";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import { radius } from "../../design/tokens";
 
-import { useWeather } from "../../context/WeatherContext";
+import { useWeather, useWeatherOfficialAlerts } from "../../context/WeatherContext";
 import { getWeatherAtmosphere, isDaytime } from "../../utils/weatherBackground";
 import { getFarmContext } from "../../services/profileService";
 import { formatTemperature, formatWindSpeed, formatPrecipitation } from "../../utils/units";
@@ -60,8 +60,13 @@ export default function WeatherSummary({ weather: legacyWeather }) {
   const weather = contextWeather || legacyWeather;
   const current = weather?.current;
 
-  // Next severe alert (existing calculation)
+  // Next severe alert (existing Feldrix intelligence calculation)
   const nextAlert = alerts && alerts.length > 0 ? alerts[0] : null;
+
+  // USA-3: official NWS/NOAA alert (distinct from Feldrix intelligence).
+  // Surface a concise indicator only — the full alert lives on the Weather page.
+  const officialAlerts = useWeatherOfficialAlerts();
+  const officialAlert = officialAlerts && officialAlerts.length > 0 ? officialAlerts[0] : null;
 
   // Day/night from actual sunrise/sunset (same rule as Weather page)
   const isDay = isDaytime(current?.sunrise, current?.sunset);
@@ -441,6 +446,39 @@ export default function WeatherSummary({ weather: legacyWeather }) {
         </Stack>
 
         {/* Severe alert warning banner (existing calculation) */}
+        {/* USA-3: concise OFFICIAL (NWS) alert indicator — clearly a government
+            alert, distinct from the Feldrix banner below. Tapping the card
+            opens the Weather page where the full official alert is shown. */}
+        {officialAlert && (
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="flex-start"
+            role="alert"
+            sx={{
+              py: 1,
+              px: 1.25,
+              mb: 1.5,
+              borderRadius: 2,
+              bgcolor: "rgba(255,255,255,0.95)",
+              borderLeft: "4px solid",
+              borderColor: officialAlert.color || "#dc2626",
+              boxShadow: "0 4px 14px rgba(15,23,42,0.18)",
+              backdropFilter: "blur(3px)",
+            }}
+          >
+            <Typography sx={{ fontSize: 18, mt: 0.1, flexShrink: 0 }}>{officialAlert.icon}</Typography>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="caption" fontWeight={800} sx={{ display: "block", lineHeight: 1.3, color: officialAlert.color || "#b91c1c" }}>
+                {officialAlert.event}
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", lineHeight: 1.35, color: "rgba(15,23,42,0.7)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, fontSize: "0.6rem" }}>
+                National Weather Service
+              </Typography>
+            </Box>
+          </Stack>
+        )}
+
         {nextAlert && (
           <Stack
             direction="row"

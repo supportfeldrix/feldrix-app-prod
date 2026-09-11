@@ -194,6 +194,36 @@ registerProvider({
 });
 
 /**
+ * NWS / NOAA Provider (USA-3) — PRIMARY for US farms.
+ * Implemented in nwsProvider.js and selected in weatherService.js based on the
+ * farm's country + coordinates (US → NWS, non-US → OpenWeatherMap). Registered
+ * here for attribution/metadata; fetching is delegated to nwsProvider.js.
+ * No API key required (open government API).
+ */
+registerProvider({
+  id: "nws",
+  name: "National Weather Service (NOAA)",
+  attribution: "Data by the U.S. National Weather Service (NOAA)",
+  active: false, // selected per-farm in the service layer, not globally
+  available: true, // open API, no key required
+  capabilities: ["current", "hourly", "daily", "alerts", "official-alerts"],
+  getCurrent: null,
+  getHourly: null,
+  getDaily: null,
+  getAlerts: null,
+  checkAvailability: async () => {
+    try {
+      const res = await fetch("https://api.weather.gov/points/39.7456,-97.0892", {
+        headers: { Accept: "application/geo+json" },
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+});
+
+/**
  * South African Weather Service (SAWS) — Future Provider
  * Architecture placeholder — will be connected when API access is granted.
  */

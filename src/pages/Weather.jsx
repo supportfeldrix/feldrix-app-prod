@@ -605,6 +605,140 @@ function AlertsPanel({ alerts }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// OFFICIAL WEATHER ALERTS PANEL (USA-3)
+//
+// Renders OFFICIAL government alerts from the National Weather Service (NOAA),
+// kept VISUALLY and SEMANTICALLY distinct from Feldrix agricultural
+// intelligence (AlertsPanel). The source is labelled explicitly so a Feldrix
+// recommendation can never be mistaken for a government warning. Alert wording
+// (event/headline/description) comes verbatim from NWS — nothing is fabricated.
+// `timezone` is the farm-authoritative IANA zone so the "active until" time is
+// shown in the farm's local time regardless of the viewer's browser timezone.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function OfficialAlertsPanel({ alerts, timezone }) {
+  if (!alerts || alerts.length === 0) return null;
+
+  const fmtTime = (iso) => {
+    if (!iso) return null;
+    try {
+      return new Date(iso).toLocaleString("en-US", {
+        timeZone: timezone || undefined,
+        weekday: "short",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      });
+    } catch {
+      return new Date(iso).toLocaleString();
+    }
+  };
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: radius.card,
+        border: "2px solid",
+        borderColor: "error.main",
+        bgcolor: "rgba(220,38,38,0.03)",
+      }}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography sx={{ fontSize: 20 }}>{"\uD83C\uDFDB\uFE0F"}</Typography>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={800} color="error.main">
+                Official Weather Alerts
+              </Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                National Weather Service (NOAA)
+              </Typography>
+            </Box>
+          </Stack>
+          <Chip
+            label={`${alerts.length} active`}
+            size="small"
+            color="error"
+            sx={{ fontWeight: 700, fontSize: "0.7rem" }}
+          />
+        </Stack>
+
+        <Stack spacing={1.5}>
+          {alerts.map((alert) => (
+            <Box
+              key={alert.id}
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                border: `1px solid ${alert.color}40`,
+                bgcolor: `${alert.color}0D`,
+                borderLeft: `5px solid ${alert.color}`,
+              }}
+            >
+              <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ mb: 1 }}>
+                <Typography sx={{ fontSize: 24, lineHeight: 1 }}>{alert.icon}</Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body1" fontWeight={800} color="text.primary">
+                    {alert.event}
+                  </Typography>
+                  {/* Explicit source attribution — this is a government alert. */}
+                  <Typography variant="caption" fontWeight={700} sx={{ color: alert.color, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    National Weather Service
+                  </Typography>
+                  {alert.headline && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      {alert.headline}
+                    </Typography>
+                  )}
+                </Box>
+                <Chip
+                  label={alert.priority}
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: "0.65rem",
+                    bgcolor: alert.color,
+                    color: "#fff",
+                    flexShrink: 0,
+                  }}
+                />
+              </Stack>
+
+              {alert.expires && (
+                <Typography variant="caption" color="text.disabled" sx={{ display: "block", pl: 4.5, mb: 0.5 }}>
+                  Active until {fmtTime(alert.expires)}
+                </Typography>
+              )}
+
+              {alert.description && (
+                <Box sx={{ mt: 1, pl: 4.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem", whiteSpace: "pre-line" }}>
+                    {alert.description.length > 600 ? `${alert.description.slice(0, 600)}\u2026` : alert.description}
+                  </Typography>
+                </Box>
+              )}
+
+              {alert.instruction && (
+                <Box sx={{ mt: 1, pl: 4.5 }}>
+                  <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Instructions
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem", mt: 0.25, whiteSpace: "pre-line" }}>
+                    {alert.instruction}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          ))}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // WEATHER HISTORY PANEL
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -724,6 +858,8 @@ export default function Weather() {
     error,
     risk,
     alerts,
+    officialAlerts,
+    timezone,
     recommendations,
     insight,
     checklists,
@@ -945,6 +1081,15 @@ export default function Weather() {
         )}
 
         {/* ACTIVE ALERTS */}
+        {/* OFFICIAL NWS ALERTS (USA-3) — shown ABOVE Feldrix intelligence and
+            visually distinct so government warnings are never confused with
+            Feldrix agricultural recommendations. Empty for non-US farms. */}
+        {officialAlerts && officialAlerts.length > 0 && (
+          <Box id="official-weather-alerts">
+            <OfficialAlertsPanel alerts={officialAlerts} timezone={timezone} />
+          </Box>
+        )}
+
         {alerts.length > 0 && (
           <Box id="weather-alerts">
             <AlertsPanel alerts={alerts} />
