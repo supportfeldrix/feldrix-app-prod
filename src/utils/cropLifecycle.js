@@ -128,7 +128,7 @@ const STAGE_COLORS = {
  * @param {object} crop - Must have: crop_name, planting_date. Optional: expected_harvest, expected_growing_days
  * @returns {object} Lifecycle result
  */
-export function getCropLifecycle(crop) {
+export function getCropLifecycle(crop, profile = null) {
   if (!crop) return getEmptyResult();
 
   const plantingDate = crop.planting_date;
@@ -151,7 +151,7 @@ export function getCropLifecycle(crop) {
     };
   }
 
-  const growingDays = getGrowingDays(crop);
+  const growingDays = getGrowingDays(crop, profile);
   const ageDays = calculateAgeDays(plantingDate);
   const progressPercent = Math.min(100, Math.round((ageDays / growingDays) * 100));
 
@@ -205,11 +205,19 @@ export function getCropLifecycle(crop) {
 /**
  * Get the expected growing period for a crop type.
  */
-export function getGrowingDays(crop) {
+export function getGrowingDays(crop, profile = null) {
+  // Farmer's explicit values always win (unchanged, applies to every farm).
   if (crop.expected_growing_days) return Number(crop.expected_growing_days);
   if (crop.expected_harvest && crop.planting_date) {
     const diff = Math.ceil((new Date(crop.expected_harvest) - new Date(crop.planting_date)) / 86400000);
     if (diff > 0) return diff;
+  }
+  // USA-4: when a region-appropriate crop profile is supplied (US farms only),
+  // use its typical season length before falling back to the SA GROWING_PERIODS
+  // defaults. SA callers pass no profile, so their behaviour is byte-identical.
+  if (profile && Number.isFinite(Number(profile.growingDaysMin)) && Number.isFinite(Number(profile.growingDaysMax))) {
+    const mid = Math.round((Number(profile.growingDaysMin) + Number(profile.growingDaysMax)) / 2);
+    if (mid > 0) return mid;
   }
   const name = (crop.crop_name || crop.name || "").trim();
   // Try exact match first, then partial match

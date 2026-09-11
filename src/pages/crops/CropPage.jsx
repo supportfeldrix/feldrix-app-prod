@@ -22,6 +22,7 @@ import CropForm from "../../components/crops/CropForm";
 import CropTable from "../../components/crops/CropTable";
 import CropHealthScore from "../../components/crops/CropHealthScore";
 import CropInsights from "../../components/crops/CropInsights";
+import RegionalCropTiming from "../../components/crops/RegionalCropTiming";
 import ViewToggle from "../../components/livestock/ViewToggle";
 
 import GroundSampleCard from "../../components/crops/GroundSampleCard";
@@ -171,6 +172,10 @@ export default function CropPage() {
             </Grid>
           </Grid>
         </PremiumDashboardSection>
+
+        {/* USA-4: Regional Crop Timing — renders ONLY for US farms with a
+            supported crop profile; returns null (nothing shown) for SA farms. */}
+        <RegionalCropTiming crops={crops} farmCtx={farmCtx} weather={weather} />
 
         {/* Crop Form (toggle) */}
         {showForm && (

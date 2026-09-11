@@ -18,12 +18,24 @@
  * @param {object} data - Farm data context
  * @returns {Array} Array of insight objects
  */
+// USA-4: region-aware crop timing (US farms only; SA-safe no-op otherwise).
+import { generateRegionalCropTimingInsights } from "../../utils/cropIntelligence";
+
 export function generateCropInsights(data = {}) {
   try {
     const crops = Array.isArray(data.crops) ? data.crops : [];
     const weather = data.weather || null;
+    const farmContext = data.farmContext || null;
 
     const insights = [];
+
+    // USA-4: region-aware seasonal-timing insights (US farms only). Additive and
+    // graceful — returns [] for SA / unsupported crops / insufficient data, so
+    // existing SA crop insights are completely unaffected.
+    try {
+      const regional = generateRegionalCropTimingInsights(crops, farmContext, weather);
+      if (Array.isArray(regional)) insights.push(...regional);
+    } catch { /* never break the provider */ }
 
     const activeCrops = crops.filter(
       (c) => c.status === "Growing" || c.status === "Planted"

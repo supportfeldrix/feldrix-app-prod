@@ -143,6 +143,10 @@ export default function Dashboard() {
           serviceHistory: dash?.serviceHistory || [],
         },
         weather: weatherData,
+        // USA-4: resolved farm context (country/region/units) so region-aware
+        // crop intelligence can select US regional profiles. Null for farms
+        // without a resolved context (SA-safe — providers ignore it).
+        farmContext: ctx,
         intelligence: { insights: [] },
         system: { events: [] },
       };
