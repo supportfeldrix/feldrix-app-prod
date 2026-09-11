@@ -141,6 +141,7 @@ function HeroHeader({ greeting, summary, farmName, farmRegion }) {
 // ─── WeatherPanel ────────────────────────────────────────────────────────────
 
 function WeatherPanel({ weather, weatherText, riskBadge }) {
+  const farmCtx = useFarmContext();
   return (
     <div
       style={{
