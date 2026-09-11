@@ -140,16 +140,25 @@ function normalize(rows, lat, lon) {
     };
   }
 
+  // Map-unit-level fields (muname/areaname/mukey/muaggatt) are identical across
+  // all rows for a single point, so any row is fine as the map-unit "head".
   const head = rows[0];
-  const components = rows.map((r) => ({
-    name: str(r.compname),
-    percent: num(r.comppct_r),
-    isMajor: str(r.majcompflag) === "Yes",
-    taxOrder: str(r.taxorder),
-    drainage: str(r.drainagecl),
-    surface_pH: num(r.surface_ph),
-    electrical_conductivity: num(r.surface_ec),
-  }));
+
+  // Component list, then sort by percent DESC ourselves so the dominant
+  // component is ALWAYS the highest comppct_r regardless of the order SDA
+  // returns rows in (the SQL uses ORDER BY comppct_r DESC, but we do not rely
+  // on server ordering — the dominant component must never be arbitrary).
+  const components = rows
+    .map((r) => ({
+      name: str(r.compname),
+      percent: num(r.comppct_r),
+      isMajor: str(r.majcompflag) === "Yes",
+      taxOrder: str(r.taxorder),
+      drainage: str(r.drainagecl),
+      surface_pH: num(r.surface_ph),
+      electrical_conductivity: num(r.surface_ec),
+    }))
+    .sort((a, b) => (b.percent ?? -1) - (a.percent ?? -1));
 
   const dominant = components[0] || null;
 
