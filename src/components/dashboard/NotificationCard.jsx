@@ -68,7 +68,7 @@ const MODULE_ROWS = [
     path: "/crops",
   },
   {
-    icon: "💰",
+    icon: "💳",
     label: "Finance",
     emptyLabel: "✓ No alerts",
     key: "finance",

@@ -21,7 +21,7 @@ const actions = [
   },
   {
     label: "Finance",
-    icon: "💰",
+    icon: "💳",
     to: "/finance",
     color: "#F59E0B",
   },

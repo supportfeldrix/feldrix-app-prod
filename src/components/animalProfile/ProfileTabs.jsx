@@ -17,7 +17,7 @@ export default function ProfileTabs({
     },
     {
       id: "finance",
-      label: "💰 Finance",
+      label: "💳 Finance",
     },
     {
       id: "notes",

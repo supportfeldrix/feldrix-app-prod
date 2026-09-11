@@ -40,7 +40,7 @@ export default function FinanceStats({
         <StatCard
           title="Total Income"
           value={fmt(income)}
-          icon="💰"
+          icon="💳"
           color="#16A34A"
         />
       </Grid>

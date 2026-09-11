@@ -9,7 +9,8 @@ import {
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import PetsIcon from "@mui/icons-material/Pets";
 import AgricultureIcon from "@mui/icons-material/Agriculture";
-import PaymentsIcon from "@mui/icons-material/Payments";
+// Currency-neutral wallet icon for Finance (no $/€/£/R symbol inside the glyph).
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import AppsIcon from "@mui/icons-material/Apps";
 
@@ -45,7 +46,7 @@ export default function PlannerFilters({
     {
       value: "finance",
       label: "Finance",
-      icon: <PaymentsIcon />,
+      icon: <AccountBalanceWalletIcon />,
       color: "secondary",
     },
     {

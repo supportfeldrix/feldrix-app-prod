@@ -5,7 +5,8 @@ import {
   Agriculture,
   Favorite,
   Pets,
-  Paid,
+  // Currency-neutral wallet icon for Finance (no $/€/£/R symbol inside the glyph).
+  AccountBalanceWallet,
   Grass,
   Edit,
   CheckCircle,
@@ -55,7 +56,7 @@ function getModuleIcon(module) {
       return <Pets color="success" />;
 
     case "Finance":
-      return <Paid color="primary" />;
+      return <AccountBalanceWallet color="primary" />;
 
     case "Crops":
       return <Grass color="warning" />;

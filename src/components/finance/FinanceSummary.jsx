@@ -22,7 +22,7 @@ export default function FinanceSummary({
       <StatCard
         title="Income"
         value={fmt(income)}
-        icon="💰"
+        icon="💳"
         color="#16A34A"
       />
 

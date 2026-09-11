@@ -12,7 +12,8 @@ import {
 import AgricultureIcon from "@mui/icons-material/Agriculture";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import PetsIcon from "@mui/icons-material/Pets";
-import PaymentsIcon from "@mui/icons-material/Payments";
+// Currency-neutral wallet icon for Finance (no $/€/£/R symbol inside the glyph).
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
 export default function TaskCard({
@@ -43,7 +44,7 @@ export default function TaskCard({
     },
     Finance: {
       color: "primary",
-      icon: <PaymentsIcon />,
+      icon: <AccountBalanceWalletIcon />,
     },
     Livestock: {
       color: "secondary",

@@ -174,7 +174,7 @@ export default function PlannerToolbar({
         />
 
         <Chip
-          label="💰 Finance"
+          label="💳 Finance"
           color="warning"
           variant="outlined"
         />
