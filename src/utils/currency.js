@@ -63,6 +63,27 @@ export function resolveLocale(ctxOrCurrency) {
 }
 
 /**
+ * The farm's currency symbol only (e.g. "R" for ZAR, "$" for USD), for compact
+ * UI labels like input adornments. Display-only; never affects stored values.
+ * Falls back to "R" (SA baseline) if the symbol cannot be derived.
+ */
+export function currencySymbol(ctxOrCurrency) {
+  const { currency, locale } = resolveCurrencyLocale(ctxOrCurrency);
+  try {
+    const parts = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).formatToParts(0);
+    const sym = parts.find((p) => p.type === "currency");
+    return sym?.value || "R";
+  } catch {
+    return "R";
+  }
+}
+
+/**
  * Format a date using the farm's locale (display only — never changes
  * stored date semantics or timezone). Defaults to en-ZA.
  */

@@ -59,6 +59,26 @@ export async function getDashboardStats() {
   const animals = livestock || [];
 
   // --------------------------------------------------
+  // WEIGHT HISTORY (canonical kg)
+  // Scoped to this user's animals only. Used by the livestock intelligence
+  // engine for weight-trend + stale-weight detection. Stored values are NEVER
+  // rewritten — read-only here. Fails soft: an empty list simply disables the
+  // weight-derived insights.
+  // --------------------------------------------------
+
+  let weightRecords = [];
+  try {
+    const animalIds = animals.map((a) => a.id).filter(Boolean);
+    if (animalIds.length > 0) {
+      const { data: weightData } = await supabase
+        .from("weight_history")
+        .select("*")
+        .in("animal_id", animalIds);
+      weightRecords = weightData || [];
+    }
+  } catch { /* table may not exist yet — insights degrade gracefully */ }
+
+  // --------------------------------------------------
   // CROPS
   // --------------------------------------------------
 
@@ -276,6 +296,9 @@ export async function getDashboardStats() {
     totalArea,
     expectedYield,
     recentCrops,
+
+    // Weight history (canonical kg)
+    weightRecords,
 
     // Breeding
     breedingRecords,

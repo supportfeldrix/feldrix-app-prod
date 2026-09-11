@@ -1,3 +1,7 @@
+// USA-6: shared region-neutral livestock intelligence (weight trend + record
+// completeness). SA-safe — the engine uses metric defaults when no US context.
+import { summarizeHerdIntelligence, buildLivestockIntelligenceInsights } from "../../utils/livestockIntelligence";
+
 /**
  * FarmHand PRO — Intelligence Engine
  * Livestock Insights Provider
@@ -25,6 +29,10 @@ export function generateLivestockInsights(data = {}) {
     const healthRecords = Array.isArray(livestock.healthRecords) ? livestock.healthRecords : [];
     const breedingRecords = Array.isArray(livestock.breedingRecords) ? livestock.breedingRecords : [];
     const weightRecords = Array.isArray(livestock.weightRecords) ? livestock.weightRecords : [];
+    // Farm context drives species profiles / region resolution (US + SA +
+    // future EU). Null for farms without a resolved context — the shared engine
+    // is region-neutral and degrades gracefully to metric defaults.
+    const farmContext = data.farmContext || null;
 
     const insights = [];
 
@@ -59,6 +67,23 @@ export function generateLivestockInsights(data = {}) {
         insights.push(buildStaleWeightInsight(stale));
       }
     }
+
+    // USA-6: shared region-neutral livestock intelligence (weight trend +
+    // record completeness). Additive and graceful — returns at most 2 concise
+    // insights and never throws into the provider. Region-neutral: SA farms
+    // get the same engine with metric defaults, so existing behaviour is
+    // preserved. NO diagnosis, medication, or unit strings (canonical kg).
+    try {
+      const summary = summarizeHerdIntelligence({
+        animals,
+        weightRecords,
+        healthRecords,
+        breedingRecords,
+        farmCtx: farmContext,
+        now: new Date(),
+      });
+      insights.push(...buildLivestockIntelligenceInsights(summary));
+    } catch { /* never break the provider */ }
 
     return insights;
   } catch {

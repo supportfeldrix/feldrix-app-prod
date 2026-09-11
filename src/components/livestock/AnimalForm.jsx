@@ -12,8 +12,18 @@ import SaveIcon from "@mui/icons-material/Save";
 import { addAnimal, updateAnimal } from "../../services/livestockService";
 import { getLifecycleStage, getStageColor } from "../../services/livestockLifecycle";
 import { LIVESTOCK_STATUSES } from "../../constants/livestockStatus";
+import useFarmContext from "../../hooks/useFarmContext";
+import { isUsCustomary, lbToKg, kgToLb, unitLabel } from "../../utils/units";
+import { resolveLocale, currencySymbol } from "../../utils/currency";
 
 export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
+  const farmCtx = useFarmContext();
+  const us = isUsCustomary(farmCtx);
+  // The weight INPUT is shown in the farm's display unit (lb for US); the
+  // livestock.weight column stays CANONICAL kg. We convert the stored kg to the
+  // display unit when editing, and the entered display value back to kg on save.
+  const kgToDisplay = (kg) => (kg === "" || kg == null ? "" : (us ? Math.round(kgToLb(Number(kg)) * 10) / 10 : Number(kg)));
+  const displayToKg = (val) => (val === "" || val == null ? "" : (us ? lbToKg(Number(val)) : Number(val)));
   const [form, setForm] = useState({
     tag: "",
     animal_type: "Cattle",
@@ -38,13 +48,15 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
         gender: normalizeGender(animal.gender),
         date_of_birth: animal.date_of_birth || "",
         purchase_date: animal.purchase_date || "",
-        weight: animal.weight || "",
+        // Stored canonical kg → shown in the farm's display unit (lb for US).
+        weight: kgToDisplay(animal.weight),
         purchase_price: animal.purchase_price || "",
         status: animal.status || "Active",
         notes: animal.notes || "",
       });
     }
-  }, [animal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animal, us]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -65,10 +77,12 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
 
     setSaving(true);
     try {
+      // Persist canonical kg (convert the entered display value for US farms).
+      const payload = { ...form, weight: displayToKg(form.weight) };
       if (animal) {
-        await updateAnimal(animal.id, form);
+        await updateAnimal(animal.id, payload);
       } else {
-        await addAnimal(form);
+        await addAnimal(payload);
       }
 
       setForm({
@@ -194,7 +208,7 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
               <TextField
                 fullWidth
                 type="number"
-                label="Weight (kg)"
+                label={`Weight (${unitLabel("mass", farmCtx)})`}
                 name="weight"
                 value={form.weight}
                 onChange={handleChange}
@@ -205,7 +219,7 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
               <TextField
                 fullWidth
                 type="number"
-                label="Purchase Price (R)"
+                label={`Purchase Price (${currencySymbol(farmCtx)})`}
                 name="purchase_price"
                 value={form.purchase_price}
                 onChange={handleChange}
@@ -272,7 +286,7 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
                     <Box>
                       <Typography variant="caption" color="text.secondary">Estimated Transition</Typography>
                       <Typography variant="body2" fontWeight={600}>
-                        {new Date(lifecyclePreview.nextStageDate).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}
+                        {new Date(lifecyclePreview.nextStageDate).toLocaleDateString(resolveLocale(farmCtx), { day: "numeric", month: "long", year: "numeric" })}
                       </Typography>
                     </Box>
                   )}
