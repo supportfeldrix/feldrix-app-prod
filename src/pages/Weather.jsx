@@ -208,20 +208,19 @@ function CurrentConditions({ weather, ctx }) {
         backgroundSize: "cover",
         // The source photos are essentially SQUARE (~1.05:1) with three bands:
         // sky/clouds on top, the mountain range through the middle, and the
-        // vineyard foreground at the bottom. `cover` on a square image only
-        // ever reveals a horizontal slice, so the card's aspect ratio — not the
-        // position — is what decides how many bands survive. A very wide card
-        // (3:1) would show ~1/3 of the height (mountain only); a near-square
-        // card shows almost everything. We use a MODERATE landscape ratio so it
-        // still reads as a wide hero while keeping sky + full mountain +
-        // vineyard visible. `center 45%` sits just above centre so the whole
-        // mountain and a band of vineyard stay, trimming only the plentiful
-        // upper sky. Aspect ratio is preserved — no stretching/distortion.
+        // vineyard foreground at the bottom. Displayed as a wide hero, `cover`
+        // must crop some of the top/bottom — that's an accepted, balanced crop.
+        // `center 45%` sits just above centre so the whole mountain and a band
+        // of vineyard stay, trimming only the plentiful upper sky. The image's
+        // natural aspect ratio is preserved — no stretching/distortion.
         backgroundPosition: "center 45%",
         backgroundRepeat: "no-repeat",
-        aspectRatio: { xs: "1.2 / 1", sm: "1.45 / 1", md: "1.4 / 1" },
-        // Floors so the eight-tile detail grid never overflows on narrow cards.
-        minHeight: { xs: 300, sm: 320, md: 340 },
+        // Controlled responsive height (NOT aspect-ratio): on a full-width card
+        // aspect-ratio scales height with width and becomes enormous on
+        // desktop. A fixed hero height keeps the card a moderate band while
+        // `cover` fills it and preserves the image's natural aspect ratio.
+        // Mobile is a touch taller so the stacked detail tiles fit comfortably.
+        minHeight: { xs: 420, sm: 360, md: 390 },
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",
