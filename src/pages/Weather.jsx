@@ -206,18 +206,22 @@ function CurrentConditions({ weather, ctx }) {
         // weather card. Changes automatically with the current condition.
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: "cover",
-        // These landscapes place the key subject (sun/moon/clouds/mountain) in
-        // the upper-middle and the vineyard in the foreground. Biasing the crop
-        // slightly upward keeps the sky feature AND the mountain visible while
-        // still showing foreground vineyard — a deliberate hero, not a zoom.
-        backgroundPosition: "center 35%",
+        // The source photos are essentially SQUARE (~1.05:1) with three bands:
+        // sky/clouds on top, the mountain range through the middle, and the
+        // vineyard foreground at the bottom. `cover` on a square image only
+        // ever reveals a horizontal slice, so the card's aspect ratio — not the
+        // position — is what decides how many bands survive. A very wide card
+        // (3:1) would show ~1/3 of the height (mountain only); a near-square
+        // card shows almost everything. We use a MODERATE landscape ratio so it
+        // still reads as a wide hero while keeping sky + full mountain +
+        // vineyard visible. `center 45%` sits just above centre so the whole
+        // mountain and a band of vineyard stay, trimming only the plentiful
+        // upper sky. Aspect ratio is preserved — no stretching/distortion.
+        backgroundPosition: "center 45%",
         backgroundRepeat: "no-repeat",
-        // A taller, responsive hero brings the card's aspect ratio closer to
-        // the (near-square) photos so `cover` crops far less — preserving the
-        // full sky → mountain → vineyard composition. Fills the card (no
-        // letterboxing). Content sits at the bottom over the readability
-        // gradient; the landscape reads above it.
-        minHeight: { xs: 260, sm: 300, md: 340 },
+        aspectRatio: { xs: "1.2 / 1", sm: "1.45 / 1", md: "1.6 / 1" },
+        // Floors so the eight-tile detail grid never overflows on narrow cards.
+        minHeight: { xs: 300, sm: 320, md: 340 },
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",
