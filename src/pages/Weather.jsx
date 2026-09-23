@@ -161,11 +161,18 @@ function CurrentConditions({ weather, ctx }) {
   // weather card. No new classification or day/night logic.
   const backgroundImage = getWeatherBackgroundImage(current.condition, isDay);
 
-  // Adaptive dark overlay for readability over the photo (stronger for night,
-  // lighter for day) — keeps the photograph clearly visible.
-  const overlay = isDay
-    ? "linear-gradient(180deg, rgba(15,23,42,0.20) 0%, rgba(15,23,42,0.30) 45%, rgba(15,23,42,0.52) 100%)"
-    : "linear-gradient(180deg, rgba(2,6,23,0.34) 0%, rgba(2,6,23,0.44) 45%, rgba(2,6,23,0.64) 100%)";
+  // Readability overlay — a SUBTLE, directional gradient rather than a uniform
+  // dark layer: near-transparent over the sky (top) so the photograph stays
+  // clearly visible, gently deepening toward the bottom where the text sits.
+  // A soft left-side wash adds contrast behind the temperature/condition block
+  // without darkening the whole scene. Night / rain / thunderstorm get a
+  // slightly stronger version; sunny/day images stay light and airy.
+  const isMoody = !isDay || /rain|drizzle|thunder|storm|tornado/i.test(current.condition || "");
+  const overlay = isMoody
+    ? "linear-gradient(180deg, rgba(2,6,23,0.16) 0%, rgba(2,6,23,0.24) 42%, rgba(2,6,23,0.52) 100%), " +
+      "linear-gradient(90deg, rgba(2,6,23,0.30) 0%, rgba(2,6,23,0.10) 42%, rgba(2,6,23,0) 72%)"
+    : "linear-gradient(180deg, rgba(15,23,42,0.06) 0%, rgba(15,23,42,0.14) 45%, rgba(15,23,42,0.42) 100%), " +
+      "linear-gradient(90deg, rgba(15,23,42,0.22) 0%, rgba(15,23,42,0.06) 42%, rgba(15,23,42,0) 72%)";
 
   // Text/icons read as light over the dark overlay in both day and night
   // (matches the Dashboard photo card contrast approach).
@@ -199,8 +206,21 @@ function CurrentConditions({ weather, ctx }) {
         // weather card. Changes automatically with the current condition.
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: "cover",
-        backgroundPosition: "center",
+        // These landscapes place the key subject (sun/moon/clouds/mountain) in
+        // the upper-middle and the vineyard in the foreground. Biasing the crop
+        // slightly upward keeps the sky feature AND the mountain visible while
+        // still showing foreground vineyard — a deliberate hero, not a zoom.
+        backgroundPosition: "center 35%",
         backgroundRepeat: "no-repeat",
+        // A taller, responsive hero brings the card's aspect ratio closer to
+        // the (near-square) photos so `cover` crops far less — preserving the
+        // full sky → mountain → vineyard composition. Fills the card (no
+        // letterboxing). Content sits at the bottom over the readability
+        // gradient; the landscape reads above it.
+        minHeight: { xs: 260, sm: 300, md: 340 },
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-end",
         transition: "background-image 0.6s ease, color 0.4s ease, border-color 0.4s ease",
         position: "relative",
         overflow: "hidden",
