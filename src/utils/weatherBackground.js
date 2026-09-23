@@ -19,6 +19,27 @@
  *   Tornado, Unknown
  */
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PHOTOGRAPHIC WEATHER BACKGROUNDS
+// Real farm/vineyard photos used as the actual background image of the weather
+// card. These are the EXISTING assets in src/assets/Weather Backgrounds.
+// The image is selected from the SAME canonical data used elsewhere:
+//   - condition family (classifyCondition below)
+//   - day/night state (isDaytime below)
+// No new weather API logic, no new classification vocabulary.
+// ─────────────────────────────────────────────────────────────────────────────
+import weatherClearNight from "../assets/Weather Backgrounds/weather-clear-night.jpg";
+import weatherCloudy from "../assets/Weather Backgrounds/weather-cloudy.jpg";
+import weatherFoggy from "../assets/Weather Backgrounds/weather-foggy.jpg";
+import weatherNightPartlyCloudy from "../assets/Weather Backgrounds/weather-night-partly-cloudy.jpg";
+import weatherPartlyCloudy from "../assets/Weather Backgrounds/weather-partly-cloudy.jpg";
+import weatherRainy from "../assets/Weather Backgrounds/weather-rainy.jpg";
+import weatherSunny from "../assets/Weather Backgrounds/weather-sunny.jpg";
+import weatherThunderstorm from "../assets/Weather Backgrounds/weather-thunderstorm.jpg";
+
+// Fallback image (per task spec): partly cloudy day.
+const FALLBACK_IMAGE = weatherPartlyCloudy;
+
 /**
  * Buckets the fine-grained condition string into a small set of visual
  * families. Matching is done on lowercase substrings so it is resilient to
@@ -39,6 +60,53 @@ export function classifyCondition(condition) {
   if (c.includes("cloud")) return "cloudy"; // "Cloudy", "Mostly Cloudy"
   if (c.includes("clear")) return "clear";
   return "neutral";
+}
+
+/**
+ * Select the background PHOTO for a given condition + day/night state.
+ *
+ * Mapping (per the canonical condition family + day/night):
+ *   clear   + day   → weather-sunny
+ *   clear   + night → weather-clear-night
+ *   partly  + day   → weather-partly-cloudy
+ *   partly  + night → weather-night-partly-cloudy
+ *   cloudy          → weather-cloudy         (Clouds / Overcast / Mostly Cloudy)
+ *   fog             → weather-foggy          (Mist / Haze / Fog / Dust)
+ *   rain            → weather-rainy          (Rain / Drizzle)
+ *   storm           → weather-thunderstorm   (Thunderstorm / Lightning / Tornado)
+ *   snow            → weather-cloudy         (no dedicated snow photo → cloudy)
+ *   neutral/unknown → weather-partly-cloudy  (fallback)
+ *
+ * Always returns a valid image module (never null) so the card renders even
+ * when weather data is temporarily unavailable or the condition is unknown.
+ *
+ * @param {string} condition - canonical condition from weatherService.mapCondition
+ * @param {boolean} isDay - existing day/night state (see isDaytime)
+ * @returns {string} imported image URL
+ */
+export function getWeatherBackgroundImage(condition, isDay) {
+  const family = classifyCondition(condition);
+
+  switch (family) {
+    case "clear":
+      return isDay ? weatherSunny : weatherClearNight;
+    case "partly":
+      return isDay ? weatherPartlyCloudy : weatherNightPartlyCloudy;
+    case "cloudy":
+      return weatherCloudy;
+    case "fog":
+      return weatherFoggy;
+    case "rain":
+      return weatherRainy;
+    case "storm":
+      return weatherThunderstorm;
+    case "snow":
+      // No dedicated snow photograph exists — use the neutral overcast image.
+      return weatherCloudy;
+    case "neutral":
+    default:
+      return FALLBACK_IMAGE;
+  }
 }
 
 /**
@@ -273,6 +341,42 @@ export function getWeatherAtmosphere(condition, isDay) {
         : "linear-gradient(180deg, rgba(180,196,214,0.16) 0%, rgba(180,196,214,0.24) 60%, rgba(180,196,214,0.14) 100%)")
     : null;
 
+  // ── Photographic background (real image) + adaptive readability overlay ──
+  // The card uses `image` as its actual background-image. Text/icons sit on
+  // top of a dark gradient tuned per mood so photos stay visible while text
+  // stays legible.
+  const image = getWeatherBackgroundImage(condition, isDay);
+
+  // Overlay strength adapts to the photo:
+  //   - night / rain / storm  → stronger dark wash (busy, dark photos)
+  //   - bright sunny day       → light wash (avoid washing out the photo)
+  //   - everything else        → moderate wash
+  let imageOverlay;
+  if (!isDay) {
+    imageOverlay =
+      "linear-gradient(180deg, rgba(2,6,23,0.34) 0%, rgba(2,6,23,0.44) 45%, rgba(2,6,23,0.66) 100%)";
+  } else if (family === "storm" || family === "rain") {
+    imageOverlay =
+      "linear-gradient(180deg, rgba(2,6,23,0.30) 0%, rgba(2,6,23,0.40) 45%, rgba(2,6,23,0.60) 100%)";
+  } else if (family === "clear") {
+    // Bright sunny image — keep it airy, just enough contrast for text.
+    imageOverlay =
+      "linear-gradient(180deg, rgba(15,23,42,0.14) 0%, rgba(15,23,42,0.22) 45%, rgba(15,23,42,0.50) 100%)";
+  } else {
+    imageOverlay =
+      "linear-gradient(180deg, rgba(15,23,42,0.20) 0%, rgba(15,23,42,0.30) 45%, rgba(15,23,42,0.56) 100%)";
+  }
+
+  // Photos read best with LIGHT text over the dark overlay in every mood.
+  const imageText = {
+    textColor: "#F8FAFC",
+    subTextColor: "rgba(241,245,249,0.86)",
+  };
+  const imageSurface = {
+    surface: "rgba(15,23,42,0.34)",
+    surfaceBorder: "rgba(248,250,252,0.30)",
+  };
+
   return {
     key: `${family}-${isDay ? "day" : "night"}`,
     family,
@@ -285,5 +389,10 @@ export function getWeatherAtmosphere(condition, isDay) {
     landscape,   // { far, mid, near, detail, haze }
     effect: effectByFamily[family] ?? null,
     ...readability,
+    // ── Photographic background layer (used by the weather card) ──────────
+    image,             // imported image URL — the actual card background
+    imageOverlay,      // adaptive dark gradient for text readability
+    ...imageText,      // overrides textColor/subTextColor for photo contrast
+    ...imageSurface,   // overrides glass surface tokens for photo contrast
   };
 }
