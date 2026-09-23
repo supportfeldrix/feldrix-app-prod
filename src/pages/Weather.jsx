@@ -60,6 +60,7 @@ import {
 import { useWeather } from "../context/WeatherContext";
 import { getWeatherHistory, getWeatherHistorySummary } from "../services/weatherService";
 import { getFarmContext } from "../services/profileService";
+import { getWeatherBackgroundImage, isDaytime } from "../utils/weatherBackground";
 import { formatTemperature, formatWindSpeed, formatPrecipitation, formatPressure, formatDistance } from "../utils/units";
 import WeatherChecklist from "../components/weather/WeatherChecklist";
 import EarlyWarningCountdown from "../components/weather/EarlyWarningCountdown";
@@ -151,22 +152,29 @@ function CurrentConditions({ weather, ctx }) {
   const current = weather?.current;
   if (!current || !current.updatedAt) return null;
 
-  // Day/night detection from actual sunrise/sunset
-  const now = Date.now();
-  const sunriseTime = current.sunrise ? new Date(current.sunrise).getTime() : null;
-  const sunsetTime = current.sunset ? new Date(current.sunset).getTime() : null;
-  const isDay = (sunriseTime && sunsetTime) ? (now >= sunriseTime && now < sunsetTime) : true;
+  // Day/night detection reuses the SAME shared helper as the Dashboard card
+  // (utils/weatherBackground.js) so both surfaces agree on day vs night.
+  const isDay = isDaytime(current.sunrise, current.sunset);
 
-  // Dynamic styling based on day/night
-  const cardBg = isDay
-    ? "linear-gradient(160deg, #E3F2FD 0%, #BBDEFB 30%, #FFFFFF 100%)"
-    : "linear-gradient(160deg, #0D1B2A 0%, #1B2838 40%, #1A237E 100%)";
+  // Photographic background — selected via the EXISTING shared helper from the
+  // current condition + day/night state, identical mapping to the Dashboard
+  // weather card. No new classification or day/night logic.
+  const backgroundImage = getWeatherBackgroundImage(current.condition, isDay);
+
+  // Adaptive dark overlay for readability over the photo (stronger for night,
+  // lighter for day) — keeps the photograph clearly visible.
+  const overlay = isDay
+    ? "linear-gradient(180deg, rgba(15,23,42,0.20) 0%, rgba(15,23,42,0.30) 45%, rgba(15,23,42,0.52) 100%)"
+    : "linear-gradient(180deg, rgba(2,6,23,0.34) 0%, rgba(2,6,23,0.44) 45%, rgba(2,6,23,0.64) 100%)";
+
+  // Text/icons read as light over the dark overlay in both day and night
+  // (matches the Dashboard photo card contrast approach).
   const cardBorder = isDay ? "rgba(255, 193, 7, 0.35)" : "rgba(100, 149, 237, 0.35)";
-  const textPrimary = isDay ? "text.primary" : "#F1F5F9";
-  const textSecondary = isDay ? "text.secondary" : "#94A3B8";
-  const textDisabled = isDay ? "text.disabled" : "#64748B";
-  const dividerColor = isDay ? "divider" : "rgba(148, 163, 184, 0.15)";
-  const iconColor = isDay ? "text.disabled" : "#64748B";
+  const textPrimary = "#F8FAFC";
+  const textSecondary = "rgba(241,245,249,0.86)";
+  const textDisabled = "rgba(241,245,249,0.68)";
+  const dividerColor = "rgba(248,250,252,0.20)";
+  const iconColor = "rgba(241,245,249,0.68)";
 
   const details = [
     { icon: <Thermostat sx={{ fontSize: 18 }} />, label: "Feels Like", value: current.feelsLike != null ? formatTemperature(current.feelsLike, ctx) : "—" },
@@ -181,29 +189,30 @@ function CurrentConditions({ weather, ctx }) {
 
   return (
     <Card
-      elevation={isDay ? 0 : 2}
+      elevation={2}
       sx={{
         borderRadius: radius.card,
         border: "1px solid",
         borderColor: cardBorder,
-        background: cardBg,
-        transition: "background 0.6s ease, color 0.4s ease, border-color 0.4s ease",
+        color: textPrimary,
+        // Real photographic background — same dynamic mapping as the Dashboard
+        // weather card. Changes automatically with the current condition.
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        transition: "background-image 0.6s ease, color 0.4s ease, border-color 0.4s ease",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Subtle decorative glow */}
+      {/* Readability overlay — adaptive dark gradient over the photo. */}
       <Box
+        aria-hidden
         sx={{
           position: "absolute",
-          top: -40,
-          right: -40,
-          width: 160,
-          height: 160,
-          borderRadius: "50%",
-          background: isDay
-            ? "radial-gradient(circle, rgba(255,193,7,0.12) 0%, transparent 70%)"
-            : "radial-gradient(circle, rgba(100,149,237,0.10) 0%, transparent 70%)",
+          inset: 0,
+          background: overlay,
           pointerEvents: "none",
         }}
       />
