@@ -210,10 +210,12 @@ function CurrentConditions({ weather, ctx }) {
         // sky/clouds on top, the mountain range through the middle, and the
         // vineyard foreground at the bottom. Displayed as a wide hero, `cover`
         // must crop some of the top/bottom — that's an accepted, balanced crop.
-        // `center 45%` sits just above centre so the whole mountain and a band
-        // of vineyard stay, trimming only the plentiful upper sky. The image's
+        // `center 60%` sits below centre so the crop favours the mountain and
+        // the vineyard/foreground, trimming the plentiful upper sky. This keeps
+        // the mountain clearly visible across all eight images (incl. the moon
+        // and fog-layer subjects) while showing more foreground. The image's
         // natural aspect ratio is preserved — no stretching/distortion.
-        backgroundPosition: "center 45%",
+        backgroundPosition: "center 60%",
         backgroundRepeat: "no-repeat",
         // Controlled responsive height (NOT aspect-ratio): on a full-width card
         // aspect-ratio scales height with width and becomes enormous on
