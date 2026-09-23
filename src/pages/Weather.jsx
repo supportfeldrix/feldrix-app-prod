@@ -161,18 +161,19 @@ function CurrentConditions({ weather, ctx }) {
   // weather card. No new classification or day/night logic.
   const backgroundImage = getWeatherBackgroundImage(current.condition, isDay);
 
-  // Readability overlay — a SUBTLE, directional gradient rather than a uniform
-  // dark layer: near-transparent over the sky (top) so the photograph stays
-  // clearly visible, gently deepening toward the bottom where the text sits.
-  // A soft left-side wash adds contrast behind the temperature/condition block
-  // without darkening the whole scene. Night / rain / thunderstorm get a
-  // slightly stronger version; sunny/day images stay light and airy.
+  // TARGETED readability gradient (not a full-image dark wash). The weather
+  // text sits at the lower-left, so the overlay is anchored there: a left→right
+  // gradient that fades to fully transparent well before the right edge (so the
+  // RIGHT side keeps the photo's natural brightness/detail), plus a gentle
+  // bottom feather behind the detail row. The top and right of the photograph
+  // stay clear. Night / rain / thunderstorm use a slightly stronger version for
+  // legibility; sunny/day images stay light and airy.
   const isMoody = !isDay || /rain|drizzle|thunder|storm|tornado/i.test(current.condition || "");
   const overlay = isMoody
-    ? "linear-gradient(180deg, rgba(2,6,23,0.16) 0%, rgba(2,6,23,0.24) 42%, rgba(2,6,23,0.52) 100%), " +
-      "linear-gradient(90deg, rgba(2,6,23,0.30) 0%, rgba(2,6,23,0.10) 42%, rgba(2,6,23,0) 72%)"
-    : "linear-gradient(180deg, rgba(15,23,42,0.06) 0%, rgba(15,23,42,0.14) 45%, rgba(15,23,42,0.42) 100%), " +
-      "linear-gradient(90deg, rgba(15,23,42,0.22) 0%, rgba(15,23,42,0.06) 42%, rgba(15,23,42,0) 72%)";
+    ? "linear-gradient(90deg, rgba(2,6,23,0.62) 0%, rgba(2,6,23,0.34) 30%, rgba(2,6,23,0.10) 55%, rgba(2,6,23,0) 75%), " +
+      "linear-gradient(0deg, rgba(2,6,23,0.42) 0%, rgba(2,6,23,0.12) 30%, rgba(2,6,23,0) 60%)"
+    : "linear-gradient(90deg, rgba(15,23,42,0.52) 0%, rgba(15,23,42,0.26) 30%, rgba(15,23,42,0.06) 55%, rgba(15,23,42,0) 75%), " +
+      "linear-gradient(0deg, rgba(15,23,42,0.34) 0%, rgba(15,23,42,0.08) 30%, rgba(15,23,42,0) 60%)";
 
   // Text/icons read as light over the dark overlay in both day and night
   // (matches the Dashboard photo card contrast approach).
@@ -206,23 +207,22 @@ function CurrentConditions({ weather, ctx }) {
         // weather card. Changes automatically with the current condition.
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: "cover",
-        // The source photos are essentially SQUARE (~1.05:1) with three bands:
-        // sky/clouds on top, the mountain range through the middle, and the
-        // vineyard foreground at the bottom. Displayed as a wide hero, `cover`
-        // must crop some of the top/bottom — that's an accepted, balanced crop.
-        // `center 60%` sits below centre so the crop favours the mountain and
-        // the vineyard/foreground, trimming the plentiful upper sky. This keeps
-        // the mountain clearly visible across all eight images (incl. the moon
-        // and fog-layer subjects) while showing more foreground. The image's
-        // natural aspect ratio is preserved — no stretching/distortion.
-        backgroundPosition: "center 60%",
+        // The HD assets are wide 2.5:1 landscapes (1983×793), composed for a
+        // hero: sky/weather up top, mountains through the middle, farm/field
+        // foreground along the bottom. Because the card is close to the source
+        // ratio, `cover` crops very little vertically — so a plain `center`
+        // crop keeps the horizon and all three zones intact. No downward push
+        // (which would clip the foreground). Aspect ratio preserved — no
+        // stretching/distortion.
+        backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-        // Controlled responsive height (NOT aspect-ratio): on a full-width card
-        // aspect-ratio scales height with width and becomes enormous on
-        // desktop. A fixed hero height keeps the card a moderate band while
-        // `cover` fills it and preserves the image's natural aspect ratio.
-        // Mobile is a touch taller so the stacked detail tiles fit comfortably.
-        minHeight: { xs: 420, sm: 360, md: 390 },
+        // Controlled responsive height (NOT aspect-ratio, which scales with the
+        // full card width and becomes enormous on desktop). Slightly taller
+        // than before so the wide 2.5:1 landscape has vertical room to be
+        // appreciated, while staying a moderate hero band — the hourly forecast
+        // remains visible below without excessive scrolling. Mobile is a touch
+        // taller so the stacked detail tiles fit comfortably.
+        minHeight: { xs: 440, sm: 400, md: 440 },
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-end",
