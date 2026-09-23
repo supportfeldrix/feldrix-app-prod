@@ -219,7 +219,7 @@ function CurrentConditions({ weather, ctx }) {
         // upper sky. Aspect ratio is preserved — no stretching/distortion.
         backgroundPosition: "center 45%",
         backgroundRepeat: "no-repeat",
-        aspectRatio: { xs: "1.2 / 1", sm: "1.45 / 1", md: "1.6 / 1" },
+        aspectRatio: { xs: "1.2 / 1", sm: "1.45 / 1", md: "1.4 / 1" },
         // Floors so the eight-tile detail grid never overflows on narrow cards.
         minHeight: { xs: 300, sm: 320, md: 340 },
         display: "flex",
