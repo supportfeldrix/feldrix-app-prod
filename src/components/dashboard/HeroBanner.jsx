@@ -279,6 +279,15 @@ function HighlightRow({ highlights }) {
 
 // ─── KPICard ─────────────────────────────────────────────────────────────────
 
+/** Font size for a KPI value so longer numbers fit the card width. */
+function kpiValueFontSize(value) {
+  const len = String(value ?? "").length;
+  if (len <= 7) return 28;
+  if (len <= 10) return 23;
+  if (len <= 13) return 19;
+  return 17;
+}
+
 function KPICard({ icon, label, value, sub, accent, status, trend, onClick }) {
   function handleKeyDown(e) {
     if (e.key === "Enter" || e.key === " ") {
@@ -356,13 +365,20 @@ function KPICard({ icon, label, value, sub, accent, status, trend, onClick }) {
             {label}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2, minWidth: 0 }}>
           <div
+            title={String(value ?? "")}
             style={{
-              fontSize: 28,
+              // Long values (e.g. "R 1 165 064,00") get a smaller font so they
+              // stay inside the card; ellipsis is the last-resort fallback.
+              fontSize: kpiValueFontSize(value),
               fontWeight: 800,
               lineHeight: 1.1,
               letterSpacing: "-0.02em",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              minWidth: 0,
             }}
           >
             {value}

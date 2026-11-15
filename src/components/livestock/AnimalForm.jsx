@@ -14,6 +14,9 @@ import { getLifecycleStage, getStageColor } from "../../services/livestockLifecy
 import { LIVESTOCK_STATUSES } from "../../constants/livestockStatus";
 import { SPECIES_CATALOG_GROUPS, OTHER_SPECIES, isOtherSpecies } from "../../constants/livestockSpecies";
 import useFarmContext from "../../hooks/useFarmContext";
+import PregnancyBreedingPrompt from "../breeding/PregnancyBreedingPrompt";
+import { isFemaleAnimal } from "../../utils/breedingSire";
+import { hasOpenBreedingRecord } from "../../services/breedingService";
 import { isUsCustomary, lbToKg, kgToLb, unitLabel } from "../../utils/units";
 import { resolveLocale, currencySymbol } from "../../utils/currency";
 
@@ -42,6 +45,8 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
   });
 
   const [saving, setSaving] = useState(false);
+  // Animal just marked Pregnant with no open breeding record → ask for details.
+  const [pregnantPrompt, setPregnantPrompt] = useState(null);
 
   useEffect(() => {
     if (animal) {
@@ -97,12 +102,39 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
         weight: displayToKg(form.weight),
         category: isOtherSpecies(form.animal_type) ? custom_species.trim() : null,
       };
+      let saved;
       if (animal) {
         await updateAnimal(animal.id, payload);
+        saved = { ...animal, ...payload };
       } else {
-        await addAnimal(payload);
+        saved = await addAnimal(payload);
       }
+      const becamePregnant =
+        payload.status === "Pregnant" &&
+        isFemaleAnimal(payload) &&
+        animal?.status !== "Pregnant" &&
+        saved?.id && !saved._offline;
+      if (becamePregnant) {
+        let needsRecord = true;
+        try { needsRecord = !(await hasOpenBreedingRecord(saved.id)); } catch { /* ask anyway */ }
+        if (needsRecord) {
+          // Refresh/close only after the prompt: refreshing unmounts this form.
+          setPregnantPrompt(saved);
+          setSaving(false);
+          return;
+        }
+      }
+      await finishSave();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+    setSaving(false);
+  }
 
+  async function finishSave() {
+    setPregnantPrompt(null);
+    try {
       setForm({
         tag: "", animal_type: "Cattle", custom_species: "", breed: "", gender: "Female",
         date_of_birth: "", purchase_date: "", weight: "",
@@ -113,9 +145,7 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
       if (onSaved) onSaved();
     } catch (err) {
       console.error(err);
-      alert(err.message);
     }
-    setSaving(false);
   }
 
   // Lifecycle preview (computed from current form state)
@@ -346,6 +376,12 @@ export default function AnimalForm({ refreshAnimals, animal = null, onSaved }) {
             {saving ? "Saving..." : animal ? "Update Animal" : "Save Animal"}
           </Button>
         </Box>
+        <PregnancyBreedingPrompt
+          open={!!pregnantPrompt}
+          animal={pregnantPrompt}
+          onClose={finishSave}
+          onSaved={finishSave}
+        />
       </CardContent>
     </Card>
   );

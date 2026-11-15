@@ -1,3 +1,5 @@
+import { sireLabel } from "../../utils/breedingSire";
+import { breedingEvents } from "../../utils/breedingEvents";
 export default function BreedingHistory({
   records = [],
   onAddBreeding,
@@ -85,9 +87,9 @@ export default function BreedingHistory({
             >
               <th style={header}>Breeding Date</th>
               <th style={header}>Bull / Sire</th>
-              <th style={header}>Pregnant</th>
               <th style={header}>Expected Birth</th>
-              <th style={header}>Outcome</th>
+              <th style={header}>Status</th>
+              <th style={header}>History</th>
             </tr>
           </thead>
 
@@ -100,25 +102,33 @@ export default function BreedingHistory({
                 }}
               >
                 <td style={cell}>
-                  {record.breeding_date}
+                  {record.breeding_date || "-"}
                 </td>
-
                 <td style={cell}>
-                  {record.male?.tag || "-"}
+                  {sireLabel(record)}
                 </td>
-
-                <td style={cell}>
-                  {record.status === "Pregnant"
-                    ? "✅ Yes"
-                    : "❌ No"}
-                </td>
-
                 <td style={cell}>
                   {record.expected_birth || "-"}
                 </td>
-
                 <td style={cell}>
                   {record.status || "Pending"}
+                </td>
+                <td style={cell}>
+                  {breedingEvents(record).length === 0 ? "-" : (
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {breedingEvents(record).map((ev) => (
+                        <li key={ev.type} style={{ marginBottom: 4 }}>
+                          <span style={{ color: "#64748B", marginRight: 6 }}>{ev.date}</span>
+                          {ev.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {record.notes && (
+                    <div style={{ color: "#64748B", fontSize: 13, marginTop: 6, whiteSpace: "pre-line" }}>
+                      {record.notes}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

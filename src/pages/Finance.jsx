@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { Grid, Stack } from "@mui/material";
+import { Alert, Grid, Stack } from "@mui/material";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AddIcon from "@mui/icons-material/Add";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -28,6 +28,7 @@ import { getFinanceRecords } from "../services/financeService";
 import { generateFinanceAnalytics } from "../utils/financeAnalytics";
 import { formatCurrency } from "../utils/currency";
 import useFarmContext from "../hooks/useFarmContext";
+import { getPoultrySummary } from "../services/flockService";
 
 export default function Finance() {
   const farmCtx = useFarmContext(); // farm operating currency/locale (null → ZAR/en-ZA)
@@ -36,11 +37,16 @@ export default function Finance() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [poultry, setPoultry] = useState(null);
 
   async function loadRecords() {
     try {
-      const data = await getFinanceRecords();
+      const [data, poultrySummary] = await Promise.all([
+        getFinanceRecords(),
+        getPoultrySummary(),
+      ]);
       setRecords(data || []);
+      setPoultry(poultrySummary);
     } catch (err) {
       console.error(err);
       alert(err.message);
@@ -119,7 +125,14 @@ export default function Finance() {
             iconColor="#F59E0B"
           />
         </PremiumKPIGrid>
-
+        {/* Poultry mortality (information only: already inside the flock purchase expense) */}
+        {poultry?.deaths > 0 && (
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            Poultry mortality: {poultry.deaths.toLocaleString()} birds died
+            {poultry.lossValue > 0 ? `, worth about ${fmtMoney(poultry.lossValue)} at purchase cost` : ""}.
+            This is part of the flock purchases already counted in Total Expenses, so it is not added again.
+          </Alert>
+        )}
         {/* Financial Intelligence */}
         <PremiumDashboardSection
           title="Financial Intelligence"

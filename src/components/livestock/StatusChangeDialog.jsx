@@ -11,12 +11,20 @@ import {
 import toast from "react-hot-toast";
 import { changeAnimalStatus } from "../../services/livestockService";
 import { LIVESTOCK_STATUSES, getStatusConfig } from "../../constants/livestockStatus";
+import PregnancyBreedingPrompt from "../breeding/PregnancyBreedingPrompt";
+import { isFemaleAnimal } from "../../utils/breedingSire";
+import { hasOpenBreedingRecord } from "../../services/breedingService";
 
 export default function StatusChangeDialog({ open, onClose, animal, onStatusChanged }) {
   const [newStatus, setNewStatus] = useState("");
   const [saving, setSaving] = useState(false);
-
+  const [showBreedingPrompt, setShowBreedingPrompt] = useState(false);
   if (!animal) return null;
+  function finish() {
+    setShowBreedingPrompt(false);
+    onStatusChanged?.();
+    onClose();
+  }
 
   const currentConfig = getStatusConfig(animal.status);
 
@@ -27,8 +35,15 @@ export default function StatusChangeDialog({ open, onClose, animal, onStatusChan
     try {
       await changeAnimalStatus(animal.id, newStatus);
       toast.success(`Status changed to ${newStatus}.`);
-      onStatusChanged?.();
-      onClose();
+      if (newStatus === "Pregnant" && isFemaleAnimal(animal)) {
+        let needsRecord = true;
+        try { needsRecord = !(await hasOpenBreedingRecord(animal.id)); } catch { /* ask anyway */ }
+        if (needsRecord) {
+          setShowBreedingPrompt(true);
+          return;
+        }
+      }
+      finish();
     } catch (err) {
       toast.error(err?.message || "Failed to change status.");
     } finally {
@@ -38,6 +53,9 @@ export default function StatusChangeDialog({ open, onClose, animal, onStatusChan
 
   const selectedConfig = newStatus ? getStatusConfig(newStatus) : null;
 
+  if (showBreedingPrompt) {
+    return <PregnancyBreedingPrompt open animal={animal} onClose={finish} onSaved={finish} />;
+  }
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
       <DialogTitle>

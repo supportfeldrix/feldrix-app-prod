@@ -4,11 +4,14 @@ import {
   updateBreedingRecord,
   getFemaleAnimals,
   getMaleAnimals,
+  getOpenHeatRecord,
+  markFemalePregnant,
 } from "../../services/breedingService";
 
 const emptyForm = {
   female_id: "",
   male_id: "",
+  sire_details: "",
   breeding_date: "",
   breeding_method: "Natural",
   expected_birth: "",
@@ -31,6 +34,7 @@ export default function BreedingForm({
   refreshRecords,
   onSaved,
   animalId = null,
+  defaultStatus = "Bred",
 }) {
   const [femaleAnimals, setFemaleAnimals] = useState([]);
   const [maleAnimals, setMaleAnimals] = useState([]);
@@ -64,6 +68,7 @@ export default function BreedingForm({
       setForm({
         female_id: record.female_id || "",
         male_id: record.male_id || "",
+        sire_details: record.sire_details || "",
         breeding_date: record.breeding_date || "",
         breeding_method:
           record.breeding_method || "Natural",
@@ -76,10 +81,11 @@ export default function BreedingForm({
     } else {
       setForm({
         ...emptyForm,
+        status: defaultStatus,
         female_id: animalId || "",
       });
     }
-  }, [record, animalId]);
+  }, [record, animalId, defaultStatus]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -132,24 +138,38 @@ export default function BreedingForm({
 
   async function handleSubmit(e) {
     e.preventDefault();
-
+    // Sire is optional (AI / outside bull / unknown). Empty strings must be
+    // sent as NULL: male_id is a uuid and expected_birth is a date column.
+    const payload = {
+      ...form,
+      male_id: form.male_id || null,
+      sire_details: form.sire_details.trim() || null,
+      expected_birth: form.expected_birth || null,
+      breeding_date: form.breeding_date || null,
+    };
     try {
       if (record) {
         await updateBreedingRecord(
           record.id,
-          form
+          payload
         );
       } else {
-        await addBreedingRecord(form);
+        // Continue an open heat-detection cycle for this female instead of
+        // creating a second row (keeps heat_date with the breeding).
+        const heat = await getOpenHeatRecord(payload.female_id);
+        if (heat) await updateBreedingRecord(heat.id, payload);
+        else await addBreedingRecord(payload);
       }
+      // Keep the Livestock status in step (only Active/Sick animals change).
+      if (payload.status === "Pregnant") await markFemalePregnant(payload.female_id);
 
       await refreshRecords();
 
       setForm({
         ...emptyForm,
+        status: defaultStatus,
         female_id: animalId || "",
       });
-
       onSaved?.();
     } catch (err) {
       alert(err.message);
@@ -218,17 +238,15 @@ export default function BreedingForm({
           </div>
 
           <div>
-            <label>Male Animal</label>
-
+            <label>Sire (optional)</label>
             <select
               name="male_id"
               value={form.male_id}
               onChange={handleChange}
               style={inputStyle}
-              required
             >
               <option value="">
-                Select Male
+                Not on farm / AI / unknown
               </option>
 
               {maleAnimals.map((a) => (
@@ -244,6 +262,20 @@ export default function BreedingForm({
           </div>
 
           <div>
+            <label>Sire details (optional)</label>
+            <input
+              name="sire_details"
+              value={form.sire_details}
+              onChange={handleChange}
+              style={inputStyle}
+              placeholder={
+                form.breeding_method === "Artificial Insemination"
+                  ? "e.g. AI straw code / bull name"
+                  : "e.g. Neighbour's bull"
+              }
+            />
+          </div>
+          <div>
             <label>Breeding Date</label>
 
             <input
@@ -252,7 +284,7 @@ export default function BreedingForm({
               value={form.breeding_date}
               onChange={handleChange}
               style={inputStyle}
-              required
+              required={form.status !== "Heat Detected"}
             />
           </div>
 
@@ -299,6 +331,7 @@ export default function BreedingForm({
               onChange={handleChange}
               style={inputStyle}
             >
+              <option>Heat Detected</option>
               <option>Bred</option>
               <option>Pregnant</option>
               <option>Completed</option>

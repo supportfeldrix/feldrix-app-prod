@@ -1,5 +1,6 @@
 import { supabase } from "../supabaseClient";
 import { getCurrentUser } from "./profileService";
+import { getTotalPoultryBirds } from "./flockService";
 
 export async function getDashboardStatistics() {
   const user = await getCurrentUser();
@@ -18,6 +19,7 @@ export async function getDashboardStatistics() {
     cropsResult,
     machineryResult,
     tasksResult,
+    poultryBirds,
   ] = await Promise.all([
     supabase
       .from("livestock")
@@ -50,6 +52,7 @@ export async function getDashboardStatistics() {
         head: true,
       })
       .eq("user_id", user.id),
+    getTotalPoultryBirds(),
   ]);
 
   if (
@@ -67,7 +70,7 @@ export async function getDashboardStatistics() {
   }
 
   return {
-    animals: animalsResult.count ?? 0,
+    animals: (animalsResult.count ?? 0) + poultryBirds,
     crops: cropsResult.count ?? 0,
     machinery: machineryResult.count ?? 0,
     tasks: tasksResult.count ?? 0,

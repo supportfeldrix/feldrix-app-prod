@@ -21,6 +21,7 @@ import {
 import LivestockHealthScore from "../components/livestock/LivestockHealthScore";
 import LivestockInsights from "../components/livestock/LivestockInsights";
 import AnimalForm from "../components/livestock/AnimalForm";
+import FlockSection from "../components/livestock/FlockSection";
 import AnimalModal from "../components/livestock/AnimalModal";
 import ViewToggle from "../components/livestock/ViewToggle";
 import LivestockView from "../components/livestock/LivestockView";
@@ -48,6 +49,7 @@ export default function Livestock() {
 
   const [selectedAnimal, setSelectedAnimal] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [flockBirds, setFlockBirds] = useState(0);
 
   async function loadAnimals() {
     setLoading(true);
@@ -111,8 +113,8 @@ export default function Livestock() {
         <PremiumKPIGrid gap={3.5}>
           <PremiumStatCard
             label="Total Animals"
-            value={analytics.totalAnimals}
-            subtitle="In your herd"
+            value={analytics.totalAnimals + flockBirds}
+            subtitle={flockBirds > 0 ? `Incl. ${flockBirds.toLocaleString()} poultry` : "In your herd"}
             icon={<PetsIcon sx={{ fontSize: 28 }} />}
             iconBg="rgba(46,125,50,0.12)"
             iconColor="#2E7D32"
@@ -249,6 +251,8 @@ export default function Livestock() {
             refreshAnimals={loadAnimals}
           />
         </PremiumDashboardSection>
+        {/* Poultry flocks: bulk bird counts per coop + daily feed/water */}
+        <FlockSection onBirdsChange={setFlockBirds} />
       </Stack>
 
       {/* Edit Modal */}

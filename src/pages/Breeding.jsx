@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Grid, Stack } from "@mui/material";
+import { Alert, Button, Grid, Stack, Typography } from "@mui/material";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import AddIcon from "@mui/icons-material/Add";
 import PregnantWomanIcon from "@mui/icons-material/PregnantWoman";
@@ -26,7 +26,12 @@ import OverdueBirths from "../components/breeding/OverdueBirths";
 import BreedingForm from "../components/breeding/BreedingForm";
 import BreedingTable from "../components/breeding/BreedingTable";
 
-import { getBreedingRecords } from "../services/breedingService";
+import PregnancyBreedingPrompt from "../components/breeding/PregnancyBreedingPrompt";
+import BreedingEventDialog from "../components/breeding/BreedingEventDialog";
+import BreedingEventsEditor from "../components/breeding/BreedingEventsEditor";
+import { getBreedingRecords, OPEN_BREEDING_STATUSES } from "../services/breedingService";
+import { getAnimals } from "../services/livestockService";
+import { isFemaleAnimal } from "../utils/breedingSire";
 import { generateBreedingAnalytics } from "../utils/breedingAnalytics";
 
 export default function Breeding() {
@@ -34,11 +39,20 @@ export default function Breeding() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
-
+  const [animals, setAnimals] = useState([]);
+  const [promptAnimal, setPromptAnimal] = useState(null);
+  const [eventType, setEventType] = useState(null); // "heat" | "check" | "birth"
+  const [eventsRecordId, setEventsRecordId] = useState(null);
+  // Always show the freshest copy after a reload; null once deleted.
+  const eventsRecord = records.find((r) => r.id === eventsRecordId) || null;
   async function loadRecords() {
     try {
-      const data = await getBreedingRecords();
+      const [data, herd] = await Promise.all([
+        getBreedingRecords(),
+        getAnimals().catch(() => []),
+      ]);
       setRecords(data || []);
+      setAnimals(herd || []);
     } catch (err) {
       console.error(err);
       alert(err.message);
@@ -57,6 +71,13 @@ export default function Breeding() {
     [records]
   );
 
+  // Females marked Pregnant on Livestock that have no open breeding record.
+  const pregnantWithoutRecord = animals.filter(
+    (a) =>
+      a.status === "Pregnant" &&
+      isFemaleAnimal(a) &&
+      !records.some((r) => r.female_id === a.id && OPEN_BREEDING_STATUSES.includes(r.status))
+  );
   if (loading) {
     return (
       <PremiumPageLayout
@@ -127,11 +148,46 @@ export default function Breeding() {
           </Grid>
         </PremiumDashboardSection>
 
+        {/* Pregnant animals without a breeding record */}
+        {pregnantWithoutRecord.length > 0 && (
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            <Typography variant="body2" fontWeight={700} sx={{ mb: 1 }}>
+              Marked Pregnant on Livestock but no breeding record
+            </Typography>
+            <Stack spacing={1}>
+              {pregnantWithoutRecord.map((a) => (
+                <Stack key={a.id} direction="row" spacing={2} alignItems="center">
+                  <Typography variant="body2" sx={{ minWidth: 180 }}>
+                    {a.tag} ({a.breed || a.animal_type})
+                  </Typography>
+                  <Button size="small" variant="outlined" color="success" onClick={() => setPromptAnimal(a)}>
+                    Add breeding details
+                  </Button>
+                </Stack>
+              ))}
+            </Stack>
+          </Alert>
+        )}
+        <PregnancyBreedingPrompt
+          open={!!promptAnimal}
+          animal={promptAnimal}
+          onClose={() => setPromptAnimal(null)}
+          onSaved={async () => { setPromptAnimal(null); await loadRecords(); }}
+        />
         {/* Upcoming Timeline */}
         <UpcomingBreedingTimeline
           timeline={analytics.timeline || []}
-          onAddRecord={() => setShowForm(true)}
+          onAddRecord={() => { setSelectedRecord(null); setShowForm(true); }}
+          onEvent={setEventType}
         />
+        {eventType && (
+          <BreedingEventDialog
+            type={eventType}
+            records={records}
+            onClose={() => setEventType(null)}
+            onSaved={async () => { setEventType(null); await loadRecords(); }}
+          />
+        )}
 
         {/* Upcoming & Overdue Births */}
         <UpcomingBirths records={records} />
@@ -166,7 +222,15 @@ export default function Breeding() {
             records={records}
             refreshRecords={loadRecords}
             onEdit={(record) => { setSelectedRecord(record); setShowForm(true); }}
+            onEditEvents={(record) => setEventsRecordId(record.id)}
           />
+          {eventsRecord && (
+            <BreedingEventsEditor
+              record={eventsRecord}
+              onClose={() => setEventsRecordId(null)}
+              onChanged={loadRecords}
+            />
+          )}
         </PremiumDashboardSection>
       </Stack>
     </PremiumPageLayout>

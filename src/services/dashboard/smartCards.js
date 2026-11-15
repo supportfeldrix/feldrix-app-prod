@@ -93,7 +93,8 @@ function generateLivestockCard(livestock = {}) {
   const animals = Array.isArray(livestock.animals) ? livestock.animals : [];
   const healthRecords = Array.isArray(livestock.healthRecords) ? livestock.healthRecords : [];
 
-  const totalAnimals = animals.length;
+  // Individual animals plus poultry tracked by head count in flocks.
+  const totalAnimals = animals.length + (Number(livestock.poultryBirds) || 0);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

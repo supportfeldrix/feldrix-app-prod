@@ -2,6 +2,7 @@ import { getAnimals } from "./livestockService";
 import { getFinanceRecords } from "./financeService";
 import { getBreedingRecords } from "./breedingService";
 import { getHealthRecords } from "./healthService";
+import { getTotalPoultryBirds } from "./flockService";
 
 function safeResult(result) {
   return result.status === "fulfilled" ? result.value : [];
@@ -13,6 +14,7 @@ export async function getFarmReport() {
     getFinanceRecords(),
     getBreedingRecords(),
     getHealthRecords(),
+    getTotalPoultryBirds(),
   ]);
 
   const animals = safeResult(results[0]);
@@ -20,7 +22,8 @@ export async function getFarmReport() {
   const breeding = safeResult(results[2]);
   const health = safeResult(results[3]);
 
-  const totalAnimals = animals.length;
+  const poultryBirds = results[4].status === "fulfilled" ? results[4].value : 0;
+  const totalAnimals = animals.length + poultryBirds;
 
   const totalIncome = finance
     .filter((r) => r.category === "Income")
@@ -40,6 +43,7 @@ export async function getFarmReport() {
 
   return {
     totalAnimals,
+    poultryBirds,
     totalIncome,
     totalExpenses,
     netProfit,

@@ -61,6 +61,50 @@ export async function createPurchaseFinanceRecord(animal) {
 }
 
 /**
+ * Creates (or updates) the expense for a poultry flock purchase.
+ * purchase_price is the TOTAL for the flock. Idempotent via [auto:flock-{id}]:
+ * if a record exists its amount/date/quantity are refreshed instead of duplicated.
+ *
+ * @param {object} flock - livestock_flocks row (id, coop_name, species, breed, purchase_price, placed_date, initial_count)
+ */
+export async function syncFlockPurchaseFinanceRecord(flock) {
+  const price = Number(flock.purchase_price);
+  if (!price || price <= 0) return null;
+  const sourceRef = `[auto:flock-${flock.id}]`;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const qty = Number(flock.initial_count ?? flock.bird_count);
+  const fields = {
+    amount: price,
+    transaction_date: flock.placed_date || new Date().toISOString().split("T")[0],
+    description: `Flock purchase: ${flock.coop_name} (${flock.breed || flock.species || "Poultry"}) ${sourceRef}`,
+    quantity: qty > 0 ? qty : null,
+    unit: qty > 0 ? "head" : null,
+  };
+  const existing = await findExistingAutoRecord(sourceRef);
+  if (existing) {
+    const { error } = await supabase.from("finance_records").update(fields).eq("id", existing.id);
+    if (error) {
+      console.error("Auto-finance (flock update) failed:", error);
+      throw new Error(`Finance record could not be updated: ${error.message}`);
+    }
+    return existing;
+  }
+  const { data, error } = await supabase
+    .from("finance_records")
+    .insert([{ user_id: user.id, category: "Expense", transaction_type: "Other", applies_to: "farm", ...fields }])
+    .select()
+    .single();
+  if (error) {
+    console.error("Auto-finance (flock) failed:", error);
+    throw new Error(`Finance record could not be created: ${error.message}`);
+  }
+  return data;
+}
+
+/**
  * Creates a finance record for a health treatment if cost > 0.
  * Skips if a finance record already exists for this health record.
  *

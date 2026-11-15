@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { cropAreaToHa } from "../utils/units";
+import { getPoultrySummary } from "./flockService";
 
 export async function getDashboardStats() {
   // --------------------------------------------------
@@ -57,6 +58,9 @@ export async function getDashboardStats() {
   if (livestockError) throw livestockError;
 
   const animals = livestock || [];
+  // Poultry flocks are tracked by head count, not as individual animal rows.
+  const poultry = await getPoultrySummary();
+  const poultryBirds = poultry.birds;
 
   // --------------------------------------------------
   // WEIGHT HISTORY (canonical kg)
@@ -154,7 +158,10 @@ export async function getDashboardStats() {
   // LIVESTOCK STATS
   // --------------------------------------------------
 
-  const totalAnimals = animals.length;
+  // Headline count includes poultry; per-animal averages below use only
+  // individually registered animals (flocks have no per-bird weight).
+  const registeredAnimals = animals.length;
+  const totalAnimals = registeredAnimals + poultryBirds;
 
   const healthy = animals.filter(
     (a) => a.status === "Healthy"
@@ -174,8 +181,8 @@ export async function getDashboardStats() {
   );
 
   const averageWeight =
-    totalAnimals > 0
-      ? Math.round(totalWeight / totalAnimals)
+    registeredAnimals > 0
+      ? Math.round(totalWeight / registeredAnimals)
       : 0;
 
   const totalValue = animals.reduce(
@@ -281,6 +288,8 @@ export async function getDashboardStats() {
     // Livestock
     animals,
     totalAnimals,
+    poultryBirds,
+    poultry,
     healthy,
     pregnant,
     sick,

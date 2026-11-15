@@ -1,4 +1,5 @@
 import { FaHeartbeat, FaCalendarAlt, FaExclamationTriangle, FaBaby } from "react-icons/fa";
+import { sireLabel } from "../../utils/breedingSire";
 
 export default function BreedingAlerts({
   pregnant = 0,
@@ -48,7 +49,7 @@ export default function BreedingAlerts({
             {latestBreeding ? (
               <>
                 <div style={{marginTop:10}}>🐄 Female: {latestBreeding.female?.tag ?? "-"}</div>
-                <div>🐂 Male: {latestBreeding.male?.tag ?? "-"}</div>
+                <div>🐂 Sire: {sireLabel(latestBreeding)}</div>
                 <div style={{color:"#64748B",marginTop:6}}>
                   📅 {latestBreeding.breeding_date}
                 </div>

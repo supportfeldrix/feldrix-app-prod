@@ -16,6 +16,7 @@ import {
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { sireLabel } from "../../utils/breedingSire";
 
 export default function OverdueBirths({ records = [] }) {
   const theme = useTheme();
@@ -43,6 +44,7 @@ export default function OverdueBirths({ records = [] }) {
   const overdueChecks = records
     .filter((r) => {
       if (r.status !== "Pregnant" && r.status !== "Confirmed" && r.status !== "Bred") return false;
+      if (r.pregnancy_check_date) return false; // already checked
       if (!r.breeding_date) return false;
       const bred = new Date(r.breeding_date);
       bred.setHours(0, 0, 0, 0);
@@ -137,7 +139,7 @@ export default function OverdueBirths({ records = [] }) {
                         </Typography>
                       </Stack>
                       <Typography variant="caption" color="text.disabled">
-                        Sire: {record.male?.tag || "Unknown"}
+                        Sire: {sireLabel(record)}
                         {record.expected_birth ? ` • Expected: ${new Date(record.expected_birth).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}` : ""}
                       </Typography>
                     </Stack>

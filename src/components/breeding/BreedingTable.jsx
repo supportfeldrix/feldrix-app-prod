@@ -22,10 +22,13 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 
 import { deleteBreedingRecord } from "../../services/breedingService";
 import { radius, transitions } from "../../design/tokens";
+import { sireLabel } from "../../utils/breedingSire";
+import { lastBreedingEvent, shortEventLabel } from "../../utils/breedingEvents";
 
 function getPregnancyProgress(record) {
   if (!record.breeding_date || !record.expected_birth) return 0;
@@ -59,6 +62,7 @@ function getStatusColor(status) {
     case "Completed": return "secondary";
     case "Failed": return "error";
     case "Ready": return "warning";
+    case "Heat Detected": return "warning";
     default: return "default";
   }
 }
@@ -76,7 +80,7 @@ function getProgressColor(progress) {
   return "success.main";
 }
 
-export default function BreedingTable({ records = [], onEdit, refreshRecords }) {
+export default function BreedingTable({ records = [], onEdit, onEditEvents, refreshRecords }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
@@ -84,7 +88,7 @@ export default function BreedingTable({ records = [], onEdit, refreshRecords }) 
     const term = search.toLowerCase();
     return (
       (record.female?.tag || "").toLowerCase().includes(term) ||
-      (record.male?.tag || "").toLowerCase().includes(term) ||
+      sireLabel(record).toLowerCase().includes(term) ||
       (record.status || "").toLowerCase().includes(term) ||
       (record.breeding_method || "").toLowerCase().includes(term)
     );
@@ -156,12 +160,13 @@ export default function BreedingTable({ records = [], onEdit, refreshRecords }) 
           <TableHead>
             <TableRow>
               <TableCell sx={headerCell}>Female</TableCell>
-              <TableCell sx={headerCell}>Male</TableCell>
+              <TableCell sx={headerCell}>Sire</TableCell>
               <TableCell sx={headerCell}>Date</TableCell>
               <TableCell sx={headerCell}>Method</TableCell>
               <TableCell sx={headerCell}>Expected</TableCell>
               <TableCell sx={headerCell}>Progress</TableCell>
               <TableCell sx={headerCell}>Days Left</TableCell>
+              <TableCell sx={headerCell}>Last Event</TableCell>
               <TableCell sx={headerCell}>Status</TableCell>
               <TableCell sx={headerCell} align="right">Actions</TableCell>
             </TableRow>
@@ -170,7 +175,7 @@ export default function BreedingTable({ records = [], onEdit, refreshRecords }) 
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} sx={{ py: 6, textAlign: "center" }}>
+                <TableCell colSpan={10} sx={{ py: 6, textAlign: "center" }}>
                   <Typography color="text.secondary">No breeding records match your search.</Typography>
                 </TableCell>
               </TableRow>
@@ -178,6 +183,7 @@ export default function BreedingTable({ records = [], onEdit, refreshRecords }) 
               filtered.map((record, index) => {
                 const progress = getPregnancyProgress(record);
                 const daysInfo = getDaysRemaining(record);
+                const lastEvent = lastBreedingEvent(record);
                 return (
                   <TableRow
                     key={record.id}
@@ -203,7 +209,7 @@ export default function BreedingTable({ records = [], onEdit, refreshRecords }) 
 
                     <TableCell sx={dataCell}>
                       <Typography variant="body2" color="text.secondary">
-                        {record.male?.tag || "\u2014"}
+                        {sireLabel(record)}
                       </Typography>
                     </TableCell>
 
@@ -246,7 +252,7 @@ export default function BreedingTable({ records = [], onEdit, refreshRecords }) 
                           </Typography>
                         </Stack>
                       ) : (
-                        <Typography variant="caption" color="text.disabled">\u2014</Typography>
+                        <Typography variant="caption" color="text.disabled">{"\u2014"}</Typography>
                       )}
                     </TableCell>
 
@@ -259,10 +265,20 @@ export default function BreedingTable({ records = [], onEdit, refreshRecords }) 
                           sx={{ fontWeight: 700, fontSize: "0.7rem", height: 24, minWidth: 64 }}
                         />
                       ) : (
-                        <Typography variant="caption" color="text.disabled">\u2014</Typography>
+                        <Typography variant="caption" color="text.disabled">{"\u2014"}</Typography>
                       )}
                     </TableCell>
 
+                    <TableCell sx={dataCell}>
+                      {lastEvent ? (
+                        <>
+                          <Typography variant="body2" color="text.primary">{shortEventLabel(lastEvent)}</Typography>
+                          <Typography variant="caption" color="text.secondary">{formatDate(lastEvent.date)}</Typography>
+                        </>
+                      ) : (
+                        <Typography variant="caption" color="text.disabled">{"\u2014"}</Typography>
+                      )}
+                    </TableCell>
                     <TableCell sx={dataCell}>
                       <Chip
                         label={record.status || "Unknown"}
@@ -282,6 +298,13 @@ export default function BreedingTable({ records = [], onEdit, refreshRecords }) 
                               onClick={(e) => { e.stopPropagation(); navigate(`/animals/${record.female_id}`, { state: { source: "breeding", section: "breeding" } }); }}
                             >
                               <VisibilityIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {onEditEvents && (
+                          <Tooltip title="Edit events (heat / check / birth)">
+                            <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); onEditEvents(record); }}>
+                              <EventNoteIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                           </Tooltip>
                         )}

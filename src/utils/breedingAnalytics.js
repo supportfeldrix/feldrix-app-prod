@@ -113,12 +113,13 @@ export function generateBreedingAnalytics({ breedingRecords = [] } = {}) {
   // BIRTHS THIS MONTH
   const birthsThisMonth = breedingRecords.filter((r) => {
     if (r.status !== "Completed") return false;
-    const d = new Date(r.updated_at || r.breeding_date);
+    const d = new Date(r.birth_date || r.updated_at || r.breeding_date);
     return d >= monthStart;
   }).length;
 
   // PREGNANCY CHECKS DUE (pregnant for 30+ days, needs check)
   const pregnancyChecksDue = pregnantRecords.filter((r) => {
+    if (r.pregnancy_check_date) return false; // already checked
     if (!r.breeding_date) return false;
     const bd = new Date(r.breeding_date);
     return bd <= thirtyDaysAgo;
@@ -312,6 +313,7 @@ function buildTimeline(records, today, thirtyDaysFromNow) {
   // Add pregnancy checks
   for (const record of records) {
     if (record.status !== "Pregnant" && record.status !== "Confirmed") continue;
+    if (record.pregnancy_check_date) continue; // already checked
     if (!record.breeding_date) continue;
 
     const bd = new Date(record.breeding_date);

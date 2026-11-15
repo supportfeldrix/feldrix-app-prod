@@ -72,7 +72,9 @@ function formatDate(date) {
 
 const MAX_VISIBLE = 5;
 
-export default function UpcomingBreedingTimeline({ timeline = [], onAddRecord }) {
+export default function UpcomingBreedingTimeline({ timeline = [], onAddRecord, onEvent }) {
+  // onEvent(type) opens the matching form; falls back to the general breeding form.
+  const open = (type) => () => (onEvent ? onEvent(type) : onAddRecord?.());
   const theme = useTheme();
   const { palette } = theme;
   const navigate = useNavigate();
@@ -199,10 +201,10 @@ export default function UpcomingBreedingTimeline({ timeline = [], onAddRecord })
 
           <Divider />
           <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-            <QuickButton label="Heat Detection" onClick={onAddRecord} />
+            <QuickButton label="Heat Detection" onClick={open("heat")} />
             <QuickButton label="Start Breeding" onClick={onAddRecord} />
-            <QuickButton label="Pregnancy Check" onClick={onAddRecord} />
-            <QuickButton label="Record Birth" onClick={onAddRecord} />
+            <QuickButton label="Pregnancy Check" onClick={open("check")} />
+            <QuickButton label="Record Birth" onClick={open("birth")} />
           </Stack>
         </Stack>
       </CardContent>

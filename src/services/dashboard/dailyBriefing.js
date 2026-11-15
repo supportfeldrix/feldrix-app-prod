@@ -170,6 +170,15 @@ function generateHighlights(data) {
   } else if (animals.length > 0) {
     add("All livestock healthy.");
   }
+  // Poultry (tracked per coop, not per animal)
+  const poultry = data.livestock?.poultry;
+  if (poultry && poultry.coops > 0) {
+    if (poultry.coopsWithoutLogToday > 0) {
+      add(`${poultry.coopsWithoutLogToday} coop${poultry.coopsWithoutLogToday === 1 ? "" : "s"} without a feed/water log today.`);
+    } else {
+      add(`Feed and water logged for all ${poultry.coops} coop${poultry.coops === 1 ? "" : "s"} today.`);
+    }
+  }
 
   // Crops
   const crops = data.crops?.crops || [];

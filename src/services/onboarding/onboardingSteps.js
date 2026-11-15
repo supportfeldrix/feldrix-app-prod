@@ -41,7 +41,7 @@ export const ONBOARDING_STEPS = [
     navigateTo: "/livestock",
     actionLabel: "Add Record",
     evaluate: async (supabase, userId) => {
-      const [{ count: livestock }, { count: crops }] = await Promise.all([
+      const [{ count: livestock }, { count: crops }, { count: flocks }] = await Promise.all([
         supabase
           .from("livestock")
           .select("*", { count: "exact", head: true })
@@ -50,8 +50,12 @@ export const ONBOARDING_STEPS = [
           .from("crops")
           .select("*", { count: "exact", head: true })
           .eq("user_id", userId),
+        supabase
+          .from("livestock_flocks")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId),
       ]);
-      return (livestock || 0) > 0 || (crops || 0) > 0;
+      return (livestock || 0) > 0 || (crops || 0) > 0 || (flocks || 0) > 0;
     },
   },
   {

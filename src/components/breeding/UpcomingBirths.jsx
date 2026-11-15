@@ -16,6 +16,7 @@ import {
 import ChildFriendlyIcon from "@mui/icons-material/ChildFriendly";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { sireLabel } from "../../utils/breedingSire";
 
 function getCountdownColor(days) {
   if (days <= 7) return "error";
@@ -127,7 +128,7 @@ export default function UpcomingBirths({ records = [] }) {
                         </Typography>
                       </Stack>
                       <Typography variant="caption" color="text.disabled">
-                        Sire: {record.male?.tag || "Unknown"} • Expected: {new Date(record.expected_birth).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                        Sire: {sireLabel(record)} • Expected: {new Date(record.expected_birth).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
                       </Typography>
                     </Stack>
 

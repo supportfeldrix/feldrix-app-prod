@@ -133,6 +133,8 @@ export default function Dashboard() {
         },
         livestock: {
           animals: dash?.animals || [],
+          poultryBirds: dash?.poultryBirds || 0,
+          poultry: dash?.poultry || null,
           healthRecords: health || [],
           breedingRecords: dash?.breedingRecords || [],
           weightRecords: dash?.weightRecords || [],
