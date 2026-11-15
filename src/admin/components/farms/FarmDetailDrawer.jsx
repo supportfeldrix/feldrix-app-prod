@@ -188,6 +188,7 @@ export default function FarmDetailDrawer({ open, farm, onClose, onUpdated }) {
               <Typography sx={{ ...typo.sectionTitle, color: semantic.text, mb: 1.5 }}>📊 Operations</Typography>
               <Stack spacing={0.5}>
                 <OperationRow icon="🐄" label="Livestock" value={counts.livestock} />
+                <OperationRow icon="🐔" label={`Poultry (${counts.coops || 0} coops)`} value={counts.poultryBirds || 0} />
                 <OperationRow icon="🌾" label="Crops" value={counts.crops} />
                 <OperationRow icon="📋" label="Planner Tasks" value={counts.tasks} />
                 <OperationRow icon="💳" label="Finance Records" value={counts.finance} />
@@ -202,6 +203,9 @@ export default function FarmDetailDrawer({ open, farm, onClose, onUpdated }) {
               <Typography sx={{ ...typo.sectionTitle, color: semantic.text, mb: 1.5 }}>🧠 AI Farm Summary</Typography>
               <Stack spacing={0.75}>
                 <SummaryLine ok={counts.livestock > 0} text={counts.livestock > 0 ? `${counts.livestock} livestock records managed.` : "No livestock recorded yet."} />
+                {counts.coops > 0 && (
+                  <SummaryLine ok text={`${(counts.poultryBirds || 0).toLocaleString()} poultry in ${counts.coops} coop${counts.coops === 1 ? "" : "s"}.`} />
+                )}
                 <SummaryLine ok={counts.crops > 0} text={counts.crops > 0 ? `${counts.crops} crop records active.` : "No crops recorded yet."} />
                 <SummaryLine ok={counts.tasks > 0} text={counts.tasks > 0 ? `Planner actively used (${counts.tasks} tasks).` : "Planner not yet used."} />
                 <SummaryLine ok={counts.finance > 0} text={counts.finance > 0 ? `Finance module active (${counts.finance} entries).` : "No finance records."} />

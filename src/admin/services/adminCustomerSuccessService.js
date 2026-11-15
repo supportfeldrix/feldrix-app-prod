@@ -93,7 +93,7 @@ export async function getSuccessQueue({ limit = 20, offset = 0 } = {}) {
           safeCount("crops", (q) => q.eq("user_id", user.id)),
           safeCount("planner_tasks", (q) => q.eq("user_id", user.id)),
           safeCount("finance_records", (q) => q.eq("user_id", user.id)),
-          safeCount("health_records", (q) => q.eq("user_id", user.id)),
+          safeCount("animal_health", (q) => q.eq("user_id", user.id)),
         ]);
 
         const { score, risk } = calculateHealthScore({

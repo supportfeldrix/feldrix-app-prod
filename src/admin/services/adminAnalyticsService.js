@@ -61,7 +61,7 @@ export async function getDashboardMetrics() {
     safeCount("planner_tasks"),
     safeCount("finance_records"),
     safeCount("machinery"),
-    safeCount("health_records"),
+    safeCount("animal_health"),
     safeCount("breeding_records"),
     safeCount("profiles", (q) => q.gte("last_login", thirtyDaysAgo.toISOString())),
     safeCount("subscription_payments"),

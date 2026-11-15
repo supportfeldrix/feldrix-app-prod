@@ -160,6 +160,7 @@ export default function UserDetailDrawer({ open, user, onClose, onUserUpdated })
               <InfoRow label="Location" value={[profile.province, profile.country].filter(Boolean).join(", ") || "—"} />
               <Divider sx={{ my: 1 }} />
               <InfoRow label="Livestock" value={formatNumber(counts.livestock)} />
+              <InfoRow label="Poultry" value={`${formatNumber(counts.poultryBirds || 0)} birds, ${counts.coops || 0} coops`} />
               <InfoRow label="Crops" value={formatNumber(counts.crops)} />
               <InfoRow label="Planner Tasks" value={formatNumber(counts.tasks)} />
               <InfoRow label="Finance Records" value={formatNumber(counts.finance)} />

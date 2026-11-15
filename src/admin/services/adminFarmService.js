@@ -23,6 +23,24 @@ async function safeCount(table, filter) {
   }
 }
 
+/**
+ * Poultry for one farm: live birds across its coops and number of coops.
+ * Flocks are one row per coop with a head count, so they are summed, not counted.
+ */
+export async function getFarmPoultry(farmId) {
+  try {
+    const { data, error } = await supabase
+      .from("livestock_flocks")
+      .select("bird_count")
+      .eq("user_id", farmId);
+    if (error) throw error;
+    const rows = data || [];
+    return { birds: rows.reduce((s, r) => s + (Number(r.bird_count) || 0), 0), coops: rows.length };
+  } catch {
+    return { birds: 0, coops: 0 };
+  }
+}
+
 // ─── Farm Metrics (KPI Dashboard) ────────────────────────────
 
 export async function getFarmMetrics() {
@@ -107,12 +125,14 @@ export async function getFarms({
   // Enrich with counts (parallel, per-farm)
   const farms = await Promise.all(
     (data || []).map(async (farm) => {
-      const [livestock, crops, tasks] = await Promise.all([
+      const [animals, crops, tasks, poultry] = await Promise.all([
         safeCount("livestock", (q) => q.eq("user_id", farm.id)),
         safeCount("crops", (q) => q.eq("user_id", farm.id)),
         safeCount("planner_tasks", (q) => q.eq("user_id", farm.id)),
+        getFarmPoultry(farm.id),
       ]);
-      return { ...farm, livestock, crops, tasks };
+      // Livestock = individual animals + poultry birds (same as the farmer app's Total Animals).
+      return { ...farm, livestock: animals + poultry.birds, crops, tasks };
     })
   );
 
@@ -132,18 +152,18 @@ export async function getFarmDetail(farmId) {
 
   if (error) return null;
 
-  const [livestock, crops, tasks, finance, health, machinery] = await Promise.all([
+  const [livestock, crops, tasks, finance, health, machinery, poultry] = await Promise.all([
     safeCount("livestock", (q) => q.eq("user_id", farmId)),
     safeCount("crops", (q) => q.eq("user_id", farmId)),
     safeCount("planner_tasks", (q) => q.eq("user_id", farmId)),
     safeCount("finance_records", (q) => q.eq("user_id", farmId)),
-    safeCount("health_records", (q) => q.eq("user_id", farmId)),
+    safeCount("animal_health", (q) => q.eq("user_id", farmId)),
     safeCount("machinery", (q) => q.eq("user_id", farmId)),
+    getFarmPoultry(farmId),
   ]);
-
   return {
     profile: profile || {},
-    counts: { livestock, crops, tasks, finance, health, machinery },
+    counts: { livestock, crops, tasks, finance, health, machinery, poultryBirds: poultry.birds, coops: poultry.coops },
   };
 }
 

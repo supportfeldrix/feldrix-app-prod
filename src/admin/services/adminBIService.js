@@ -110,7 +110,7 @@ export async function getFeatureUsage() {
     safeCount("crops"),
     safeCount("planner_tasks"),
     safeCount("finance_records"),
-    safeCount("health_records"),
+    safeCount("animal_health"),
     safeCount("machinery"),
   ]);
   return [

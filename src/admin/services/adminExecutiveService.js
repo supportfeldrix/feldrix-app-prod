@@ -98,7 +98,7 @@ export async function getPlatformUsage() {
     safeCount("crops"),
     safeCount("planner_tasks"),
     safeCount("finance_records"),
-    safeCount("health_records"),
+    safeCount("animal_health"),
     safeCount("machinery"),
   ]);
 

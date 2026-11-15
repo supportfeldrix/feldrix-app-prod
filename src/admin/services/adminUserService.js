@@ -10,6 +10,7 @@
 import { supabase } from "../../supabaseClient";
 import { logAuditEvent } from "./adminAuditService";
 import { AUDIT_SEVERITY } from "../utils/adminConstants";
+import { getFarmPoultry } from "./adminFarmService";
 
 // ─── User Queries ────────────────────────────────────────────
 
@@ -98,11 +99,12 @@ export async function getUserDetail(userId) {
   if (profileRes.error) throw profileRes.error;
 
   // Count queries — each wrapped individually so one table missing doesn't crash all
-  const [livestockRes, cropsRes, tasksRes, financeRes] = await Promise.all([
+  const [livestockRes, cropsRes, tasksRes, financeRes, poultry] = await Promise.all([
     supabase.from("livestock").select("*", { count: "exact", head: true }).eq("user_id", userId).then(r => r).catch(() => ({ count: 0 })),
     supabase.from("crops").select("*", { count: "exact", head: true }).eq("user_id", userId).then(r => r).catch(() => ({ count: 0 })),
     supabase.from("planner_tasks").select("*", { count: "exact", head: true }).eq("user_id", userId).then(r => r).catch(() => ({ count: 0 })),
     supabase.from("finance_records").select("*", { count: "exact", head: true }).eq("user_id", userId).then(r => r).catch(() => ({ count: 0 })),
+    getFarmPoultry(userId),
   ]);
 
   return {
@@ -112,6 +114,8 @@ export async function getUserDetail(userId) {
       crops: cropsRes.count || 0,
       tasks: tasksRes.count || 0,
       finance: financeRes.count || 0,
+      poultryBirds: poultry.birds,
+      coops: poultry.coops,
     },
   };
 }
