@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton,
   MenuItem, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField,
   Tooltip, Typography,
 } from "@mui/material";
@@ -13,11 +13,16 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
 import HeartBrokenIcon from "@mui/icons-material/HeartBroken";
+import ScaleIcon from "@mui/icons-material/Scale";
+import FlagIcon from "@mui/icons-material/Flag";
+import { BroilerCycleCard, WeighDialog, CloseCycleDialog, PastCycles } from "./BroilerCycles";
+import { isBroiler, isClosed } from "../../utils/broilerCycle";
 import { PremiumDashboardSection, PremiumActionButton } from "../../design";
 import {
   getFlocks, addFlock, updateFlock, deleteFlock,
   getFlockLogs, saveFlockLog, deleteFlockLog,
   getFlockMortality, addFlockMortality, deleteFlockMortality, costPerBird,
+  getFlockWeighings,
 } from "../../services/flockService";
 import { formatCurrency } from "../../utils/currency";
 import {
@@ -36,6 +41,7 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 const EMPTY_FLOCK = {
   coop_name: "", species: "Chicken", breed: "", purpose: "", bird_count: "",
   placed_date: "", purchase_price: "", notes: "",
+  age_at_placement_days: "0", target_days: "", target_weight: "",
 };
 
 export default function FlockSection({ onBirdsChange }) {
@@ -48,13 +54,20 @@ export default function FlockSection({ onBirdsChange }) {
   const [logFlock, setLogFlock] = useState(null);
   const [deaths, setDeaths] = useState([]);
   const [deathFlock, setDeathFlock] = useState(null);
-
+  const [weighings, setWeighings] = useState([]);
+  const [weighFlock, setWeighFlock] = useState(null);
+  const [closingFlock, setClosingFlock] = useState(null);
   const load = useCallback(async () => {
     try {
-      const [f, l, d] = await Promise.all([getFlocks(), getFlockLogs(), getFlockMortality()]);
+      const [f, l, d, w] = await Promise.all([
+        getFlocks(), getFlockLogs(), getFlockMortality(),
+        // Fails soft until the broiler-cycle migration is applied.
+        getFlockWeighings().catch(() => []),
+      ]);
       setFlocks(f);
       setLogs(l);
       setDeaths(d);
+      setWeighings(w);
       if (onBirdsChange) onBirdsChange(f.reduce((sum, x) => sum + (x.bird_count || 0), 0));
       setError("");
     } catch (e) {
@@ -77,17 +90,29 @@ export default function FlockSection({ onBirdsChange }) {
     return m;
   }, [deaths]);
 
-  const totalBirds = flocks.reduce((s, f) => s + (f.bird_count || 0), 0);
+  const activeFlocks = flocks.filter((f) => !isClosed(f));
+  const closedFlocks = flocks.filter(isClosed);
+  const activeBroilers = activeFlocks.filter(isBroiler);
+  const totalBirds = activeFlocks.reduce((s, f) => s + (f.bird_count || 0), 0);
+  const logsFor = (id) => logs.filter((l) => l.flock_id === id);
+  const deathsFor = (id) => deaths.filter((d) => d.flock_id === id);
+  const weighingsFor = (id) => weighings.filter((w) => w.flock_id === id);
+  // Next batch number for a coop = highest cycle_number with that name + 1.
+  const nextCycleNumber = (coopName) =>
+    1 + Math.max(0, ...flocks
+      .filter((f) => f.coop_name.trim().toLowerCase() === coopName.trim().toLowerCase())
+      .map((f) => f.cycle_number || 1));
 
   async function handleDelete(f) {
-    if (!window.confirm(`Delete "${f.coop_name}" and all its feed/water logs?`)) return;
+    const what = isClosed(f) ? `cycle ${f.cycle_number || 1} of "${f.coop_name}"` : `"${f.coop_name}"`;
+    if (!window.confirm(`Delete ${what} with all its feed, water, death and weighing records? Finance entries are kept.`)) return;
     try { await deleteFlock(f.id); await load(); } catch (e) { alert(e.message); }
   }
 
   return (
     <PremiumDashboardSection
       title="Poultry Flocks"
-      description={`${flocks.length} coops, ${totalBirds.toLocaleString()} birds. Add a whole coop at once and log daily feed and water.`}
+      description={`${activeFlocks.length} active coops, ${totalBirds.toLocaleString()} birds. Add a whole coop at once and log daily feed and water.`}
     >
       <Stack direction="row" sx={{ mb: 2 }}>
         <PremiumActionButton
@@ -99,8 +124,32 @@ export default function FlockSection({ onBirdsChange }) {
         />
       </Stack>
       {error && <Typography color="error" variant="body2" sx={{ mb: 1 }}>{error}</Typography>}
-      {flocks.length === 0 && !error ? (
-        <Typography variant="body2" color="text.secondary">No flocks yet. Add a coop with its bird count, for example 1000 chickens.</Typography>
+      {activeBroilers.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Broiler cycles</Typography>
+          <Grid container spacing={2}>
+            {activeBroilers.map((f) => (
+              <Grid key={f.id} size={{ xs: 12, md: 6, lg: 4 }}>
+                <BroilerCycleCard
+                  flock={f}
+                  logs={logsFor(f.id)}
+                  deaths={deathsFor(f.id)}
+                  weighings={weighingsFor(f.id)}
+                  farmCtx={farmCtx}
+                  onWeigh={() => setWeighFlock(f)}
+                  onClose={() => setClosingFlock(f)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+      {activeFlocks.length === 0 && !error ? (
+        <Typography variant="body2" color="text.secondary">
+          {closedFlocks.length > 0
+            ? "No active flocks. Start the next cycle from Past cycles, or add a new flock."
+            : "No flocks yet. Add a coop with its bird count, for example 1000 chickens."}
+        </Typography>
       ) : (
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small">
@@ -117,7 +166,7 @@ export default function FlockSection({ onBirdsChange }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {flocks.map((f) => {
+              {activeFlocks.map((f) => {
                 const t = todayByFlock[f.id];
                 return (
                   <TableRow key={f.id} hover>
@@ -135,6 +184,12 @@ export default function FlockSection({ onBirdsChange }) {
                     <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                       <Tooltip title="Log feed & water"><IconButton size="small" onClick={() => setLogFlock(f)}><RestaurantIcon fontSize="small" /></IconButton></Tooltip>
                       <Tooltip title="Record deaths"><IconButton size="small" onClick={() => setDeathFlock(f)}><HeartBrokenIcon fontSize="small" /></IconButton></Tooltip>
+                      {isBroiler(f) && (
+                        <>
+                          <Tooltip title="Record weighing"><IconButton size="small" onClick={() => setWeighFlock(f)}><ScaleIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="End cycle"><IconButton size="small" onClick={() => setClosingFlock(f)}><FlagIcon fontSize="small" /></IconButton></Tooltip>
+                        </>
+                      )}
                       <Tooltip title="Edit"><IconButton size="small" onClick={() => setFlockDlg({ flock: f })}><EditIcon fontSize="small" /></IconButton></Tooltip>
                       <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDelete(f)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                     </TableCell>
@@ -146,9 +201,23 @@ export default function FlockSection({ onBirdsChange }) {
         </Box>
       )}
 
+      <PastCycles
+        flocks={closedFlocks}
+        logsFor={logsFor}
+        deathsFor={deathsFor}
+        weighingsFor={weighingsFor}
+        farmCtx={farmCtx}
+        onStartNext={(f) => setFlockDlg({ template: f })}
+        onDelete={handleDelete}
+      />
+
       {flockDlg && (
         <FlockDialog
           flock={flockDlg.flock}
+          template={flockDlg.template}
+          farmCtx={farmCtx}
+          activeCoopNames={activeFlocks.filter((f) => f.id !== flockDlg.flock?.id).map((f) => f.coop_name.trim().toLowerCase())}
+          nextCycleNumber={nextCycleNumber}
           onClose={() => setFlockDlg(null)}
           onSaved={async () => { setFlockDlg(null); await load(); }}
         />
@@ -160,6 +229,23 @@ export default function FlockSection({ onBirdsChange }) {
           farmCtx={farmCtx}
           onClose={() => setDeathFlock(null)}
           onChanged={load}
+        />
+      )}
+      {weighFlock && (
+        <WeighDialog
+          flock={weighFlock}
+          weighings={weighingsFor(weighFlock.id)}
+          farmCtx={farmCtx}
+          onClose={() => setWeighFlock(null)}
+          onChanged={load}
+        />
+      )}
+      {closingFlock && (
+        <CloseCycleDialog
+          flock={flocks.find((f) => f.id === closingFlock.id) || closingFlock}
+          farmCtx={farmCtx}
+          onClose={() => setClosingFlock(null)}
+          onClosed={async () => { setClosingFlock(null); await load(); }}
         />
       )}
       {logFlock && (
@@ -176,16 +262,30 @@ export default function FlockSection({ onBirdsChange }) {
   );
 }
 
-function FlockDialog({ flock, onClose, onSaved }) {
+function FlockDialog({ flock, template, farmCtx, activeCoopNames = [], nextCycleNumber, onClose, onSaved }) {
+  const us = isUsCustomary(farmCtx);
+  const kgToInput = (kg) => (kg == null || kg === "" ? "" : us ? Math.round(kgToLb(Number(kg)) * 100) / 100 : Number(kg));
   const [form, setForm] = useState(
     flock
       ? {
           coop_name: flock.coop_name || "", species: flock.species || "Chicken", breed: flock.breed || "",
           purpose: flock.purpose || "", bird_count: flock.bird_count ?? "",
           placed_date: flock.placed_date || "", purchase_price: flock.purchase_price ?? "", notes: flock.notes || "",
+          age_at_placement_days: String(flock.age_at_placement_days ?? 0),
+          target_days: flock.target_days ?? "", target_weight: kgToInput(flock.target_weight_kg),
         }
-      : EMPTY_FLOCK
+      : template
+        // "Start next cycle": same coop, breed and targets; new birds, date and price.
+        ? {
+            ...EMPTY_FLOCK,
+            coop_name: template.coop_name, species: template.species || "Chicken", breed: template.breed || "",
+            purpose: template.purpose || "", placed_date: todayStr(),
+            age_at_placement_days: String(template.age_at_placement_days ?? 0),
+            target_days: template.target_days ?? "", target_weight: kgToInput(template.target_weight_kg),
+          }
+        : EMPTY_FLOCK
   );
+  const broiler = form.purpose.toLowerCase().startsWith("broiler");
   const [saving, setSaving] = useState(false);
   const set = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -194,6 +294,18 @@ function FlockDialog({ flock, onClose, onSaved }) {
     const count = Number(form.bird_count);
     if (!form.coop_name.trim()) return alert("Coop name is required.");
     if (!Number.isInteger(count) || count < 0) return alert("Number of birds must be a whole number, 0 or more.");
+    const ageAtPlacement = Number(form.age_at_placement_days || 0);
+    const targetDays = form.target_days === "" ? null : Number(form.target_days);
+    const targetWeight = form.target_weight === "" ? null : Number(form.target_weight);
+    if (broiler) {
+      if (!Number.isInteger(ageAtPlacement) || ageAtPlacement < 0) return alert("Age at placement must be a whole number of days, 0 or more.");
+      if (targetDays != null && (!Number.isInteger(targetDays) || targetDays <= ageAtPlacement)) {
+        return alert("Target age must be a whole number of days, greater than the age at placement.");
+      }
+      if (targetWeight != null && !(targetWeight > 0)) return alert("Target weight must be more than 0.");
+    }
+    if (!flock && activeCoopNames.includes(form.coop_name.trim().toLowerCase())
+      && !window.confirm(`"${form.coop_name.trim()}" already has an active batch. Add another one anyway?`)) return;
     setSaving(true);
     try {
       const payload = {
@@ -205,6 +317,12 @@ function FlockDialog({ flock, onClose, onSaved }) {
         placed_date: form.placed_date || null,
         purchase_price: form.purchase_price === "" ? null : Number(form.purchase_price),
         notes: form.notes.trim() || null,
+        ...(broiler ? {
+          age_at_placement_days: ageAtPlacement,
+          target_days: targetDays,
+          target_weight_kg: targetWeight == null ? null : us ? lbToKg(targetWeight) : targetWeight,
+        } : {}),
+        ...(!flock && nextCycleNumber ? { cycle_number: nextCycleNumber(form.coop_name) } : {}),
       };
       const res = flock ? await updateFlock(flock.id, payload) : await addFlock(payload);
       if (res?._financeError) alert(`Flock saved, but it was not logged in Finance: ${res._financeError}`);
@@ -218,7 +336,7 @@ function FlockDialog({ flock, onClose, onSaved }) {
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={submit}>
-        <DialogTitle>{flock ? "Edit Flock" : "Add Flock"}</DialogTitle>
+        <DialogTitle>{flock ? "Edit Flock" : template ? `Start next cycle: ${template.coop_name}` : "Add Flock"}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField required size="small" label="Coop / House name" name="coop_name" value={form.coop_name} onChange={set} placeholder="e.g. Coop 1" />
@@ -242,6 +360,22 @@ function FlockDialog({ flock, onClose, onSaved }) {
               <TextField fullWidth size="small" type="number" label="Total purchase price" name="purchase_price"
                 value={form.purchase_price} onChange={set} slotProps={{ htmlInput: { min: 0, step: "any" } }} />
             </Stack>
+            {broiler && (
+              <>
+                <Typography variant="subtitle2">Broiler cycle</Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <TextField fullWidth size="small" type="number" label="Age at placement (days)" name="age_at_placement_days"
+                    value={form.age_at_placement_days} onChange={set} slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                    helperText="0 for day-old chicks" />
+                  <TextField fullWidth size="small" type="number" label="Target slaughter age (days)" name="target_days"
+                    value={form.target_days} onChange={set} slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                    helperText="Your planned age, e.g. 35" />
+                  <TextField fullWidth size="small" type="number" label={`Target weight (${unitLabel("mass", farmCtx)})`} name="target_weight"
+                    value={form.target_weight} onChange={set} slotProps={{ htmlInput: { min: 0, step: "any" } }}
+                    helperText="Optional, per bird" />
+                </Stack>
+              </>
+            )}
             <TextField multiline rows={2} size="small" label="Notes" name="notes" value={form.notes} onChange={set} />
           </Stack>
         </DialogContent>

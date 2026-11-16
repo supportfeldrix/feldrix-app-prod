@@ -105,6 +105,42 @@ export async function syncFlockPurchaseFinanceRecord(flock) {
 }
 
 /**
+ * Income for a closed broiler cycle (sale / slaughter). Idempotent via
+ * [auto:flock-sale-{id}]: re-closing or correcting the sale updates the
+ * same record instead of adding a second one.
+ */
+export async function syncFlockSaleFinanceRecord(flock) {
+  const amount = Number(flock.sale_amount);
+  if (!amount || amount <= 0) return null;
+  const sourceRef = `[auto:flock-sale-${flock.id}]`;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const sold = Number(flock.birds_sold) || 0;
+  const fields = {
+    amount,
+    transaction_date: flock.closed_date || new Date().toISOString().split("T")[0],
+    description: `Broiler sale: ${flock.coop_name} cycle ${flock.cycle_number || 1} (${flock.breed || flock.species || "Poultry"}) ${sourceRef}`,
+    quantity: sold > 0 ? sold : null,
+    unit: sold > 0 ? "head" : null,
+  };
+  const existing = await findExistingAutoRecord(sourceRef);
+  if (existing) {
+    const { error } = await supabase.from("finance_records").update(fields).eq("id", existing.id);
+    if (error) throw new Error(`Finance record could not be updated: ${error.message}`);
+    return existing;
+  }
+  const { data, error } = await supabase
+    .from("finance_records")
+    .insert([{ user_id: user.id, category: "Income", transaction_type: "Animal Sale", applies_to: "farm", ...fields }])
+    .select()
+    .single();
+  if (error) throw new Error(`Finance record could not be created: ${error.message}`);
+  return data;
+}
+
+/**
  * Creates a finance record for a health treatment if cost > 0.
  * Skips if a finance record already exists for this health record.
  *

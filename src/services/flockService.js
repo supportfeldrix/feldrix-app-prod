@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { syncFlockPurchaseFinanceRecord } from "./autoFinanceService";
+import { syncFlockPurchaseFinanceRecord, syncFlockSaleFinanceRecord } from "./autoFinanceService";
 
 /**
  * Feldrix — Poultry Flock Service
@@ -167,4 +167,56 @@ export async function getPoultrySummary() {
     console.warn("getPoultrySummary failed:", e.message || e);
     return empty;
   }
+}
+
+/** Sample weighings (all flocks, newest first). */
+export async function getFlockWeighings() {
+  const { data, error } = await supabase
+    .from("flock_weighings")
+    .select("*")
+    .order("weigh_date", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function addFlockWeighing(entry) {
+  const user_id = await currentUserId();
+  const { error } = await supabase.from("flock_weighings").insert([{ ...entry, user_id }]);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteFlockWeighing(id) {
+  const { error } = await supabase.from("flock_weighings").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * End a broiler cycle: mark the batch Closed, store the sale, set the live
+ * bird count to 0 (the birds have left the coop) and log the income in Finance.
+ * Returns { _financeError } if the cycle closed but Finance failed.
+ */
+export async function closeFlockCycle(flock, { closed_date, birds_sold, total_weight_sold_kg, sale_amount }) {
+  if (birds_sold > flock.bird_count) {
+    throw new Error(`Only ${flock.bird_count} birds are in this batch.`);
+  }
+  const { data, error } = await supabase
+    .from("livestock_flocks")
+    .update({
+      status: "Closed",
+      closed_date,
+      birds_sold,
+      total_weight_sold_kg,
+      sale_amount,
+      bird_count: 0,
+    })
+    .eq("id", flock.id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  try {
+    await syncFlockSaleFinanceRecord(data);
+  } catch (e) {
+    return { _financeError: e.message };
+  }
+  return {};
 }

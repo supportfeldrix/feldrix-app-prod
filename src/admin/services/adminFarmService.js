@@ -31,10 +31,11 @@ export async function getFarmPoultry(farmId) {
   try {
     const { data, error } = await supabase
       .from("livestock_flocks")
-      .select("bird_count")
+      .select("bird_count, status")
       .eq("user_id", farmId);
     if (error) throw error;
-    const rows = data || [];
+    // Closed broiler cycles are history (0 birds), not active coops.
+    const rows = (data || []).filter((r) => r.status !== "Closed");
     return { birds: rows.reduce((s, r) => s + (Number(r.bird_count) || 0), 0), coops: rows.length };
   } catch {
     return { birds: 0, coops: 0 };
