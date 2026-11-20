@@ -220,3 +220,27 @@ export async function closeFlockCycle(flock, { closed_date, birds_sold, total_we
   }
   return {};
 }
+
+/** Daily egg counts for layer flocks (all flocks, newest first). */
+export async function getEggLogs() {
+  const { data, error } = await supabase
+    .from("flock_egg_logs")
+    .select("*")
+    .order("log_date", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+/** Insert or update the egg count for (flock, date). */
+export async function saveEggLog(log) {
+  const user_id = await currentUserId();
+  const { error } = await supabase
+    .from("flock_egg_logs")
+    .upsert([{ ...log, user_id }], { onConflict: "flock_id,log_date" });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteEggLog(id) {
+  const { error } = await supabase.from("flock_egg_logs").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}

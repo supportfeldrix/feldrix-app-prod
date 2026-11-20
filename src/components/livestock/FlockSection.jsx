@@ -15,6 +15,9 @@ import RestaurantIcon from "@mui/icons-material/Restaurant";
 import HeartBrokenIcon from "@mui/icons-material/HeartBroken";
 import ScaleIcon from "@mui/icons-material/Scale";
 import FlagIcon from "@mui/icons-material/Flag";
+import EggIcon from "@mui/icons-material/Egg";
+import { EggDialog, LayerCard } from "./LayerEggs";
+import { isLayer } from "../../utils/eggProduction";
 import { BroilerCycleCard, WeighDialog, CloseCycleDialog, PastCycles } from "./BroilerCycles";
 import { isBroiler, isClosed } from "../../utils/broilerCycle";
 import { PremiumDashboardSection, PremiumActionButton } from "../../design";
@@ -22,7 +25,7 @@ import {
   getFlocks, addFlock, updateFlock, deleteFlock,
   getFlockLogs, saveFlockLog, deleteFlockLog,
   getFlockMortality, addFlockMortality, deleteFlockMortality, costPerBird,
-  getFlockWeighings,
+  getFlockWeighings, getEggLogs,
 } from "../../services/flockService";
 import { formatCurrency } from "../../utils/currency";
 import {
@@ -57,17 +60,22 @@ export default function FlockSection({ onBirdsChange }) {
   const [weighings, setWeighings] = useState([]);
   const [weighFlock, setWeighFlock] = useState(null);
   const [closingFlock, setClosingFlock] = useState(null);
+  const [eggLogs, setEggLogs] = useState([]);
+  const [eggFlock, setEggFlock] = useState(null);
   const load = useCallback(async () => {
     try {
-      const [f, l, d, w] = await Promise.all([
+      const [f, l, d, w, eg] = await Promise.all([
         getFlocks(), getFlockLogs(), getFlockMortality(),
         // Fails soft until the broiler-cycle migration is applied.
         getFlockWeighings().catch(() => []),
+        // Fails soft until the egg-log migration is applied.
+        getEggLogs().catch(() => []),
       ]);
       setFlocks(f);
       setLogs(l);
       setDeaths(d);
       setWeighings(w);
+      setEggLogs(eg);
       if (onBirdsChange) onBirdsChange(f.reduce((sum, x) => sum + (x.bird_count || 0), 0));
       setError("");
     } catch (e) {
@@ -97,6 +105,11 @@ export default function FlockSection({ onBirdsChange }) {
   const logsFor = (id) => logs.filter((l) => l.flock_id === id);
   const deathsFor = (id) => deaths.filter((d) => d.flock_id === id);
   const weighingsFor = (id) => weighings.filter((w) => w.flock_id === id);
+  const eggLogsFor = (id) => eggLogs.filter((e) => e.flock_id === id);
+  const activeLayers = activeFlocks.filter(isLayer);
+  const eggsToday = eggLogs
+    .filter((e) => e.log_date === today && activeLayers.some((f) => f.id === e.flock_id))
+    .reduce((sum, e) => sum + (Number(e.eggs_collected) || 0), 0);
   // Next batch number for a coop = highest cycle_number with that name + 1.
   const nextCycleNumber = (coopName) =>
     1 + Math.max(0, ...flocks
@@ -105,14 +118,14 @@ export default function FlockSection({ onBirdsChange }) {
 
   async function handleDelete(f) {
     const what = isClosed(f) ? `cycle ${f.cycle_number || 1} of "${f.coop_name}"` : `"${f.coop_name}"`;
-    if (!window.confirm(`Delete ${what} with all its feed, water, death and weighing records? Finance entries are kept.`)) return;
+    if (!window.confirm(`Delete ${what} with all its feed, water, egg, death and weighing records? Finance entries are kept.`)) return;
     try { await deleteFlock(f.id); await load(); } catch (e) { alert(e.message); }
   }
 
   return (
     <PremiumDashboardSection
       title="Poultry Flocks"
-      description={`${activeFlocks.length} active coops, ${totalBirds.toLocaleString()} birds. Add a whole coop at once and log daily feed and water.`}
+      description={`${activeFlocks.length} active coops, ${totalBirds.toLocaleString()} birds${activeLayers.length > 0 ? `, ${eggsToday.toLocaleString()} eggs today` : ""}. Add a whole coop at once and log daily feed and water.`}
     >
       <Stack direction="row" sx={{ mb: 2 }}>
         <PremiumActionButton
@@ -124,9 +137,12 @@ export default function FlockSection({ onBirdsChange }) {
         />
       </Stack>
       {error && <Typography color="error" variant="body2" sx={{ mb: 1 }}>{error}</Typography>}
-      {activeBroilers.length > 0 && (
+      {(activeBroilers.length > 0 || activeLayers.length > 0) && (
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>Broiler cycles</Typography>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            {activeBroilers.length > 0 && activeLayers.length > 0 ? "Broiler cycles & egg production"
+              : activeBroilers.length > 0 ? "Broiler cycles" : "Egg production"}
+          </Typography>
           <Grid container spacing={2}>
             {activeBroilers.map((f) => (
               <Grid key={f.id} size={{ xs: 12, md: 6, lg: 4 }}>
@@ -138,6 +154,19 @@ export default function FlockSection({ onBirdsChange }) {
                   farmCtx={farmCtx}
                   onWeigh={() => setWeighFlock(f)}
                   onClose={() => setClosingFlock(f)}
+                />
+              </Grid>
+            ))}
+            {activeLayers.map((f) => (
+              <Grid key={f.id} size={{ xs: 12, md: 6, lg: 4 }}>
+                <LayerCard
+                  flock={f}
+                  eggLogs={eggLogsFor(f.id)}
+                  feedLogs={logsFor(f.id)}
+                  deaths={deathsFor(f.id)}
+                  farmCtx={farmCtx}
+                  onCountEggs={() => setEggFlock(f)}
+                  onLogFeed={() => setLogFlock(f)}
                 />
               </Grid>
             ))}
@@ -162,6 +191,7 @@ export default function FlockSection({ onBirdsChange }) {
                 <TableCell align="right">Loss value</TableCell>
                 <TableCell align="right">Feed today</TableCell>
                 <TableCell align="right">Water today</TableCell>
+                {activeLayers.length > 0 && <TableCell align="right">Eggs today</TableCell>}
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -181,9 +211,19 @@ export default function FlockSection({ onBirdsChange }) {
                     </TableCell>
                     <TableCell align="right">{t ? formatMass(t.feed_kg, farmCtx) : "\u2014"}</TableCell>
                     <TableCell align="right">{t ? formatVolume(t.water_l, farmCtx) : "\u2014"}</TableCell>
+                    {activeLayers.length > 0 && (
+                      <TableCell align="right">
+                        {isLayer(f)
+                          ? (eggLogsFor(f.id).find((e) => e.log_date === today)?.eggs_collected ?? "\u2014").toLocaleString()
+                          : ""}
+                      </TableCell>
+                    )}
                     <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
                       <Tooltip title="Log feed & water"><IconButton size="small" onClick={() => setLogFlock(f)}><RestaurantIcon fontSize="small" /></IconButton></Tooltip>
                       <Tooltip title="Record deaths"><IconButton size="small" onClick={() => setDeathFlock(f)}><HeartBrokenIcon fontSize="small" /></IconButton></Tooltip>
+                      {isLayer(f) && (
+                        <Tooltip title="Egg count"><IconButton size="small" onClick={() => setEggFlock(f)}><EggIcon fontSize="small" /></IconButton></Tooltip>
+                      )}
                       {isBroiler(f) && (
                         <>
                           <Tooltip title="Record weighing"><IconButton size="small" onClick={() => setWeighFlock(f)}><ScaleIcon fontSize="small" /></IconButton></Tooltip>
@@ -228,6 +268,14 @@ export default function FlockSection({ onBirdsChange }) {
           deaths={deaths.filter((d) => d.flock_id === deathFlock.id)}
           farmCtx={farmCtx}
           onClose={() => setDeathFlock(null)}
+          onChanged={load}
+        />
+      )}
+      {eggFlock && (
+        <EggDialog
+          flock={flocks.find((f) => f.id === eggFlock.id) || eggFlock}
+          eggLogs={eggLogsFor(eggFlock.id)}
+          onClose={() => setEggFlock(null)}
           onChanged={load}
         />
       )}
